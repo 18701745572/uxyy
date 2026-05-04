@@ -11,7 +11,7 @@ dotenv.config({ path: join(__dirname, '../.env') });
 describe('App (e2e)', () => {
   let app: INestApplication;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -29,7 +29,21 @@ describe('App (e2e)', () => {
         expect(res.body.status).toBe('ok');
       }));
 
-  afterEach(async () => {
+  it.each([
+    ['/api/v1/crm/ping', 'crm'],
+    ['/api/v1/inventory/ping', 'inventory'],
+    ['/api/v1/finance/ping', 'finance'],
+  ] as const)('GET %s', (path, mod) =>
+    request(app.getHttpServer())
+      .get(path)
+      .expect(200)
+      .expect((res: { body: { ok: boolean; module: string } }) => {
+        expect(res.body.ok).toBe(true);
+        expect(res.body.module).toBe(mod);
+      }),
+  );
+
+  afterAll(async () => {
     await app.close();
   });
 });

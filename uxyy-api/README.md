@@ -34,7 +34,7 @@ $ pnpm install
 ## 数据库（Drizzle · Phase 0）
 
 1. **Docker Compose**：在 **Monorepo 根目录** 执行 **`docker compose up -d`**（**Postgres + Redis**；BullMQ 依赖 Redis）。
-2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`；填入 **`JWT_ACCESS_SECRET`**（及可选 **`AUTH_DEV_BYPASS`**，仅本地，见下文 Phase 0 表）。
+2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`（可选填入 **`JWT_ACCESS_SECRET`**——未设置时在非 production 环境会使用与示例相同的占位密钥；**生产务必使用强随机值**）；可选 **`AUTH_DEV_BYPASS`**，仅本地，见下文 Phase 0 表。未设置 **`REDIS_URL`** 时默认连接本机 `redis://127.0.0.1:6379`（请先 **`docker compose up -d`** 起 Redis）。
 3. 将 migration 应用到数据库：
    ```bash
    cd uxyy-api && pnpm run db:migrate
@@ -58,6 +58,9 @@ Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表
 | 登录 | **`POST /api/v1/auth/login`**，body 示例：`{"phone":"13800138000","password":"Dev12345!"}`（需先 **`db:seed`**） |
 | 个人信息 | **`GET /api/v1/auth/profile`**，Header：`Authorization: Bearer <jwt>` |
 | AI 占位 | **`GET /api/v1/ai/ping`** 公开；**`GET /api/v1/ai/queue/stats`** 需 Bearer（读取 BullMQ 队列计数） |
+| CRM 占位 | **`GET /api/v1/crm/ping`** 公开（演进为业务接口时按需加鉴权） |
+| 进销存占位 | **`GET /api/v1/inventory/ping`** 公开 |
+| 财务占位 | **`GET /api/v1/finance/ping`** 公开 |
 
 **鉴权规则（并行开发约定）：**
 
