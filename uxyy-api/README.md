@@ -69,6 +69,10 @@ Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表
 
 ## Compile and run the project
 
+**Monorepo 推荐（与 Next 同时开发）**：在 **仓库根** 先 **`docker compose up -d`**，再 **`pnpm dev`**。此时 API 已监听默认 **3000**，**勿**再在 **`uxyy-api`** 里执行 **`pnpm run start:dev`**，否则 **`EADDRINUSE`**；说明见根 **[README.md](../README.md)** 与 **[多智能体并行开发指南.md](../多智能体并行开发指南.md) §2.5**。
+
+**仅本包（`uxyy-api` 目录）**：
+
 ```bash
 # development
 $ pnpm run start
@@ -79,6 +83,8 @@ $ pnpm run start:dev
 # production mode
 $ pnpm run start:prod
 ```
+
+默认端口见 **`main.ts`**（`process.env.PORT ?? 3000`），可在 **`.env`** 中设置 **`PORT`**。
 
 ## Run tests
 
