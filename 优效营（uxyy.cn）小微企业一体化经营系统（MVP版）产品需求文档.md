@@ -28,7 +28,7 @@
     └─ 餐饮供应链插件（V2阶段）：保质期管理、批次追踪、效期预警
 ```
 
-**技术底座**：Next.js 14（App Router）+ Neon Serverless Postgres + Drizzle ORM + Tailwind CSS，支持全栈同仓开发、极速部署、弹性扩展。
+**技术底座**：Next.js 14（App Router）+ **NestJS（REST，`/api/v1`）** + **Passport JWT**（`@nestjs/passport` + `passport-jwt`，Access / Refresh Token）+ Neon Serverless Postgres + Drizzle ORM + Tailwind CSS + **pnpm workspaces + Turborepo** Monorepo + Redis + **BullMQ**（异步任务），支撑多智能体同仓并行、契约对齐与弹性扩展。
 
 ### 1.2 目标用户与画像
 
@@ -471,25 +471,28 @@
 
 * 行业扩展：支持快速新增垂直行业模板（如后续新增跨境电商行业），新增模板可通过 [uxyy.cn](https://uxyy.cn) 后台一键启用。
 
-## 五、技术实现要求（基于 Next.js 技术栈）
+## 五、技术实现要求（Next.js + NestJS 全栈 Monorepo）
 
 ### 5.1 技术栈明细
 
-**架构模式**：前后端分离，后端提供 RESTful API，支持 CORS 跨域访问，前端独立部署。
+**架构模式**：前后端分离、**同仓库 pnpm Monorepo（Turborepo 编排）**；后端提供 RESTful API（`/api/v1/*`），支持 CORS；前后端可独立构建与部署。
 
 | 技术层面 | 选型方案 | 核心优势 |
 |---------|---------|---------|
+| **Monorepo** | pnpm workspaces + Turborepo | 共享 `@uxyy/shared` 契约包；统一 lint/typecheck/test；适合多 Agent 并行 |
 | **前端框架** | Next.js 14（App Router） | SSR/SSG 提升首屏加载性能，支持静态导出部署至 CDN |
-| **前端状态管理** | React Query + Zustand | 服务端状态缓存、客户端全局状态管理，API 请求统一封装 |
+| **前端状态管理** | TanStack Query + Zustand | 服务端状态缓存、客户端全局状态管理，API 请求统一封装 |
 | **前端样式** | Tailwind CSS + Shadcn/ui | 开发高效、UI 一致性强、响应式适配 |
 | **前端部署** | Vercel / 腾讯云 COS | CDN 加速、全球访问、独立迭代前端版本 |
-| **后端框架** | Node.js + Express / NestJS | 成熟的 RESTful API 生态，中间件丰富，CORS 配置灵活 |
+| **后端框架** | **NestJS** + TypeScript | 模块化、`@Module` 对齐智能体边界；内置 DI；与 Swagger、Passport 集成成熟 |
 | **数据库** | Neon Serverless Postgres | 零运维、自动扩缩容、数据库分支支持开发 / 测试 / 生产隔离 |
 | **ORM 工具** | Drizzle ORM | 类型安全、查询高效、迁移便捷，适配 Neon 特性 |
-| **缓存** | Redis (Upstash) | 高频数据缓存、Session 存储、限流计数 |
-| **认证授权** | JWT (jsonwebtoken) | 无状态认证，前后端解耦，支持多端登录 |
-| **API 文档** | Swagger / OpenAPI | 自动生成接口文档，便于前后端协作与第三方对接 |
-| **后端部署** | Vercel Functions / 阿里云函数计算 | Serverless 弹性扩缩容，按量付费 |
+| **缓存** | Redis (Upstash) | 高频数据缓存、Session 辅助、限流计数、JWT 黑名单等 |
+| **异步任务队列** | **BullMQ**（Redis） | 导入导出、报表、AI/OCR 异步管线，削峰填谷 |
+| **认证授权** | **Passport JWT**（`@nestjs/passport` + `passport-jwt` + `@nestjs/jwt` 签发） | Access / Refresh；Guards 保护路由；与 Redis 协同刷新与登出失效 |
+| **API 文档** | **@nestjs/swagger** + OpenAPI YAML（`docs/api` 定版） | 自动生成 Swagger UI；YAML 可作为契约里程碑 |
+| **契约 / 校验** | **Zod（`@uxyy/shared`）** + Nest `class-validator` | DTO / Zod / 文档三位一体，减少并行开发漂移 |
+| **后端部署** | 云主机 Docker / Serverless（按阶段选型） | 与 Neon、Redis、队列 Worker 拓扑一致即可 |
 | **AI 视觉识别** | 阿里云通义千问 Qwen3-VL-Plus | 发票OCR识别（支持高分辨率文档、多模态理解） |
 | **AI 文本推理** | DeepSeek V4-Flash / V4-Pro | 智能凭证生成、经营分析、规则推理（开源、高性价比） |
 
@@ -525,7 +528,7 @@
 │                        后端服务层                             │
 │  ┌─────────────┐  ┌────────┴────────┐  ┌─────────────────┐  │
 │  │  认证服务    │  │   业务 API 服务   │  │    AI 服务       │  │
-│  │  (JWT)      │  │  (Express/NestJS)│  │  (OCR/规则引擎)  │  │
+│  │ Passport JWT │  │     (NestJS)      │  │  (OCR/规则引擎)  │  │
 │  └─────────────┘  └────────┬────────┘  └─────────────────┘  │
 │                            │                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
@@ -548,9 +551,9 @@
 
 **核心设计要点**：
 
-* **前后端分离**：前端（Next.js）与后端（Express/NestJS）为独立项目，各自拥有独立的代码仓库、构建流程和部署流水线；
+* **同仓 Monorepo**：前端（`uxyy-web` / `@uxyy/web`）与后端（`uxyy-api` / `@uxyy/api`）、共享包（`uxyy-shared` / `@uxyy/shared`）位于**同一 Git 仓库**；使用 **pnpm + Turborepo** 编排脚本，**构建与 CI 可分端执行，部署仍可前后端分离**；
 
-* **统一 API 规范**：后端提供 RESTful API，遵循 JSON 数据格式，接口版本控制（如 `/api/v1/orders`），Swagger 自动生成文档；
+* **统一 API 规范**：后端提供 RESTful API，遵循 JSON 数据格式，接口版本控制（如 `/api/v1/orders`）；**Swagger 由 Nest `@nestjs/swagger` 生成**，并与 `docs/api` 定版 YAML、**`@uxyy/shared` Zod** 对齐；
 
 * **CORS 跨域支持**：后端统一配置 CORS 白名单，允许以下来源访问：
   * 生产环境：`https://uxyy.cn`、`https://app.uxyy.cn`
@@ -558,11 +561,7 @@
   * 本地开发：`http://localhost:3000`、`http://localhost:5173`
   * 预发环境：`https://staging.uxyy.cn`
 
-* **认证机制**：采用 JWT（Access Token + Refresh Token）无状态认证：
-  * 登录成功后后端返回 JWT，前端存储于 localStorage（Web）或小程序 Storage；
-  * 每次请求通过 `Authorization: Bearer <token>` 头部携带；
-  * Token 过期后使用 Refresh Token 静默续期；
-  * 后端通过 Redis 存储 Token 黑名单，支持登出失效；
+* **认证机制**：采用 **Passport JWT**（Access Token + Refresh Token）：`passport-jwt` + `JwtStrategy` 校验 Access Token；`AuthGuard('jwt')` 保护业务路由；**`@nestjs/jwt` 负责签发**；请求头 `Authorization: Bearer <accessToken>`；Refresh 流程由独立端点实现；**Redis** 存 Token 黑名单 / 刷新旋转等策略，支持登出即时失效；
 
 * **数据模型设计**：按领域划分 Schema（客户、商品、订单、财务），使用 Drizzle ORM 定义类型安全的数据模型，保障 [uxyy.cn](https://uxyy.cn) 数据一致性；
 
@@ -570,7 +569,7 @@
 
 * **缓存策略**：使用 Redis 缓存高频访问数据（如商品信息、客户列表、用户权限），减少数据库压力，提升 [uxyy.cn](https://uxyy.cn) 响应速度；
 
-* **异步任务**：使用 Vercel Cron Jobs 或 node-cron 处理定时任务（如数据备份、预警提醒、报表生成），确保 [uxyy.cn](https://uxyy.cn) 核心功能自动化运行。
+* **异步任务**：**BullMQ** Worker 处理导入导出、大批量报表、AI/OCR 流水线等长任务；备份、轻量定时任务可辅以 Vercel Cron / `node-cron`（按部署拓扑选型），避免阻塞 [uxyy.cn](https://uxyy.cn) HTTP 主链路。
 
 ### 5.3 API 设计规范
 
@@ -608,86 +607,92 @@
 }
 ```
 
-**CORS 配置示例（Express）**：
+**CORS 配置示例（NestJS `main.ts`，与部署环境变量对齐）：**
 
-```javascript
-import cors from 'cors';
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
 const allowedOrigins = [
   'https://uxyy.cn',
   'https://app.uxyy.cn',
   'https://staging.uxyy.cn',
   'http://localhost:3000',
-  'http://localhost:5173'
+  'http://localhost:5173',
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('不允许的跨域来源'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-  credentials: true,
-  maxAge: 86400
-}));
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: (origin, cb) =>
+      !origin || allowedOrigins.includes(origin)
+        ? cb(null, true)
+        : cb(new Error('不允许的跨域来源'), false),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+    credentials: true,
+    maxAge: 86400,
+  });
+  await app.listen(process.env.PORT ?? 3001);
+}
+bootstrap();
 ```
 
 ### 5.4 开发规范
 
-**项目结构（前后端分离）**：
+**项目结构（pnpm Monorepo + Turborepo，前后端同仓）：**
 
 ```
-uxyy/
-├── uxyy-web/                 # 前端项目（Next.js）
+uxyy/                          # 根：pnpm-workspace.yaml、turbo.json、根 package.json
+├── uxyy-web/                  # 前端（@uxyy/web，Next.js 14）
 │   ├── src/
-│   │   ├── api/             # API 请求封装（axios + React Query）
-│   │   ├── app/             # Next.js App Router 页面
-│   │   ├── components/      # 公共组件
-│   │   ├── hooks/           # 自定义 Hooks
-│   │   ├── stores/          # Zustand 状态管理
-│   │   └── types/           # TypeScript 类型定义
-│   ├── .env.development     # 开发环境配置（API_BASE_URL=http://localhost:3001）
-│   ├── .env.production      # 生产环境配置（API_BASE_URL=https://api.uxyy.cn）
+│   │   ├── api/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── stores/
+│   │   └── types/
+│   ├── .env.development
+│   ├── .env.production
 │   └── package.json
 │
-├── uxyy-api/                 # 后端项目（Express/NestJS）
+├── uxyy-api/                  # 后端（@uxyy/api，NestJS）
 │   ├── src/
-│   │   ├── controllers/     # 控制器（路由处理）
-│   │   ├── services/        # 业务逻辑层
-│   │   ├── models/          # 数据模型（Drizzle ORM）
-│   │   ├── middlewares/     # 中间件（认证、CORS、限流、日志）
-│   │   ├── routes/          # 路由定义
-│   │   ├── utils/           # 工具函数
-│   │   └── types/           # TypeScript 类型定义
-│   ├── drizzle/             # 数据库迁移文件
-│   ├── tests/               # 单元测试
+│   │   ├── modules/
+│   │   │   ├── auth/           # Passport JWT、用户与会话策略
+│   │   │   ├── crm/
+│   │   │   ├── inventory/
+│   │   │   ├── finance/
+│   │   │   └── ai/
+│   │   ├── db/                 # Drizzle schema / 数据源封装
+│   │   └── main.ts
+│   ├── drizzle/
+│   ├── test/
 │   └── package.json
 │
-└── uxyy-shared/              # 共享包（可选）
-    ├── types/               # 前后端共享的 TypeScript 类型
-    └── constants/           # 共享常量（如分页大小、状态枚举）
+└── uxyy-shared/                # （@uxyy/shared：Zod、常量、推导类型）
+    ├── src/schemas/
+    ├── src/types/
+    ├── src/constants/
+    └── package.json
 ```
 
 **代码规范**：
 
 * 使用 ESLint + Prettier 强制代码风格，TypeScript 严格模式确保类型安全，保障 [uxyy.cn](https://uxyy.cn) 代码质量；
 * 前端 API 请求统一封装，自动处理 Token 续期、错误提示、Loading 状态；
-* 后端接口遵循 RESTful 规范，参数校验使用 Zod / Joi，返回统一响应格式。
+* 后端接口遵循 RESTful 规范，参数校验使用 **class-validator（DTO）+ `@uxyy/shared` Zod**（按层选用并保持字段一致），返回统一响应格式。
 
 **版本控制**：
 
-* 采用 Git Flow 工作流，前后端各自独立仓库；
+* 采用 Git Flow 工作流，**前后端与 `uxyy-shared` 同仓**；分支命名全局统一；
 * 前端分支：`main`（生产）、`develop`（开发）、`feature/*`（功能）、`hotfix/*`（紧急修复）；
 * 后端分支：与前端保持一致，版本号同步（如 v1.0.0）。
 
 **测试要求**：
 
 * 前端：核心页面编写组件测试（React Testing Library），API 请求编写 Mock 测试；
-* 后端：核心接口编写单元测试（Jest + Supertest），测试覆盖率≥60%；
+* 后端：核心接口单元测试（**Jest** + **Supertest**，通过 `@nestjs/testing` 引导应用），测试覆盖率≥60%；
 * 接口契约：前后端通过 Swagger 文档对齐，变更时同步更新。
 
 **文档要求**：
@@ -731,7 +736,7 @@ uxyy/
 
 | 阶段         | 时间        | 核心任务                                                                                                               | 产出物                                                                             |
 | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| 需求确认与架构设计  | 第 1-2 周   | 1. 最终确认需求细节；2. 设计数据库模型；3. 搭建 Next.js 项目框架（适配 [uxyy.cn](https://uxyy.cn) 域名）；4. 完成技术选型验证；5. AI模型接入验证（通义千问OCR + DeepSeek推理） | 1. 需求确认文档；2. 数据库 Schema；3. 项目初始化模板（含 [uxyy.cn](https://uxyy.cn) 域名配置）；4. 技术验证报告；5. AI接口测试报告 |
+| 需求确认与架构设计  | 第 1-2 周   | 1. 最终确认需求细节；2. 设计数据库模型；3. 搭建 Monorepo（pnpm/Turborepo + NestJS + Passport JWT + Next.js，适配 [uxyy.cn](https://uxyy.cn)）；4. 完成 Drizzle + Neon / Redis / BullMQ 等技术验证；5. AI模型接入验证（通义千问OCR + DeepSeek推理） | 1. 需求确认文档；2. 数据库 Schema；3. 项目初始化模板（含 [uxyy.cn](https://uxyy.cn) 域名配置）；4. 技术验证报告；5. AI接口测试报告 |
 | 核心功能开发（P0） | 第 3-7 周   | 1. 基础能力层开发（认证、权限、备份，关联 [uxyy.cn](https://uxyy.cn) 账号体系）；2. CRM + 进销存核心流程开发；3. 财务模块核心功能开发；4. AI 基础能力集成（通义千问OCR发票识别、DeepSeek智能记账） | 1. 可运行的核心功能版本；2. 单元测试用例；3. 开发日志；4. [uxyy.cn](https://uxyy.cn) 测试环境部署            |
 | 功能完善与测试    | 第 8-10 周  | 1. OA 模块开发；2. 垂直行业模板适配；3. 第三方接口对接（支付、税务，关联 [uxyy.cn](https://uxyy.cn) 配置）；4. 系统测试与 BUG 修复                          | 1. 完整 MVP 版本；2. 测试报告；3. BUG 修复清单；4. [uxyy.cn](https://uxyy.cn) 预发布环境部署          |
 | 种子用户验证与上线  | 第 11-12 周 | 1. 招募 10-20 家种子用户试用（通过 [uxyy.cn](https://uxyy.cn) 注册）；2. 收集反馈并迭代优化；3. 部署 [uxyy.cn](https://uxyy.cn) 正式环境；4. 准备上线文档 | 1. 种子用户反馈报告；2. 正式上线版本（[uxyy.cn](https://uxyy.cn) 可访问）；3. 操作手册；4. 上线报告           |
@@ -2177,7 +2182,7 @@ GET /api/v1/expenses?page=1&pageSize=20&status=pending
 
 | 智能体代号 | 负责模块 | Git分支 | 核心职责 | 依赖模块 |
 |-----------|---------|---------|---------|---------|
-| **Agent-Auth** | 用户认证与权限 | `feature/auth-system` | 用户注册/登录/JWT/角色权限 | 无（基础层） |
+| **Agent-Auth** | 用户认证与权限 | `feature/auth-system` | 注册 / 登录 /**Passport JWT** / RBAC | 无（基础层） |
 | **Agent-CRM** | CRM客户管理 | `feature/crm-module` | 客户档案/跟进记录/商机管理 | Agent-Auth |
 | **Agent-Inventory** | 进销存核心 | `feature/inventory-module` | 商品/采购/销售/库存管理 | Agent-Auth, Agent-CRM |
 | **Agent-Finance** | 财务模块 | `feature/finance-module` | 发票/凭证/应收应付/报表 | Agent-Auth, Agent-Inventory |
@@ -2382,7 +2387,7 @@ feature/frontend-ui      ← Agent-Frontend
 
 ### 12.1 Agent-Auth：用户认证与权限
 
-**负责范围**：用户注册/登录/JWT认证/角色权限/企业切换
+**负责范围**：用户注册/登录/**Passport JWT** 认证 / 角色权限 / 企业切换
 
 **开发周期**：第1-3周
 
@@ -2390,13 +2395,13 @@ feature/frontend-ui      ← Agent-Frontend
 
 | 序号 | 任务 | 优先级 | 验收标准 | 依赖 |
 |------|------|--------|---------|------|
-| 1 | 搭建项目脚手架（Express + Drizzle + TypeScript） | P0 | 项目可运行，TypeScript编译通过 | 无 |
+| 1 | 搭建后端脚手架（**NestJS** + Drizzle + **Passport JWT** + **`@uxyy/shared` workspace**） | P0 | 根目录 pnpm/Turbo 可跑通，`nest start` 与迁移可用 | 无 |
 | 2 | 设计users/enterprises/roles表Schema | P0 | Migration文件通过，表结构正确 | 无 |
 | 3 | 实现用户注册API（POST /api/v1/auth/register） | P0 | 可创建用户+企业，返回JWT | 任务2 |
 | 4 | 实现用户登录API（POST /api/v1/auth/login） | P0 | 验证密码，返回Access+Refresh Token | 任务3 |
 | 5 | 实现Token刷新API（POST /api/v1/auth/refresh） | P0 | Refresh Token可换取新Access Token | 任务4 |
-| 6 | 实现JWT认证中间件 | P0 | 保护路由，解析token，注入用户信息 | 任务4 |
-| 7 | 实现角色权限校验中间件 | P0 | 按角色限制接口访问，返回403 | 任务6 |
+| 6 | 实现 **JwtStrategy + JwtAuthGuard** | P0 | 保护路由，解析 Access Token，注入用户 | 任务4 |
+| 7 | 实现 **RBAC Guards / 权限装饰器** | P0 | 按角色限制接口访问，返回403 | 任务6 |
 | 8 | 实现企业切换API | P1 | 用户可切换当前操作的企业 | 任务2 |
 | 9 | 实现用户资料管理API | P1 | 查询/修改用户昵称、头像 | 任务3 |
 | 10 | 编写单元测试（覆盖率≥60%） | P0 | Jest测试通过，覆盖核心逻辑 | 全部 |
@@ -2537,7 +2542,7 @@ feature/frontend-ui      ← Agent-Frontend
 |------|------|--------|---------|------|
 | 1 | 搭建Next.js项目脚手架 | P0 | App Router配置，TypeScript严格模式 | 无 |
 | 2 | 配置Tailwind CSS + Shadcn/ui | P0 | UI组件库可用，主题色配置 | 任务1 |
-| 3 | 配置React Query + Zustand | P0 | 状态管理框架可用 | 任务1 |
+| 3 | 配置 TanStack Query（React Query）+ Zustand | P0 | 状态管理框架可用 | 任务1 |
 | 4 | 实现登录/注册页面 | P0 | 表单校验，JWT存储 | Agent-Auth任务3/4 |
 | 5 | 实现企业切换/用户资料页面 | P1 | 多企业切换UI | Agent-Auth任务7/8 |
 | 6 | 实现客户管理页面（列表/详情/编辑） | P0 | CRUD操作，分页筛选 | Agent-CRM任务2/3 |
@@ -2875,24 +2880,27 @@ jobs:
 ## 🎯 项目概述
 
 优效营是专为小微企业打造的「财务 + 进销存」一体化经营系统。
-技术栈：Next.js 14 + Express/NestJS + PostgreSQL + Drizzle ORM。
+**技术栈**：Next.js 14 + **NestJS** + **Passport JWT** + Neon Postgres + Drizzle ORM + **pnpm / Turborepo Monorepo** + Redis + **BullMQ**。
 
 ## 🏗️ 架构规范
 
 ### 技术栈约束
 - **前端**：Next.js 14（App Router），TypeScript 严格模式
-- **后端**：Express.js，RESTful API，/api/v1/ 前缀
-- **数据库**：PostgreSQL，Drizzle ORM 管理 Schema
-- **缓存**：Redis（Upstash）
+- **后端**：**NestJS**，RESTful API，`/api/v1/` 前缀；**`@nestjs/swagger`**
+- **认证**：**Passport JWT**（`@nestjs/passport` + `passport-jwt` + `@nestjs/jwt` 签发）
+- **数据库**：PostgreSQL（Neon），Drizzle ORM + drizzle-kit
+- **缓存 / 队列**：Redis；BullMQ 承担异步任务
+- **共享契约**：`uxyy-shared`（`@uxyy/shared`）内 **Zod** + 类型导出
 - **AI**：通义千问 Qwen3-VL（OCR）+ DeepSeek V4（推理）
 
 ### 项目结构
 ```
 uxyy/
-├── uxyy-web/          # 前端项目（Next.js）
-├── uxyy-api/          # 后端项目（Express）
-├── uxyy-shared/       # 共享类型和常量
-└── docker-compose.yml # 本地开发环境
+├── package.json / pnpm-workspace.yaml / turbo.json
+├── uxyy-web/          # 前端（@uxyy/web）
+├── uxyy-api/          # 后端（@uxyy/api，NestJS）
+├── uxyy-shared/       # 共享包（@uxyy/shared）
+└── docker-compose.yml # 本地开发环境（Postgres / Redis）
 ```
 
 ## 📝 编码规范
@@ -2914,6 +2922,7 @@ uxyy/
   - 404：资源不存在
   - 500：服务器内部错误
 - 路由命名使用 kebab-case：`/api/v1/sales-orders`
+- 鉴权：`@UseGuards(AuthGuard('jwt'))`（或封装后的应用级 Guard）
 
 ### 数据库
 - 表名使用 snake_case，复数形式
@@ -2925,24 +2934,24 @@ uxyy/
 ## 🧪 测试规范
 
 ### 单元测试
-- 使用 Jest + Supertest（后端）/ React Testing Library（前端）
+- 后端：**Jest** + **Supertest**（配合 `@nestjs/testing` 挂载 Nest 应用）；前端：React Testing Library
 - 测试文件命名：`*.test.ts` 或 `*.spec.ts`
 - 覆盖率要求：核心业务逻辑≥60%
 - 使用 table-driven tests 测试多场景
 
 ### 测试示例
 ```typescript
-// 后端 API 测试
+// 后端（Nest）：使用 app.getHttpServer() 转发给 supertest
 describe('POST /api/v1/auth/register', () => {
   it('should create user and return tokens', async () => {
-    const res = await request(app)
+    const res = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
         phone: '13800138000',
         password: 'password123',
-        enterpriseName: '测试企业'
+        enterpriseName: '测试企业',
       });
-    
+
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveProperty('accessToken');
   });
@@ -2952,9 +2961,9 @@ describe('POST /api/v1/auth/register', () => {
 ## 🔐 安全规范
 
 - 密码使用 BCrypt 加密（saltRounds: 10）
-- JWT Token 有效期：Access Token 15分钟，Refresh Token 7天
+- **Passport JWT**：Access / Refresh 有效期按 PRD；Redis 黑名单 / 轮换策略按需实现
 - 敏感操作（删除、修改价格）需二次验证
-- 禁止在日志中输出密码、Token 等敏感信息
+- 禁止在日志中输出密码、完整 Token 等敏感信息
 - 所有 API 必须校验 enterprise_id，防止越权访问
 
 ## 🤖 多智能体协作规则
@@ -2988,14 +2997,14 @@ feat(auth): 实现用户注册接口
 
 - 添加手机号验证码校验
 - 集成 BCrypt 密码加密
-- 返回 JWT Token
+- Passport JWT 颁发 Access/Refresh
 
 Closes #123
 ```
 
 ### 接口契约变更流程
 1. 在 PR 描述中标记「接口契约变更」
-2. 更新 Swagger 文档
+2. 更新 **@nestjs/swagger** 与 `docs/api` YAML、**@uxyy/shared Zod**
 3. 通知所有相关智能体
 4. 架构师审批后方可合并
 
@@ -3046,11 +3055,11 @@ Closes #123
       }
     }
   },
-  "postCreateCommand": "npm install && npm run setup:dev && npx drizzle-kit migrate",
+  "postCreateCommand": "corepack enable && pnpm install && pnpm run setup:dev && pnpm --filter @uxyy/api exec drizzle-kit migrate",
   "forwardPorts": [3000, 3001, 5432, 6379],
   "portsAttributes": {
     "3000": { "label": "前端服务 (Next.js)" },
-    "3001": { "label": "后端API (Express)" },
+    "3001": { "label": "后端 API (NestJS)" },
     "5432": { "label": "PostgreSQL" },
     "6379": { "label": "Redis" }
   },
@@ -3195,21 +3204,24 @@ volumes:
   redis_data:
 ```
 
-**生产环境 Dockerfile（后端）**：
+**生产环境 Dockerfile（NestJS / `uxyy-api`，Monorepo 下请与根目录 pnpm 构建或 CI 对齐产物路径）：**
 
 ```dockerfile
-# uxyy-api/Dockerfile
+# uxyy-api/Dockerfile（示意：pnpm + nest build）
 FROM node:20-alpine AS builder
-
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+RUN corepack enable && corepack prepare pnpm@latest --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm fetch
+COPY . .
+RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM node:20-alpine
-
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY --from=builder /app/node_modules ./node_modules
-COPY . .
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
 
 EXPOSE 3001
 
@@ -3846,32 +3858,38 @@ import { Plus, Trash2, Edit, Search, Filter } from "lucide-react";
 #### 20.3.1 后端使用规范
 
 ```typescript
-// 抛出业务异常
+// 抛出业务异常（可继承 HttpException 或项目内 BusinessException）
 throw new BusinessException('2-004-3', '库存不足', {
   productId: 1001,
   productName: '螺丝刀套装',
   currentStock: 5,
-  requiredStock: 20
+  requiredStock: 20,
 });
 
-// 全局异常处理
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof BusinessException) {
-    return res.status(err.httpStatus).json({
-      code: err.code,
-      message: err.message,
-      data: err.data
+// 全局异常过滤器（NestJS，节选）
+import { Catch, ExceptionFilter, ArgumentsHost } from '@nestjs/common';
+
+@Catch()
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(err: unknown, host: ArgumentsHost) {
+    const res = host.switchToHttp().getResponse();
+
+    if (err instanceof BusinessException) {
+      return res.status(err.httpStatus).json({
+        code: err.code,
+        message: err.message,
+        data: err.data,
+      });
+    }
+
+    logger.error('Unexpected error', err);
+    return res.status(500).json({
+      code: '1-001-1',
+      message: '系统内部错误',
+      data: null,
     });
   }
-  
-  // 未预期的错误
-  logger.error('Unexpected error', err);
-  return res.status(500).json({
-    code: '1-001-1',
-    message: '系统内部错误',
-    data: null
-  });
-});
+}
 ```
 
 #### 20.3.2 前端处理规范

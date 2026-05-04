@@ -1,0 +1,4 @@
+packages:
+  - 'uxyy-web'
+  - 'uxyy-api'
+  - 'uxyy-shared'
