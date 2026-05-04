@@ -33,14 +33,15 @@ $ pnpm install
 
 ## 数据库（Drizzle · Phase 0）
 
-1. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`，设置 `DATABASE_URL`（PostgreSQL）。
-2. 生成 migration（_schema 变更时执行）：
-   ```bash
-   cd uxyy-api && pnpm run db:generate
-   ```
+1. **本地 Postgres（推荐）**：在 **Monorepo 根目录** 执行 `docker compose up -d postgres`（见根目录 `docker-compose.yml`）。
+2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`；默认 `DATABASE_URL` 已与上述 Compose 对齐。
 3. 将 migration 应用到数据库：
    ```bash
    cd uxyy-api && pnpm run db:migrate
+   ```
+4. Schema 变更后生成新 migration：
+   ```bash
+   cd uxyy-api && pnpm run db:generate
    ```
 
 Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
