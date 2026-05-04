@@ -33,8 +33,8 @@ $ pnpm install
 
 ## 数据库（Drizzle · Phase 0）
 
-1. **本地 Postgres（推荐）**：在 **Monorepo 根目录** 执行 `docker compose up -d postgres`（见根目录 `docker-compose.yml`）。
-2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`；默认 `DATABASE_URL` 已与上述 Compose 对齐。
+1. **Docker Compose**：在 **Monorepo 根目录** 执行 **`docker compose up -d`**（**Postgres + Redis**；BullMQ 依赖 Redis）。
+2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`；填入 **`JWT_ACCESS_SECRET`**（及可选 **`AUTH_DEV_BYPASS`**，仅本地，见下文 Phase 0 表）。
 3. 将 migration 应用到数据库：
    ```bash
    cd uxyy-api && pnpm run db:migrate
@@ -45,6 +45,24 @@ $ pnpm install
    ```
 
 Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
+
+5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。
+
+## Phase 0：HTTP / OpenAPI · Auth · 队列约定
+
+| 路径 | 说明 |
+|------|------|
+| 全局前缀 | **`/api/v1`**（控制器不再重复写前缀） |
+| Swagger UI | **`/docs`**（根路径，不带 `/api/v1` 前缀） |
+| 健康检查 | **`GET /api/v1/health`**（无需鉴权） |
+| 登录 | **`POST /api/v1/auth/login`**，body 示例：`{"phone":"13800138000","password":"Dev12345!"}`（需先 **`db:seed`**） |
+| 个人信息 | **`GET /api/v1/auth/profile`**，Header：`Authorization: Bearer <jwt>` |
+| AI 占位 | **`GET /api/v1/ai/ping`** 公开；**`GET /api/v1/ai/queue/stats`** 需 Bearer（读取 BullMQ 队列计数） |
+
+**鉴权规则（并行开发约定）：**
+
+- 默认 **全局 JWT**（`JwtAuthGuard`）。公开路由请打 **`@Public()`** 装饰器（见 `GET /health` 等）。
+- **仅本地**：若 `.env` 设置 **`AUTH_DEV_BYPASS=true`**，将**跳过 Bearer 校验**并注入固定上下文 `userId=1`、`enterpriseId=1`。**切勿**部署到任意共享/生产环境。
 
 ## Compile and run the project
 
