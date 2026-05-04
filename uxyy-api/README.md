@@ -31,6 +31,20 @@
 $ pnpm install
 ```
 
+## 数据库（Drizzle · Phase 0）
+
+1. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`，设置 `DATABASE_URL`（PostgreSQL）。
+2. 生成 migration（_schema 变更时执行）：
+   ```bash
+   cd uxyy-api && pnpm run db:generate
+   ```
+3. 将 migration 应用到数据库：
+   ```bash
+   cd uxyy-api && pnpm run db:migrate
+   ```
+
+Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
+
 ## Compile and run the project
 
 ```bash
