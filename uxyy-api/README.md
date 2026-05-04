@@ -31,7 +31,48 @@
 $ pnpm install
 ```
 
+## 数据库（Drizzle · Phase 0）
+
+1. **Docker Compose**：在 **Monorepo 根目录** 执行 **`docker compose up -d`**（**Postgres + Redis**；BullMQ 依赖 Redis）。
+2. 复制 `uxyy-api/.env.example` 为 `uxyy-api/.env`（可选填入 **`JWT_ACCESS_SECRET`**——未设置时在非 production 环境会使用与示例相同的占位密钥；**生产务必使用强随机值**）；可选 **`AUTH_DEV_BYPASS`**，仅本地，见下文 Phase 0 表。未设置 **`REDIS_URL`** 时默认连接本机 `redis://127.0.0.1:6379`（请先 **`docker compose up -d`** 起 Redis）。
+3. 将 migration 应用到数据库：
+   ```bash
+   cd uxyy-api && pnpm run db:migrate
+   ```
+4. Schema 变更后生成新 migration：
+   ```bash
+   cd uxyy-api && pnpm run db:generate
+   ```
+
+Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
+
+5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。
+
+## Phase 0：HTTP / OpenAPI · Auth · 队列约定
+
+| 路径 | 说明 |
+|------|------|
+| 全局前缀 | **`/api/v1`**（控制器不再重复写前缀） |
+| Swagger UI | **`/docs`**（根路径，不带 `/api/v1` 前缀） |
+| 健康检查 | **`GET /api/v1/health`**（无需鉴权） |
+| 登录 | **`POST /api/v1/auth/login`**，body 示例：`{"phone":"13800138000","password":"Dev12345!"}`（需先 **`db:seed`**） |
+| 个人信息 | **`GET /api/v1/auth/profile`**，Header：`Authorization: Bearer <jwt>` |
+| AI 占位 | **`GET /api/v1/ai/ping`** 公开；**`GET /api/v1/ai/queue/stats`** 需 Bearer（读取 BullMQ 队列计数） |
+| CRM 占位 | **`GET /api/v1/crm/ping`** 公开（演进为业务接口时按需加鉴权） |
+| 进销存占位 | **`GET /api/v1/inventory/ping`** 公开 |
+| 财务占位 | **`GET /api/v1/finance/ping`** 公开 |
+| CRM 客户 | **`GET /api/v1/crm/customers`** Bearer 或 **`AUTH_DEV_BYPASS=true`**；**`POST /api/v1/crm/customers`** 创建；**`GET/PATCH/DELETE /api/v1/crm/customers/:id`** 详情·更新·删除（均按 JWT `enterpriseId` 租户隔离） |
+
+**鉴权规则（并行开发约定）：**
+
+- 默认 **全局 JWT**（`JwtAuthGuard`）。公开路由请打 **`@Public()`** 装饰器（见 `GET /health` 等）。
+- **仅本地**：若 `.env` 设置 **`AUTH_DEV_BYPASS=true`**，将**跳过 Bearer 校验**并注入固定上下文 `userId=1`、`enterpriseId=1`。**切勿**部署到任意共享/生产环境。
+
 ## Compile and run the project
+
+**Monorepo 推荐（与 Next 同时开发）**：在 **仓库根** 先 **`docker compose up -d`**，再 **`pnpm dev`**。此时 API 已监听默认 **3000**，**勿**再在 **`uxyy-api`** 里执行 **`pnpm run start:dev`**，否则 **`EADDRINUSE`**；说明见根 **[README.md](../README.md)** 与 **[多智能体并行开发指南.md](../多智能体并行开发指南.md) §2.5**。
+
+**仅本包（`uxyy-api` 目录）**：
 
 ```bash
 # development
@@ -43,6 +84,8 @@ $ pnpm run start:dev
 # production mode
 $ pnpm run start:prod
 ```
+
+默认端口见 **`main.ts`**（`process.env.PORT ?? 3000`），可在 **`.env`** 中设置 **`PORT`**。
 
 ## Run tests
 
