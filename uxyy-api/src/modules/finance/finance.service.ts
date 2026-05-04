@@ -1,5 +1,9 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+<<<<<<< HEAD
 import { count, desc, eq, and, gte, lte, sql, sum } from 'drizzle-orm';
+=======
+import { count, desc, eq, and, gte, lte, sql } from 'drizzle-orm';
+>>>>>>> feature/ai-init
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
@@ -199,6 +203,7 @@ export class FinanceService {
     return voucher;
   }
 
+<<<<<<< HEAD
   // ========== 财务报表（真实数据实现） ==========
   async getBalanceSheet(enterpriseId: number | undefined, date: string) {
     const eid = requireEnterpriseId(enterpriseId);
@@ -300,11 +305,33 @@ export class FinanceService {
       totalAssets,
       totalLiabilities,
       totalEquity,
+=======
+  // ========== 财务报表 ==========
+  async getBalanceSheet(enterpriseId: number | undefined, date: string) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    // 简化实现，返回模拟数据
+    return {
+      date,
+      assets: [
+        { subject: '现金', amount: 100000 },
+        { subject: '银行存款', amount: 500000 },
+        { subject: '应收账款', amount: 200000 },
+      ],
+      liabilities: [
+        { subject: '应付账款', amount: 150000 },
+        { subject: '应付工资', amount: 50000 },
+      ],
+      equity: [
+        { subject: '实收资本', amount: 600000 },
+      ],
+>>>>>>> feature/ai-init
     };
   }
 
   async getIncomeStatement(enterpriseId: number | undefined, startDate: string, endDate: string) {
     const eid = requireEnterpriseId(enterpriseId);
+<<<<<<< HEAD
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -371,11 +398,24 @@ export class FinanceService {
       grossProfit,
       expenses,
       netProfit,
+=======
+
+    // 简化实现，返回模拟数据
+    return {
+      startDate,
+      endDate,
+      revenue: 1000000,
+      cost: 600000,
+      grossProfit: 400000,
+      expenses: 200000,
+      netProfit: 200000,
+>>>>>>> feature/ai-init
     };
   }
 
   async getCashFlow(enterpriseId: number | undefined, startDate: string, endDate: string) {
     const eid = requireEnterpriseId(enterpriseId);
+<<<<<<< HEAD
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -477,12 +517,41 @@ export class FinanceService {
         amount: Number(inv.amount),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       })),
+=======
+
+    // 简化实现，返回模拟数据
+    return {
+      startDate,
+      endDate,
+      operatingInflow: 800000,
+      operatingOutflow: 500000,
+      investingInflow: 0,
+      investingOutflow: 100000,
+      financingInflow: 200000,
+      financingOutflow: 0,
+      netIncrease: 400000,
+    };
+  }
+
+  // ========== 应收应付 ==========
+  async getReceivables(enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    // 简化实现，返回模拟数据
+    return {
+      total: 200000,
+      list: [
+        { customerId: 1, customerName: '客户A', amount: 100000, dueDate: '2026-06-01' },
+        { customerId: 2, customerName: '客户B', amount: 100000, dueDate: '2026-06-15' },
+      ],
+>>>>>>> feature/ai-init
     };
   }
 
   async getPayables(enterpriseId: number | undefined) {
     const eid = requireEnterpriseId(enterpriseId);
 
+<<<<<<< HEAD
     // 查询未付款的采购发票（in类型）
     const payableInvoices = await this.db
       .select()
@@ -505,6 +574,15 @@ export class FinanceService {
         amount: Number(inv.amount),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       })),
+=======
+    // 简化实现，返回模拟数据
+    return {
+      total: 150000,
+      list: [
+        { supplierId: 1, supplierName: '供应商A', amount: 80000, dueDate: '2026-06-01' },
+        { supplierId: 2, supplierName: '供应商B', amount: 70000, dueDate: '2026-06-10' },
+      ],
+>>>>>>> feature/ai-init
     };
   }
 }
