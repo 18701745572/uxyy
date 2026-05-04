@@ -11,4 +11,4 @@
 - **数据库**：PostgreSQL（生产默认 [**Neon**](https://neon.tech/) Serverless Postgres）+ **Drizzle ORM** + **drizzle-kit**。
 - **认证授权**：**Passport JWT**（`@nestjs/passport` + `passport-jwt`），Access / Refresh Token 策略；JWT 载荷与过期策略按 PRD；登出黑名单等能力与 **Redis** 协同。
 - **缓存与异步**：Redis（缓存 / 限流 / Session 辅助）；[**BullMQ**](https://docs.bullmq.io/)（基于 Redis）处理异步任务（导入导出、报表、AI 异步等）。
-- **协作**：同一代码仓内多 Agent 并行，约定见 **[多智能体并行开发指南.md](./多智能体并行开发指南.md)**；**各智能体负责范围与任务一览**见 **[docs/各智能体职责与任务说明.md](./docs/各智能体职责与任务说明.md)**；产品设计见 **[产品需求文档（PRD）](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md)**。
+- **协作**：同一代码仓内多 Agent 并行，约定见 **[多智能体并行开发指南.md](./多智能体并行开发指南.md)**；**各智能体负责范围与任务一览**见 **[docs/各智能体职责与任务说明.md](./docs/各智能体职责与任务说明.md)**；**按角色的工作提示词**见 **`docs/prompts/`**（索引 [docs/prompts/README.md](./docs/prompts/README.md)；集成开发主分支 **`develop`**，各角色提示词入口分支 **`prompt/agent-*`**）；产品设计见 **[产品需求文档（PRD）](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md)**。
