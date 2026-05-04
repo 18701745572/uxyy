@@ -6,10 +6,11 @@ declare global {
       devBypass?: boolean;
     }
 
+    type User = UserPayload;
+
     interface Request {
-      user?: UserPayload;
+      user?: User;
     }
   }
 }
-
 export {};

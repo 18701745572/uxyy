@@ -11,6 +11,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
  */
 export function configureApp(app: INestApplication): void {
   app.enableShutdownHooks();
+  if (process.env.NODE_ENV !== 'production') {
+    app.enableCors({ origin: true, credentials: true });
+  }
   app.setGlobalPrefix('api/v1', {
     exclude: [
       { path: 'docs', method: RequestMethod.ALL },

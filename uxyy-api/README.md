@@ -61,6 +61,7 @@ Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表
 | CRM 占位 | **`GET /api/v1/crm/ping`** 公开（演进为业务接口时按需加鉴权） |
 | 进销存占位 | **`GET /api/v1/inventory/ping`** 公开 |
 | 财务占位 | **`GET /api/v1/finance/ping`** 公开 |
+| CRM 客户 | **`GET /api/v1/crm/customers`** Bearer 或 **`AUTH_DEV_BYPASS=true`**；**`POST /api/v1/crm/customers`** 创建；**`GET/PATCH/DELETE /api/v1/crm/customers/:id`** 详情·更新·删除（均按 JWT `enterpriseId` 租户隔离） |
 
 **鉴权规则（并行开发约定）：**
 

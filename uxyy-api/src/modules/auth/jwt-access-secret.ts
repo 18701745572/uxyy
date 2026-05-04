@@ -6,8 +6,7 @@ export const JWT_ACCESS_SECRET_DEV_PLACEHOLDER =
 
 export function resolveJwtAccessSecret(config: ConfigService): string {
   const raw =
-    config.get<string>('JWT_ACCESS_SECRET') ??
-    process.env.JWT_ACCESS_SECRET;
+    config.get<string>('JWT_ACCESS_SECRET') ?? process.env.JWT_ACCESS_SECRET;
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (value !== '') {
     return value;
