@@ -9,6 +9,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "dev": "tsc --noEmit --watch --preserveWatchOutput",
     "lint": "echo \"shared: add eslint when ready\"",
     "typecheck": "tsc --noEmit",
     "build": "echo \"shared: verbatim TS consumed by workspaces\"",
