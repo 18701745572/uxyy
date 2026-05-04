@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: uxyy
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/uxyy
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ACCESS_SECRET: ci-phase0-jwt-access-secret-change-me-not-prod-xx
+      JWT_ACCESS_EXPIRES_IN: 7d
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait for Postgres & Redis
+        run: sleep 8
+
+      - name: Lint / typecheck / unit test / build (turbo)
+        run: |
+          pnpm run lint
+          pnpm run typecheck
+          pnpm run test
+          pnpm run build
+
+      - name: Drizzle migrate + seed (@uxyy/api)
+        run: |
+          pnpm --filter @uxyy/api run db:migrate
+          pnpm --filter @uxyy/api run db:seed
+
+      - name: E2E (@uxyy/api)
+        run: pnpm --filter @uxyy/api run test:e2e
