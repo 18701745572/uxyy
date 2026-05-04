@@ -102,6 +102,13 @@ export class InventoryController {
     return this.inventoryService.createPurchaseOrder(enterpriseId, dto);
   }
 
+  @Post('purchase-orders/:id/confirm')
+  @ApiOperation({ summary: '确认采购入库' })
+  async confirmPurchaseOrder(@Req() req: Request, @Param('id') id: string) {
+    const enterpriseId = (req as any).user?.enterpriseId;
+    return this.inventoryService.confirmPurchaseOrder(enterpriseId, parseInt(id, 10));
+  }
+
   // ========== 销售订单 ==========
   @Get('sales-orders')
   @ApiOperation({ summary: '获取销售订单列表' })
@@ -127,6 +134,13 @@ export class InventoryController {
     return this.inventoryService.createSalesOrder(enterpriseId, dto);
   }
 
+  @Post('sales-orders/:id/confirm')
+  @ApiOperation({ summary: '确认销售出库' })
+  async confirmSalesOrder(@Req() req: Request, @Param('id') id: string) {
+    const enterpriseId = (req as any).user?.enterpriseId;
+    return this.inventoryService.confirmSalesOrder(enterpriseId, parseInt(id, 10));
+  }
+
   // ========== 库存流水 ==========
   @Get('logs')
   @ApiOperation({ summary: '获取库存流水' })
@@ -139,14 +153,14 @@ export class InventoryController {
     const enterpriseId = (req as any).user?.enterpriseId;
     return this.inventoryService.findInventoryLogs({
       enterpriseId,
-      productId: productId ? parseInt(productId, 10) : undefined,
       page: parseInt(page, 10),
       pageSize: parseInt(pageSize, 10),
+      productId: productId ? parseInt(productId, 10) : undefined,
     });
   }
 
   @Get('ping')
-  @ApiOperation({ summary: '进销存模块健康检查' })
+  @ApiOperation({ summary: '库存模块健康检查' })
   ping() {
     return { ok: true, module: 'inventory' };
   }
