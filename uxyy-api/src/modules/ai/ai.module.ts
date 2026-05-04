@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AI_DEFAULT_QUEUE } from './ai.constants';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { AiTaskProcessor } from './ai-task.processor';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { AiService } from './ai.service';
     }),
   ],
   controllers: [AiController],
-  providers: [AiService],
+  providers: [AiService, AiTaskProcessor],
+  exports: [AiService],
 })
 export class AiModule {}

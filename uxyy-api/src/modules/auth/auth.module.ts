@@ -9,6 +9,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { resolveJwtAccessSecret } from './jwt-access-secret';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [
@@ -29,6 +30,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     AuthService,
     JwtStrategy,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    RolesGuard,
   ],
+  exports: [AuthService, RolesGuard],
 })
 export class AuthModule {}

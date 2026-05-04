@@ -59,11 +59,7 @@ export class CrmController {
     @Body() dto: UpdateCustomerDto,
   ) {
     const enterpriseId = (req as any).user?.enterpriseId;
-    return this.crmService.updateCustomer(
-      enterpriseId,
-      parseInt(id, 10),
-      dto,
-    );
+    return this.crmService.updateCustomer(enterpriseId, parseInt(id, 10), dto);
   }
 
   @Delete('customers/:id')

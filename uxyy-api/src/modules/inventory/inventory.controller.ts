@@ -12,7 +12,12 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { InventoryService } from './inventory.service';
-import type { CreateProductDto, UpdateProductDto, CreatePurchaseOrderDto, CreateSalesOrderDto } from './inventory.service';
+import type {
+  CreateProductDto,
+  UpdateProductDto,
+  CreatePurchaseOrderDto,
+  CreateSalesOrderDto,
+} from './inventory.service';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -60,7 +65,11 @@ export class InventoryController {
     @Body() dto: UpdateProductDto,
   ) {
     const enterpriseId = (req as any).user?.enterpriseId;
-    return this.inventoryService.updateProduct(enterpriseId, parseInt(id, 10), dto);
+    return this.inventoryService.updateProduct(
+      enterpriseId,
+      parseInt(id, 10),
+      dto,
+    );
   }
 
   @Delete('products/:id')
@@ -97,7 +106,10 @@ export class InventoryController {
 
   @Post('purchase-orders')
   @ApiOperation({ summary: '创建采购订单' })
-  async createPurchaseOrder(@Req() req: Request, @Body() dto: CreatePurchaseOrderDto) {
+  async createPurchaseOrder(
+    @Req() req: Request,
+    @Body() dto: CreatePurchaseOrderDto,
+  ) {
     const enterpriseId = (req as any).user?.enterpriseId;
     return this.inventoryService.createPurchaseOrder(enterpriseId, dto);
   }
@@ -106,7 +118,10 @@ export class InventoryController {
   @ApiOperation({ summary: '确认采购入库' })
   async confirmPurchaseOrder(@Req() req: Request, @Param('id') id: string) {
     const enterpriseId = (req as any).user?.enterpriseId;
-    return this.inventoryService.confirmPurchaseOrder(enterpriseId, parseInt(id, 10));
+    return this.inventoryService.confirmPurchaseOrder(
+      enterpriseId,
+      parseInt(id, 10),
+    );
   }
 
   // ========== 销售订单 ==========
@@ -129,7 +144,10 @@ export class InventoryController {
 
   @Post('sales-orders')
   @ApiOperation({ summary: '创建销售订单' })
-  async createSalesOrder(@Req() req: Request, @Body() dto: CreateSalesOrderDto) {
+  async createSalesOrder(
+    @Req() req: Request,
+    @Body() dto: CreateSalesOrderDto,
+  ) {
     const enterpriseId = (req as any).user?.enterpriseId;
     return this.inventoryService.createSalesOrder(enterpriseId, dto);
   }
@@ -138,7 +156,10 @@ export class InventoryController {
   @ApiOperation({ summary: '确认销售出库' })
   async confirmSalesOrder(@Req() req: Request, @Param('id') id: string) {
     const enterpriseId = (req as any).user?.enterpriseId;
-    return this.inventoryService.confirmSalesOrder(enterpriseId, parseInt(id, 10));
+    return this.inventoryService.confirmSalesOrder(
+      enterpriseId,
+      parseInt(id, 10),
+    );
   }
 
   // ========== 库存流水 ==========

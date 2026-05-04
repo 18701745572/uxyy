@@ -1,9 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-<<<<<<< HEAD
 import { count, desc, eq, and, gte, lte, sql, sum } from 'drizzle-orm';
-=======
-import { count, desc, eq, and, gte, lte, sql } from 'drizzle-orm';
->>>>>>> feature/ai-init
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';

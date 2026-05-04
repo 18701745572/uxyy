@@ -162,7 +162,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = await this.jwt.verifyAsync(refreshToken);
-      
+
       if (payload.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type');
       }
@@ -292,7 +292,7 @@ export class AuthService {
       .from(schema.userEnterprises)
       .where(
         eq(schema.userEnterprises.userId, userId) &&
-        eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
       )
       .limit(1);
 
@@ -312,7 +312,7 @@ export class AuthService {
       .set({ isDefault: true })
       .where(
         eq(schema.userEnterprises.userId, userId) &&
-        eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
       );
 
     // 生成新的 Token

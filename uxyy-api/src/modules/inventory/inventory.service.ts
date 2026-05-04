@@ -1,4 +1,10 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { count, desc, eq, and, gte, lte, sql } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
@@ -71,9 +77,12 @@ export class InventoryService {
     const offset = (params.page - 1) * params.pageSize;
 
     let whereClause = eq(schema.products.enterpriseId, eid);
-    
+
     if (params.category) {
-      whereClause = and(whereClause, eq(schema.products.category, params.category))!;
+      whereClause = and(
+        whereClause,
+        eq(schema.products.category, params.category),
+      )!;
     }
 
     const [totalRows] = await this.db
@@ -150,7 +159,7 @@ export class InventoryService {
 
   async createProduct(enterpriseId: number | undefined, dto: CreateProductDto) {
     const eid = requireEnterpriseId(enterpriseId);
-    
+
     const [inserted] = await this.db
       .insert(schema.products)
       .values({
@@ -180,7 +189,12 @@ export class InventoryService {
     const [existing] = await this.db
       .select()
       .from(schema.products)
-      .where(and(eq(schema.products.id, productId), eq(schema.products.enterpriseId, eid)))
+      .where(
+        and(
+          eq(schema.products.id, productId),
+          eq(schema.products.enterpriseId, eid),
+        ),
+      )
       .limit(1);
 
     if (!existing) {
@@ -213,14 +227,21 @@ export class InventoryService {
     const [existing] = await this.db
       .select()
       .from(schema.products)
-      .where(and(eq(schema.products.id, productId), eq(schema.products.enterpriseId, eid)))
+      .where(
+        and(
+          eq(schema.products.id, productId),
+          eq(schema.products.enterpriseId, eid),
+        ),
+      )
       .limit(1);
 
     if (!existing) {
       throw new NotFoundException('Product not found');
     }
 
-    await this.db.delete(schema.products).where(eq(schema.products.id, productId));
+    await this.db
+      .delete(schema.products)
+      .where(eq(schema.products.id, productId));
     return { success: true };
   }
 
@@ -260,7 +281,10 @@ export class InventoryService {
 
     let whereClause = eq(schema.purchaseOrders.enterpriseId, eid);
     if (params.status) {
-      whereClause = and(whereClause, eq(schema.purchaseOrders.status, params.status))!;
+      whereClause = and(
+        whereClause,
+        eq(schema.purchaseOrders.status, params.status),
+      )!;
     }
 
     const [totalRows] = await this.db
@@ -322,7 +346,10 @@ export class InventoryService {
 
       // 2. 生成订单号
       const orderNo = `PO${Date.now()}`;
-      const totalAmount = dto.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+      const totalAmount = dto.items.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0,
+      );
 
       // 3. 创建采购订单
       const [order] = await trx
@@ -395,7 +422,10 @@ export class InventoryService {
 
     let whereClause = eq(schema.salesOrders.enterpriseId, eid);
     if (params.status) {
-      whereClause = and(whereClause, eq(schema.salesOrders.status, params.status))!;
+      whereClause = and(
+        whereClause,
+        eq(schema.salesOrders.status, params.status),
+      )!;
     }
 
     const [totalRows] = await this.db
@@ -457,14 +487,17 @@ export class InventoryService {
         const currentStock = product.stock ?? 0;
         if (currentStock < item.quantity) {
           throw new BadRequestException(
-            `商品 "${product.name}" 库存不足，当前库存: ${currentStock}，需要: ${item.quantity}`
+            `商品 "${product.name}" 库存不足，当前库存: ${currentStock}，需要: ${item.quantity}`,
           );
         }
       }
 
       // 2. 生成订单号
       const orderNo = `SO${Date.now()}`;
-      const totalAmount = dto.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+      const totalAmount = dto.items.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0,
+      );
 
       // 3. 创建销售订单
       const [order] = await trx
@@ -484,10 +517,7 @@ export class InventoryService {
   }
 
   // ========== 销售出库（带事务） ==========
-  async confirmSalesOrder(
-    enterpriseId: number | undefined,
-    orderId: number,
-  ) {
+  async confirmSalesOrder(enterpriseId: number | undefined, orderId: number) {
     const eid = requireEnterpriseId(enterpriseId);
 
     return await this.db.transaction(async (trx) => {
@@ -537,7 +567,10 @@ export class InventoryService {
 
     let whereClause = eq(schema.inventoryLogs.enterpriseId, eid);
     if (params.productId) {
-      whereClause = and(whereClause, eq(schema.inventoryLogs.productId, params.productId))!;
+      whereClause = and(
+        whereClause,
+        eq(schema.inventoryLogs.productId, params.productId),
+      )!;
     }
 
     const [totalRows] = await this.db
@@ -553,7 +586,10 @@ export class InventoryService {
         product: schema.products,
       })
       .from(schema.inventoryLogs)
-      .leftJoin(schema.products, eq(schema.inventoryLogs.productId, schema.products.id))
+      .leftJoin(
+        schema.products,
+        eq(schema.inventoryLogs.productId, schema.products.id),
+      )
       .where(whereClause)
       .orderBy(desc(schema.inventoryLogs.createdAt))
       .limit(params.pageSize)

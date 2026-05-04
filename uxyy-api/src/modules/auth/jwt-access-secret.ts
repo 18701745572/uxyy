@@ -13,21 +13,21 @@ export function resolveJwtAccessSecret(config?: ConfigService): string {
       value = raw.trim();
     }
   }
-  
+
   // 如果 config 没有，尝试从 process.env 获取
   if (value === '' && process.env.JWT_ACCESS_SECRET) {
     value = process.env.JWT_ACCESS_SECRET.trim();
   }
-  
+
   if (value !== '') {
     return value;
   }
-  
+
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'JWT_ACCESS_SECRET must be set to a strong secret when NODE_ENV is production',
     );
   }
-  
+
   return JWT_ACCESS_SECRET_DEV_PLACEHOLDER;
 }

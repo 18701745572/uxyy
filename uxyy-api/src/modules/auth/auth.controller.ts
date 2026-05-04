@@ -13,7 +13,11 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
-import type { RegisterDto, RefreshTokenDto, ResetPasswordDto } from './auth.service';
+import type {
+  RegisterDto,
+  RefreshTokenDto,
+  ResetPasswordDto,
+} from './auth.service';
 
 @ApiTags('auth')
 @Controller('auth')

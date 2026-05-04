@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { FinanceService } from './finance.service';
@@ -85,10 +77,7 @@ export class FinanceController {
   // ========== 财务报表 ==========
   @Get('reports/balance-sheet')
   @ApiOperation({ summary: '获取资产负债表' })
-  async getBalanceSheet(
-    @Req() req: Request,
-    @Query('date') date: string,
-  ) {
+  async getBalanceSheet(@Req() req: Request, @Query('date') date: string) {
     const enterpriseId = (req as any).user?.enterpriseId;
     return this.financeService.getBalanceSheet(enterpriseId, date);
   }
@@ -101,7 +90,11 @@ export class FinanceController {
     @Query('endDate') endDate: string,
   ) {
     const enterpriseId = (req as any).user?.enterpriseId;
-    return this.financeService.getIncomeStatement(enterpriseId, startDate, endDate);
+    return this.financeService.getIncomeStatement(
+      enterpriseId,
+      startDate,
+      endDate,
+    );
   }
 
   @Get('reports/cash-flow')

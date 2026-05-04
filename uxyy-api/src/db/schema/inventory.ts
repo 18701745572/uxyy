@@ -47,7 +47,9 @@ export const purchaseOrders = pgTable(
       .notNull(),
     orderNo: varchar('order_no', { length: 50 }).notNull(),
     supplierId: integer('supplier_id'),
-    totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).default('0'),
+    totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).default(
+      '0',
+    ),
     status: varchar('status', { length: 20 }).default('pending'),
     remark: text('remark'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -66,7 +68,9 @@ export const salesOrders = pgTable(
       .notNull(),
     orderNo: varchar('order_no', { length: 50 }).notNull(),
     customerId: integer('customer_id'),
-    totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).default('0'),
+    totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).default(
+      '0',
+    ),
     status: varchar('status', { length: 20 }).default('pending'),
     remark: text('remark'),
     createdAt: timestamp('created_at').defaultNow().notNull(),

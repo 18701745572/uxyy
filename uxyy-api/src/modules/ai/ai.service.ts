@@ -44,21 +44,29 @@ export class AiService {
     private readonly configService: ConfigService,
   ) {
     this.qwenApiKey = this.configService.get<string>('QWEN_API_KEY');
-    this.qwenApiUrl = this.configService.get<string>('QWEN_API_URL') || 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
+    this.qwenApiUrl =
+      this.configService.get<string>('QWEN_API_URL') ||
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
   }
 
   // ========== OCR 发票识别 ==========
-  async submitOcrTask(dto: OcrInvoiceDto): Promise<{ jobId: string; status: string }> {
-    const job = await this.ocrQueue.add('ocr-invoice', {
-      imageUrl: dto.imageUrl,
-      enterpriseId: dto.enterpriseId,
-    }, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000,
+  async submitOcrTask(
+    dto: OcrInvoiceDto,
+  ): Promise<{ jobId: string; status: string }> {
+    const job = await this.ocrQueue.add(
+      'ocr-invoice',
+      {
+        imageUrl: dto.imageUrl,
+        enterpriseId: dto.enterpriseId,
       },
-    });
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+      },
+    );
 
     return {
       jobId: job.id!,
@@ -66,15 +74,17 @@ export class AiService {
     };
   }
 
-  async getOcrResult(jobId: string): Promise<{ status: string; result?: OcrResult }> {
+  async getOcrResult(
+    jobId: string,
+  ): Promise<{ status: string; result?: OcrResult }> {
     const job = await this.ocrQueue.getJob(jobId);
-    
+
     if (!job) {
       return { status: 'not_found' };
     }
 
     const state = await job.getState();
-    
+
     if (state === 'completed') {
       return {
         status: 'completed',
@@ -102,7 +112,7 @@ export class AiService {
       const response = await fetch(this.qwenApiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.qwenApiKey}`,
+          Authorization: `Bearer ${this.qwenApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -113,7 +123,9 @@ export class AiService {
                 role: 'user',
                 content: [
                   { image: imageUrl },
-                  { text: '请识别这张发票的内容，提取以下信息：发票类型、发票代码、发票号码、开票日期、金额、销售方名称、购买方名称、商品明细。以JSON格式返回。' },
+                  {
+                    text: '请识别这张发票的内容，提取以下信息：发票类型、发票代码、发票号码、开票日期、金额、销售方名称、购买方名称、商品明细。以JSON格式返回。',
+                  },
                 ],
               },
             ],
@@ -122,11 +134,13 @@ export class AiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Qwen API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Qwen API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      
+
       // 解析 AI 返回的结果
       const content = data.output?.choices?.[0]?.message?.content;
       if (!content) {
@@ -171,7 +185,7 @@ export class AiService {
       invoiceCode: '3100123456',
       invoiceNumber: '12345678',
       invoiceDate: '2026-05-01',
-      amount: 10000.00,
+      amount: 10000.0,
       sellerName: '某某科技有限公司',
       buyerName: '某某企业',
       items: [
@@ -183,11 +197,16 @@ export class AiService {
   }
 
   // ========== 智能建议 ==========
-  async getSmartSuggestions(dto: SmartSuggestionDto): Promise<{ suggestions: string[] }> {
+  async getSmartSuggestions(
+    dto: SmartSuggestionDto,
+  ): Promise<{ suggestions: string[] }> {
     // 如果有 API Key，调用 AI 生成建议
     if (this.qwenApiKey) {
       try {
-        const suggestions = await this.generateAiSuggestions(dto.type, dto.enterpriseId);
+        const suggestions = await this.generateAiSuggestions(
+          dto.type,
+          dto.enterpriseId,
+        );
         return { suggestions };
       } catch (error) {
         this.logger.error('Failed to generate AI suggestions:', error);
@@ -199,13 +218,16 @@ export class AiService {
     return { suggestions };
   }
 
-  private async generateAiSuggestions(type: string, enterpriseId: number): Promise<string[]> {
+  private async generateAiSuggestions(
+    type: string,
+    enterpriseId: number,
+  ): Promise<string[]> {
     const prompt = this.buildSuggestionPrompt(type, enterpriseId);
-    
+
     const response = await fetch(this.qwenApiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.qwenApiKey}`,
+        Authorization: `Bearer ${this.qwenApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -227,13 +249,17 @@ export class AiService {
 
     const data = await response.json();
     const content = data.output?.choices?.[0]?.message?.content;
-    
+
     // 解析建议列表
-    const suggestions = content
-      ?.split('\n')
-      .filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'))
-      .map((line: string) => line.replace(/^[-•]\s*/, '').trim())
-      .filter(Boolean) || [];
+    const suggestions =
+      content
+        ?.split('\n')
+        .filter(
+          (line: string) =>
+            line.trim().startsWith('-') || line.trim().startsWith('•'),
+        )
+        .map((line: string) => line.replace(/^[-•]\s*/, '').trim())
+        .filter(Boolean) || [];
 
     return suggestions.length > 0 ? suggestions : ['暂无建议'];
   }
@@ -246,14 +272,14 @@ export class AiService {
 3. 滞销商品处理
 4. 补货策略
 请以 bullet point 格式返回建议。`,
-      
+
       finance: `作为财务管理专家，请为该企业（ID: ${enterpriseId}）提供3-5条财务优化建议。请考虑：
 1. 现金流管理
 2. 成本控制
 3. 应收应付管理
 4. 税务优化
 请以 bullet point 格式返回建议。`,
-      
+
       customer: `作为客户关系管理专家，请为该企业（ID: ${enterpriseId}）提供3-5条客户管理建议。请考虑：
 1. 客户维护策略
 2. 潜在客户挖掘

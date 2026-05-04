@@ -64,8 +64,12 @@ export const vouchers = pgTable(
       .notNull(),
     voucherNo: varchar('voucher_no', { length: 50 }).notNull(),
     voucherDate: timestamp('voucher_date').notNull(),
-    totalDebit: numeric('total_debit', { precision: 14, scale: 2 }).default('0'),
-    totalCredit: numeric('total_credit', { precision: 14, scale: 2 }).default('0'),
+    totalDebit: numeric('total_debit', { precision: 14, scale: 2 }).default(
+      '0',
+    ),
+    totalCredit: numeric('total_credit', { precision: 14, scale: 2 }).default(
+      '0',
+    ),
     remark: text('remark'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },

@@ -188,10 +188,7 @@ export class CrmService {
     return updated;
   }
 
-  async deleteCustomer(
-    enterpriseId: number | undefined,
-    customerId: number,
-  ) {
+  async deleteCustomer(enterpriseId: number | undefined, customerId: number) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const [existing] = await this.db
