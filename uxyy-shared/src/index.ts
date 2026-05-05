@@ -1,1 +1,21 @@
 export { paginationSchema, type PaginationParams } from "./schemas/pagination";
+export {
+  customerTypeEnum,
+  type CustomerType,
+  customerLevelEnum,
+  type CustomerLevel,
+  customerSourceEnum,
+  type CustomerSource,
+  followUpTypeEnum,
+  type FollowUpType,
+  createCustomerSchema,
+  type CreateCustomerInput,
+  updateCustomerSchema,
+  type UpdateCustomerInput,
+  customerListQuerySchema,
+  type CustomerListQueryInput,
+  createFollowUpSchema,
+  type CreateFollowUpInput,
+  updateFollowUpSchema,
+  type UpdateFollowUpInput,
+} from "./schemas/customer";
