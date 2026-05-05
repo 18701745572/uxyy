@@ -12,3 +12,24 @@ export const enterpriseStatusEnum = pgEnum('enterprise_status', [
   'suspended',
   'deleted',
 ]);
+
+/** 发票类型 — PRD §8.2 */
+export const invoiceTypeEnum = pgEnum('invoice_type', [
+  'special',
+  'normal',
+  'electronic',
+]);
+
+/** 发票状态 — PRD §8.2 */
+export const invoiceStatusEnum = pgEnum('invoice_status', [
+  'unverified',
+  'verified',
+  'entered',
+  'void',
+]);
+
+/** 科目余额方向 */
+export const balanceDirectionEnum = pgEnum('balance_direction', [
+  'debit',
+  'credit',
+]);
