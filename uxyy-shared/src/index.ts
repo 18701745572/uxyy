@@ -1,5 +1,6 @@
 export { paginationSchema, type PaginationParams } from "./schemas/pagination";
 export {
+<<<<<<< HEAD
   customerTypeEnum,
   type CustomerType,
   customerLevelEnum,
@@ -19,3 +20,24 @@ export {
   updateFollowUpSchema,
   type UpdateFollowUpInput,
 } from "./schemas/customer";
+=======
+  orderStatusSchema,
+  inventoryLogTypeSchema,
+  inventoryLogSourceTypeSchema,
+  productStatusSchema,
+  salesOrderQuerySchema,
+  purchaseOrderQuerySchema,
+  inventoryLogQuerySchema,
+  inventoryQuerySchema,
+} from "./schemas/inventory";
+export type {
+  OrderStatus,
+  InventoryLogType,
+  InventoryLogSourceType,
+  ProductStatus,
+  SalesOrderQueryParams,
+  PurchaseOrderQueryParams,
+  InventoryLogQueryParams,
+  InventoryQueryParams,
+} from "./schemas/inventory";
+>>>>>>> prompt/agent-inventory

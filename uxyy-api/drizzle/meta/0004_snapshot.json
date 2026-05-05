@@ -1,10 +1,6 @@
 {
-<<<<<<< HEAD
-  "id": "e95430d5-dca2-4b5d-83f7-bf4213c8914d",
-=======
-  "id": "f12e7029-2fe2-4147-aafd-3eac1a65c85a",
->>>>>>> prompt/agent-inventory
-  "prevId": "8b8645c4-2fe8-4a8c-8a46-5f105f2b7073",
+  "id": "cfd6e5e0-139e-4127-86fa-b2e0201b5750",
+  "prevId": "f12e7029-2fe2-4147-aafd-3eac1a65c85a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -372,8 +368,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-<<<<<<< HEAD
-=======
     "public.inventory": {
       "name": "inventory",
       "schema": "",
@@ -523,7 +517,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
->>>>>>> prompt/agent-inventory
     "public.inventory_logs": {
       "name": "inventory_logs",
       "schema": "",
@@ -554,26 +547,6 @@
         },
         "quantity": {
           "name": "quantity",
-<<<<<<< HEAD
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "before_stock": {
-          "name": "before_stock",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "after_stock": {
-          "name": "after_stock",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "order_id": {
-          "name": "order_id",
-=======
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": true
@@ -598,20 +571,13 @@
         },
         "source_id": {
           "name": "source_id",
->>>>>>> prompt/agent-inventory
           "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
-<<<<<<< HEAD
-        "remark": {
-          "name": "remark",
-          "type": "text",
-=======
         "created_by": {
           "name": "created_by",
           "type": "integer",
->>>>>>> prompt/agent-inventory
           "primaryKey": false,
           "notNull": false
         },
@@ -624,21 +590,14 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
-        "inventory_logs_enterprise_id_idx": {
-          "name": "inventory_logs_enterprise_id_idx",
-=======
         "inventory_logs_product_idx": {
           "name": "inventory_logs_product_idx",
->>>>>>> prompt/agent-inventory
           "columns": [
             {
               "expression": "enterprise_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-<<<<<<< HEAD
-=======
             },
             {
               "expression": "product_id",
@@ -687,7 +646,6 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
->>>>>>> prompt/agent-inventory
             }
           ],
           "isUnique": false,
@@ -709,8 +667,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-<<<<<<< HEAD
-=======
         },
         "inventory_logs_product_id_products_id_fk": {
           "name": "inventory_logs_product_id_products_id_fk",
@@ -831,7 +787,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
->>>>>>> prompt/agent-inventory
         }
       },
       "compositePrimaryKeys": {},
@@ -856,31 +811,16 @@
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-        "name": {
-          "name": "name",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-=======
         "category_id": {
           "name": "category_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
->>>>>>> prompt/agent-inventory
         },
         "code": {
           "name": "code",
           "type": "varchar(50)",
           "primaryKey": false,
-<<<<<<< HEAD
-          "notNull": false
-        },
-        "category": {
-          "name": "category",
-          "type": "varchar(50)",
-=======
           "notNull": true
         },
         "name": {
@@ -892,7 +832,6 @@
         "spec": {
           "name": "spec",
           "type": "varchar(100)",
->>>>>>> prompt/agent-inventory
           "primaryKey": false,
           "notNull": false
         },
@@ -903,39 +842,6 @@
           "notNull": false,
           "default": "'件'"
         },
-<<<<<<< HEAD
-        "price": {
-          "name": "price",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "cost": {
-          "name": "cost",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "stock": {
-          "name": "stock",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "min_stock": {
-          "name": "min_stock",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "remark": {
-          "name": "remark",
-          "type": "text",
-=======
         "unit_price": {
           "name": "unit_price",
           "type": "numeric(12, 2)",
@@ -983,7 +889,6 @@
         "food_ext": {
           "name": "food_ext",
           "type": "jsonb",
->>>>>>> prompt/agent-inventory
           "primaryKey": false,
           "notNull": false
         },
@@ -1003,13 +908,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
-        "products_enterprise_id_idx": {
-          "name": "products_enterprise_id_idx",
-=======
         "products_enterprise_idx": {
           "name": "products_enterprise_idx",
->>>>>>> prompt/agent-inventory
           "columns": [
             {
               "expression": "enterprise_id",
@@ -1023,8 +923,6 @@
           "method": "btree",
           "with": {}
         },
-<<<<<<< HEAD
-=======
         "products_code_idx": {
           "name": "products_code_idx",
           "columns": [
@@ -1046,16 +944,11 @@
           "method": "btree",
           "with": {}
         },
->>>>>>> prompt/agent-inventory
         "products_category_idx": {
           "name": "products_category_idx",
           "columns": [
             {
-<<<<<<< HEAD
-              "expression": "category",
-=======
               "expression": "category_id",
->>>>>>> prompt/agent-inventory
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1080,8 +973,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-<<<<<<< HEAD
-=======
         },
         "products_category_id_product_categories_id_fk": {
           "name": "products_category_id_product_categories_id_fk",
@@ -1209,7 +1100,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
->>>>>>> prompt/agent-inventory
         }
       },
       "compositePrimaryKeys": {},
@@ -1234,45 +1124,22 @@
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-=======
         "supplier_id": {
           "name": "supplier_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
->>>>>>> prompt/agent-inventory
         "order_no": {
           "name": "order_no",
           "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-        "supplier_id": {
-          "name": "supplier_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-=======
->>>>>>> prompt/agent-inventory
         "total_amount": {
           "name": "total_amount",
           "type": "numeric(12, 2)",
           "primaryKey": false,
-<<<<<<< HEAD
-          "notNull": false,
-          "default": "'0'"
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-=======
           "notNull": true
         },
         "status": {
@@ -1282,7 +1149,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'draft'"
->>>>>>> prompt/agent-inventory
         },
         "remark": {
           "name": "remark",
@@ -1290,8 +1156,6 @@
           "primaryKey": false,
           "notNull": false
         },
-<<<<<<< HEAD
-=======
         "created_by": {
           "name": "created_by",
           "type": "integer",
@@ -1310,7 +1174,6 @@
           "primaryKey": false,
           "notNull": false
         },
->>>>>>> prompt/agent-inventory
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1327,13 +1190,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
-        "purchase_orders_enterprise_id_idx": {
-          "name": "purchase_orders_enterprise_id_idx",
-=======
         "purchase_orders_enterprise_idx": {
           "name": "purchase_orders_enterprise_idx",
->>>>>>> prompt/agent-inventory
           "columns": [
             {
               "expression": "enterprise_id",
@@ -1346,8 +1204,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-<<<<<<< HEAD
-=======
         },
         "purchase_orders_supplier_idx": {
           "name": "purchase_orders_supplier_idx",
@@ -1384,7 +1240,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
->>>>>>> prompt/agent-inventory
         }
       },
       "foreignKeys": {
@@ -1400,8 +1255,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-<<<<<<< HEAD
-=======
         },
         "purchase_orders_supplier_id_suppliers_id_fk": {
           "name": "purchase_orders_supplier_id_suppliers_id_fk",
@@ -1550,7 +1403,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
->>>>>>> prompt/agent-inventory
         }
       },
       "compositePrimaryKeys": {},
@@ -1575,45 +1427,22 @@
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-=======
         "customer_id": {
           "name": "customer_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
->>>>>>> prompt/agent-inventory
         "order_no": {
           "name": "order_no",
           "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-        "customer_id": {
-          "name": "customer_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-=======
->>>>>>> prompt/agent-inventory
         "total_amount": {
           "name": "total_amount",
           "type": "numeric(12, 2)",
           "primaryKey": false,
-<<<<<<< HEAD
-          "notNull": false,
-          "default": "'0'"
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-=======
           "notNull": true
         },
         "discount_amount": {
@@ -1643,7 +1472,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'self'"
->>>>>>> prompt/agent-inventory
         },
         "remark": {
           "name": "remark",
@@ -1651,8 +1479,6 @@
           "primaryKey": false,
           "notNull": false
         },
-<<<<<<< HEAD
-=======
         "created_by": {
           "name": "created_by",
           "type": "integer",
@@ -1671,7 +1497,6 @@
           "primaryKey": false,
           "notNull": false
         },
->>>>>>> prompt/agent-inventory
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1688,13 +1513,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
-        "sales_orders_enterprise_id_idx": {
-          "name": "sales_orders_enterprise_id_idx",
-=======
         "sales_orders_enterprise_idx": {
           "name": "sales_orders_enterprise_idx",
->>>>>>> prompt/agent-inventory
           "columns": [
             {
               "expression": "enterprise_id",
@@ -1707,8 +1527,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-<<<<<<< HEAD
-=======
         },
         "sales_orders_customer_idx": {
           "name": "sales_orders_customer_idx",
@@ -1766,7 +1584,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
->>>>>>> prompt/agent-inventory
         }
       },
       "foreignKeys": {
@@ -1782,103 +1599,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-<<<<<<< HEAD
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.account_subjects": {
-      "name": "account_subjects",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "enterprise_id": {
-          "name": "enterprise_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code": {
-          "name": "code",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "account_subjects_enterprise_id_idx": {
-          "name": "account_subjects_enterprise_id_idx",
-          "columns": [
-            {
-              "expression": "enterprise_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "account_subjects_code_idx": {
-          "name": "account_subjects_code_idx",
-          "columns": [
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "account_subjects_enterprise_id_enterprises_id_fk": {
-          "name": "account_subjects_enterprise_id_enterprises_id_fk",
-          "tableFrom": "account_subjects",
-          "tableTo": "enterprises",
-          "columnsFrom": [
-            "enterprise_id"
-=======
         },
         "sales_orders_customer_id_customers_id_fk": {
           "name": "sales_orders_customer_id_customers_id_fk",
@@ -1899,7 +1619,6 @@
           "tableTo": "users",
           "columnsFrom": [
             "created_by"
->>>>>>> prompt/agent-inventory
           ],
           "columnsTo": [
             "id"
@@ -1909,9 +1628,6 @@
         }
       },
       "compositePrimaryKeys": {},
-<<<<<<< HEAD
-      "uniqueConstraints": {},
-=======
       "uniqueConstraints": {
         "sales_orders_order_no_unique": {
           "name": "sales_orders_order_no_unique",
@@ -1921,18 +1637,125 @@
           ]
         }
       },
->>>>>>> prompt/agent-inventory
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-<<<<<<< HEAD
-    "public.invoices": {
-      "name": "invoices",
-=======
-    "public.suppliers": {
-      "name": "suppliers",
->>>>>>> prompt/agent-inventory
+    "public.stocktaking_items": {
+      "name": "stocktaking_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_qty": {
+          "name": "book_qty",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actual_qty": {
+          "name": "actual_qty",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diff_qty": {
+          "name": "diff_qty",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remark": {
+          "name": "remark",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "stocktaking_items_order_idx": {
+          "name": "stocktaking_items_order_idx",
+          "columns": [
+            {
+              "expression": "order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "stocktaking_items_product_idx": {
+          "name": "stocktaking_items_product_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "stocktaking_items_order_id_stocktaking_orders_id_fk": {
+          "name": "stocktaking_items_order_id_stocktaking_orders_id_fk",
+          "tableFrom": "stocktaking_items",
+          "tableTo": "stocktaking_orders",
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stocktaking_items_product_id_products_id_fk": {
+          "name": "stocktaking_items_product_id_products_id_fk",
+          "tableFrom": "stocktaking_items",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stocktaking_orders": {
+      "name": "stocktaking_orders",
       "schema": "",
       "columns": {
         "id": {
@@ -1947,89 +1770,44 @@
           "primaryKey": false,
           "notNull": true
         },
-<<<<<<< HEAD
-        "type": {
-          "name": "type",
-          "type": "varchar(10)",
+        "warehouse_id": {
+          "name": "warehouse_id",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "default": 1
         },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tax_no": {
-          "name": "tax_no",
-=======
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_name": {
-          "name": "contact_name",
->>>>>>> prompt/agent-inventory
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-<<<<<<< HEAD
-        "address": {
-          "name": "address",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-=======
->>>>>>> prompt/agent-inventory
-        "phone": {
-          "name": "phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-<<<<<<< HEAD
-        "bank_name": {
-          "name": "bank_name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "bank_account": {
-          "name": "bank_account",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "remark": {
-          "name": "remark",
-=======
-        "address": {
-          "name": "address",
->>>>>>> prompt/agent-inventory
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-<<<<<<< HEAD
-=======
         "status": {
           "name": "status",
           "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'active'"
+          "notNull": true,
+          "default": "'draft'"
         },
->>>>>>> prompt/agent-inventory
+        "remark": {
+          "name": "remark",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confirmed_by": {
+          "name": "confirmed_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2046,13 +1824,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
-        "invoices_enterprise_id_idx": {
-          "name": "invoices_enterprise_id_idx",
-=======
-        "suppliers_enterprise_idx": {
-          "name": "suppliers_enterprise_idx",
->>>>>>> prompt/agent-inventory
+        "stocktaking_orders_enterprise_idx": {
+          "name": "stocktaking_orders_enterprise_idx",
           "columns": [
             {
               "expression": "enterprise_id",
@@ -2065,16 +1838,62 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "stocktaking_orders_status_idx": {
+          "name": "stocktaking_orders_status_idx",
+          "columns": [
+            {
+              "expression": "enterprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-<<<<<<< HEAD
-        "invoices_enterprise_id_enterprises_id_fk": {
-          "name": "invoices_enterprise_id_enterprises_id_fk",
-          "tableFrom": "invoices",
+        "stocktaking_orders_enterprise_id_enterprises_id_fk": {
+          "name": "stocktaking_orders_enterprise_id_enterprises_id_fk",
+          "tableFrom": "stocktaking_orders",
           "tableTo": "enterprises",
           "columnsFrom": [
             "enterprise_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stocktaking_orders_created_by_users_id_fk": {
+          "name": "stocktaking_orders_created_by_users_id_fk",
+          "tableFrom": "stocktaking_orders",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stocktaking_orders_confirmed_by_users_id_fk": {
+          "name": "stocktaking_orders_confirmed_by_users_id_fk",
+          "tableFrom": "stocktaking_orders",
+          "tableTo": "users",
+          "columnsFrom": [
+            "confirmed_by"
           ],
           "columnsTo": [
             "id"
@@ -2089,82 +1908,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.voucher_entries": {
-      "name": "voucher_entries",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "voucher_id": {
-          "name": "voucher_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subject_id": {
-          "name": "subject_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "debit": {
-          "name": "debit",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "credit": {
-          "name": "credit",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "voucher_entries_voucher_id_idx": {
-          "name": "voucher_entries_voucher_id_idx",
-          "columns": [
-            {
-              "expression": "voucher_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.vouchers": {
-      "name": "vouchers",
+    "public.suppliers": {
+      "name": "suppliers",
       "schema": "",
       "columns": {
         "id": {
@@ -2179,37 +1924,36 @@
           "primaryKey": false,
           "notNull": true
         },
-        "voucher_no": {
-          "name": "voucher_no",
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_name": {
+          "name": "contact_name",
           "type": "varchar(50)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "voucher_date": {
-          "name": "voucher_date",
-          "type": "timestamp",
+        "phone": {
+          "name": "phone",
+          "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "total_debit": {
-          "name": "total_debit",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "total_credit": {
-          "name": "total_credit",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "remark": {
-          "name": "remark",
+        "address": {
+          "name": "address",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'active'"
         },
         "created_at": {
           "name": "created_at",
@@ -2217,11 +1961,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "vouchers_enterprise_id_idx": {
-          "name": "vouchers_enterprise_id_idx",
+        "suppliers_enterprise_idx": {
+          "name": "suppliers_enterprise_idx",
           "columns": [
             {
               "expression": "enterprise_id",
@@ -2237,14 +1988,9 @@
         }
       },
       "foreignKeys": {
-        "vouchers_enterprise_id_enterprises_id_fk": {
-          "name": "vouchers_enterprise_id_enterprises_id_fk",
-          "tableFrom": "vouchers",
-=======
         "suppliers_enterprise_id_enterprises_id_fk": {
           "name": "suppliers_enterprise_id_enterprises_id_fk",
           "tableFrom": "suppliers",
->>>>>>> prompt/agent-inventory
           "tableTo": "enterprises",
           "columnsFrom": [
             "enterprise_id"
@@ -2273,8 +2019,6 @@
         "deleted"
       ]
     },
-<<<<<<< HEAD
-=======
     "public.order_status": {
       "name": "order_status",
       "schema": "public",
@@ -2286,7 +2030,6 @@
         "cancelled"
       ]
     },
->>>>>>> prompt/agent-inventory
     "public.user_status": {
       "name": "user_status",
       "schema": "public",

@@ -31,3 +31,11 @@ export const approvalRecordStatusEnum = pgEnum('approval_record_status', [
   'rejected',
   'cancelled',
 ]);
+
+export const orderStatusEnum = pgEnum('order_status', [
+  'draft',
+  'pending',
+  'approved',
+  'completed',
+  'cancelled',
+]);
