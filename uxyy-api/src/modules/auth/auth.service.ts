@@ -1,17 +1,20 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
-import { eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
+import { resolveJwtRefreshSecret } from './jwt-access-secret';
 
 export interface RegisterDto {
   phone: string;
@@ -35,6 +38,7 @@ export class AuthService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   // ========== 登录 ==========
@@ -47,6 +51,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.status === 'banned') {
+      throw new ForbiddenException('Account is banned');
     }
 
     const passwordHash = user.passwordHash;
@@ -71,11 +79,15 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(user.id),
       enterpriseId,
+      role: membership?.role,
     });
 
+    const refreshSecret = resolveJwtRefreshSecret(this.config);
+    const refreshExpiresIn =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(user.id), type: 'refresh' },
-      { expiresIn: '30d' },
+      { secret: refreshSecret, expiresIn: refreshExpiresIn },
     );
 
     return {
@@ -142,11 +154,15 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(user.id),
       enterpriseId,
+      role: enterpriseId != null ? 'owner' : undefined,
     });
 
+    const refreshSecret = resolveJwtRefreshSecret(this.config);
+    const refreshExpiresIn =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(user.id), type: 'refresh' },
-      { expiresIn: '30d' },
+      { secret: refreshSecret, expiresIn: refreshExpiresIn },
     );
 
     return {
@@ -161,7 +177,11 @@ export class AuthService {
   // ========== Token 刷新 ==========
   async refreshToken(refreshToken: string) {
     try {
-      const payload = await this.jwt.verifyAsync(refreshToken);
+      const secret = resolveJwtRefreshSecret(this.config);
+      const payload = await this.jwt.verifyAsync<{ sub: string; type: string }>(
+        refreshToken,
+        { secret },
+      );
 
       if (payload.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type');
@@ -199,9 +219,11 @@ export class AuthService {
         enterpriseId,
       });
 
+      const expiresInRaw =
+        this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
       const newRefreshToken = await this.jwt.signAsync(
         { sub: String(user.id), type: 'refresh' },
-        { expiresIn: '30d' },
+        { secret, expiresIn: expiresInRaw },
       );
 
       return {
@@ -209,7 +231,8 @@ export class AuthService {
         refresh_token: newRefreshToken,
         token_type: 'Bearer' as const,
       };
-    } catch {
+    } catch (err: any) {
+      if (err instanceof UnauthorizedException) throw err;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -319,17 +342,369 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(userId),
       enterpriseId,
+      role: membership.role,
     });
 
+    const secret = resolveJwtRefreshSecret(this.config);
+    const expiresInRaw =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(userId), type: 'refresh' },
-      { expiresIn: '30d' },
+      { secret, expiresIn: expiresInRaw },
     );
 
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer' as const,
+    };
+  }
+
+  // ========== 审批流程管理 ==========
+
+  async createApprovalFlow(
+    dto: {
+      name: string;
+      type: string;
+      steps: { step: number; role: string; condition?: object }[];
+    },
+    enterpriseId: number,
+  ) {
+    const [flow] = await this.db
+      .insert(schema.approvalFlows)
+      .values({
+        enterpriseId,
+        name: dto.name,
+        type: dto.type as typeof schema.approvalFlows.$inferSelect.type,
+        steps: dto.steps,
+        status: 'active',
+      })
+      .returning();
+
+    if (!flow) throw new BadRequestException('创建审批流程失败');
+
+    return {
+      flowId: flow.id,
+      name: flow.name,
+      status: flow.status,
+      createdAt: flow.createdAt?.toISOString(),
+    };
+  }
+
+  async listApprovalFlows(
+    enterpriseId: number,
+    query: { page?: number; pageSize?: number; type?: string },
+  ) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const conditions = [eq(schema.approvalFlows.enterpriseId, enterpriseId)];
+    if (query.type) {
+      conditions.push(
+        eq(
+          schema.approvalFlows.type,
+          query.type as typeof schema.approvalFlows.$inferSelect.type,
+        ),
+      );
+    }
+
+    const [totalRow] = await this.db
+      .select({ c: count() })
+      .from(schema.approvalFlows)
+      .where(and(...conditions));
+
+    const rows = await this.db
+      .select()
+      .from(schema.approvalFlows)
+      .where(and(...conditions))
+      .orderBy(desc(schema.approvalFlows.createdAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    return {
+      items: rows.map((r) => ({
+        flowId: r.id,
+        enterpriseId: r.enterpriseId,
+        name: r.name,
+        type: r.type,
+        steps: r.steps,
+        status: r.status,
+        createdAt: r.createdAt?.toISOString(),
+      })),
+      total: Number(totalRow?.c ?? 0),
+      page,
+      pageSize,
+    };
+  }
+
+  async getApprovalFlow(flowId: number, enterpriseId: number) {
+    const [row] = await this.db
+      .select()
+      .from(schema.approvalFlows)
+      .where(
+        and(
+          eq(schema.approvalFlows.id, flowId),
+          eq(schema.approvalFlows.enterpriseId, enterpriseId),
+        ),
+      )
+      .limit(1);
+
+    if (!row) throw new NotFoundException('审批流程不存在');
+
+    return {
+      flowId: row.id,
+      enterpriseId: row.enterpriseId,
+      name: row.name,
+      type: row.type,
+      steps: row.steps,
+      status: row.status,
+      createdAt: row.createdAt?.toISOString(),
+    };
+  }
+
+  // ========== 审批单管理 ==========
+
+  async submitApproval(
+    dto: {
+      flowId: number;
+      businessType: string;
+      businessId: number;
+      title: string;
+      remark?: string;
+    },
+    userId: number,
+  ) {
+    const [flow] = await this.db
+      .select()
+      .from(schema.approvalFlows)
+      .where(eq(schema.approvalFlows.id, dto.flowId))
+      .limit(1);
+
+    if (!flow || flow.status !== 'active') {
+      throw new NotFoundException('审批流程不存在或已停用');
+    }
+
+    const [record] = await this.db
+      .insert(schema.approvalRecords)
+      .values({
+        flowId: dto.flowId,
+        businessType: dto.businessType,
+        businessId: dto.businessId,
+        title: dto.title,
+        remark: dto.remark,
+        status: 'pending',
+        currentStep: 1,
+        submittedBy: userId,
+      })
+      .returning();
+
+    if (!record) throw new BadRequestException('提交审批失败');
+
+    return {
+      approvalId: record.id,
+      status: record.status,
+      currentStep: record.currentStep,
+      submittedAt: record.createdAt?.toISOString(),
+    };
+  }
+
+  async listApprovals(
+    enterpriseId: number,
+    query: { page?: number; pageSize?: number; status?: string },
+  ) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const flowIds = await this.db
+      .select({ id: schema.approvalFlows.id })
+      .from(schema.approvalFlows)
+      .where(eq(schema.approvalFlows.enterpriseId, enterpriseId));
+
+    const flowIdList = flowIds.map((f) => f.id);
+    if (flowIdList.length === 0) {
+      return { items: [], total: 0, page, pageSize };
+    }
+
+    const conditions = [
+      and(...flowIdList.map((id) => eq(schema.approvalRecords.flowId, id))),
+    ];
+    if (query.status) {
+      conditions.push(
+        eq(
+          schema.approvalRecords.status,
+          query.status as typeof schema.approvalRecords.$inferSelect.status,
+        ),
+      );
+    }
+
+    const [totalRow] = await this.db
+      .select({ c: count() })
+      .from(schema.approvalRecords)
+      .where(and(...conditions));
+
+    const rows = await this.db
+      .select()
+      .from(schema.approvalRecords)
+      .where(and(...conditions))
+      .orderBy(desc(schema.approvalRecords.createdAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    return {
+      items: rows.map((r) => ({
+        approvalId: r.id,
+        flowId: r.flowId,
+        businessType: r.businessType,
+        businessId: r.businessId,
+        title: r.title,
+        status: r.status,
+        currentStep: r.currentStep,
+        submittedBy: r.submittedBy,
+        approvedBy: r.approvedBy ?? undefined,
+        comment: r.comment ?? undefined,
+        approvedAt: r.approvedAt?.toISOString(),
+        createdAt: r.createdAt?.toISOString(),
+      })),
+      total: Number(totalRow?.c ?? 0),
+      page,
+      pageSize,
+    };
+  }
+
+  async getApproval(approvalId: number, enterpriseId: number) {
+    const [record] = await this.db
+      .select()
+      .from(schema.approvalRecords)
+      .where(eq(schema.approvalRecords.id, approvalId))
+      .limit(1);
+
+    if (!record) throw new NotFoundException('审批单不存在');
+
+    const [flow] = await this.db
+      .select()
+      .from(schema.approvalFlows)
+      .where(eq(schema.approvalFlows.id, record.flowId))
+      .limit(1);
+
+    if (!flow || flow.enterpriseId !== enterpriseId) {
+      throw new NotFoundException('审批单不存在');
+    }
+
+    return {
+      approvalId: record.id,
+      flowId: record.flowId,
+      businessType: record.businessType,
+      businessId: record.businessId,
+      title: record.title,
+      status: record.status,
+      currentStep: record.currentStep,
+      submittedBy: record.submittedBy,
+      approvedBy: record.approvedBy ?? undefined,
+      comment: record.comment ?? undefined,
+      approvedAt: record.approvedAt?.toISOString(),
+      createdAt: record.createdAt?.toISOString(),
+    };
+  }
+
+  async actionApproval(
+    approvalId: number,
+    userId: number,
+    userRole: string,
+    dto: { action: string; comment?: string },
+  ) {
+    const [record] = await this.db
+      .select()
+      .from(schema.approvalRecords)
+      .where(eq(schema.approvalRecords.id, approvalId))
+      .limit(1);
+
+    if (!record) throw new NotFoundException('审批单不存在');
+    if (record.status !== 'pending') {
+      throw new BadRequestException('审批单状态不允许操作');
+    }
+
+    const [flow] = await this.db
+      .select()
+      .from(schema.approvalFlows)
+      .where(eq(schema.approvalFlows.id, record.flowId))
+      .limit(1);
+
+    if (!flow || flow.status !== 'active') {
+      throw new NotFoundException('审批流程不存在或已停用');
+    }
+
+    const steps = flow.steps as { step: number; role: string }[];
+    const currentStepDef = steps.find((s) => s.step === record.currentStep);
+    if (!currentStepDef) {
+      throw new BadRequestException('审批流程步骤异常');
+    }
+
+    if (currentStepDef.role !== userRole) {
+      throw new ForbiddenException(
+        '当前审批步骤需要角色: ' + currentStepDef.role,
+      );
+    }
+
+    if (dto.action === 'approve') {
+      const nextStep = steps.find((s) => s.step === record.currentStep + 1);
+      const newStatus = nextStep ? 'pending' : 'approved';
+
+      await this.db
+        .update(schema.approvalRecords)
+        .set({
+          status: newStatus,
+          currentStep: nextStep ? nextStep.step : record.currentStep,
+          approvedBy: userId,
+          comment: dto.comment ?? null,
+          approvedAt: new Date(),
+        })
+        .where(eq(schema.approvalRecords.id, approvalId));
+
+      return {
+        approvalId,
+        status: newStatus,
+        approvedBy: userId,
+        approvedAt: new Date().toISOString(),
+        nextStep: nextStep?.step ?? null,
+      };
+    }
+
+    if (dto.action === 'reject') {
+      await this.db
+        .update(schema.approvalRecords)
+        .set({
+          status: 'rejected',
+          approvedBy: userId,
+          comment: dto.comment ?? null,
+          approvedAt: new Date(),
+        })
+        .where(eq(schema.approvalRecords.id, approvalId));
+
+      return {
+        approvalId,
+        status: 'rejected',
+        approvedBy: userId,
+        approvedAt: new Date().toISOString(),
+        nextStep: null,
+      };
+    }
+
+    // cancel
+    await this.db
+      .update(schema.approvalRecords)
+      .set({
+        status: 'cancelled',
+        approvedBy: userId,
+        comment: dto.comment ?? null,
+        approvedAt: new Date(),
+      })
+      .where(eq(schema.approvalRecords.id, approvalId));
+
+    return {
+      approvalId,
+      status: 'cancelled',
+      approvedBy: userId,
+      approvedAt: new Date().toISOString(),
+      nextStep: null,
     };
   }
 }

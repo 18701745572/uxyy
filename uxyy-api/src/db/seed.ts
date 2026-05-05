@@ -14,6 +14,7 @@ const ROUNDS = 10;
 async function seedSampleCustomers(
   db: NodePgDatabase<typeof schema>,
   enterpriseId: number,
+  userId: number,
 ) {
   const [row] = await db
     .select({ c: count() })
@@ -24,26 +25,276 @@ async function seedSampleCustomers(
     return;
   }
 
-  await db.insert(schema.customers).values([
+  const customers = await db
+    .insert(schema.customers)
+    .values([
+      {
+        enterpriseId,
+        name: '示例 · 湖滨便利店',
+        phone: '0571-82821111',
+        contactPerson: '王店主',
+        address: '杭州市西湖区湖滨路100号',
+        type: 'enterprise',
+        level: 'VIP',
+        industry: '零售',
+        tags: ['重点客户', '货到付款'],
+        source: 'manual',
+        assignedTo: userId,
+        creditLimit: '50000',
+        remark: '种子数据 · 货到付款',
+      },
+      {
+        enterpriseId,
+        name: '示例 · 城南五金批发',
+        phone: '13900001234',
+        contactPerson: '李经理',
+        address: '杭州市萧山区建设三路88号',
+        type: 'enterprise',
+        level: 'regular',
+        industry: '五金',
+        tags: ['批发'],
+        source: 'import',
+        assignedTo: userId,
+        creditLimit: '20000',
+      },
+      {
+        enterpriseId,
+        name: '示例 · XX 塑料制品厂',
+        contactPerson: '陈采购',
+        type: 'enterprise',
+        level: 'potential',
+        industry: '制造业',
+        tags: ['月结', '含税专票'],
+        source: 'wechat',
+        remark: '月结 · 含税专票',
+        creditLimit: '100000',
+      },
+    ])
+    .returning();
+
+  console.log(
+    `Seeded ${customers.length} demo customers for enterpriseId=${enterpriseId}`,
+  );
+
+  if (customers.length > 0) {
+    const [firstCustomer] = customers;
+    if (firstCustomer) {
+      await db.insert(schema.followUpRecords).values([
+        {
+          customerId: firstCustomer.id,
+          enterpriseId,
+          content: '初次电话沟通，客户对进货渠道比较关注，约定下周三面谈。',
+          type: 'text',
+          nextFollowUpAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          createdBy: userId,
+        },
+        {
+          customerId: firstCustomer.id,
+          enterpriseId,
+          content: '面谈顺利，客户同意试用一批货，已发送报价单。',
+          type: 'text',
+          createdBy: userId,
+        },
+      ]);
+      console.log(
+        `Seeded 2 follow-up records for customer id=${firstCustomer.id}`,
+      );
+    }
+  }
+}
+
+async function seedSampleInventory(
+  db: NodePgDatabase<typeof schema>,
+  enterpriseId: number,
+  userId: number,
+) {
+  const [existingProduct] = await db
+    .select({ c: count() })
+    .from(schema.products)
+    .where(eq(schema.products.enterpriseId, enterpriseId));
+  const n = Number(existingProduct?.c ?? 0);
+  if (n > 0) {
+    return;
+  }
+
+  // Categories
+  const [cat1] = await db
+    .insert(schema.productCategories)
+    .values({ enterpriseId, name: '五金工具', sortOrder: 1 })
+    .returning();
+  const [cat2] = await db
+    .insert(schema.productCategories)
+    .values({ enterpriseId, name: '电子元器件', sortOrder: 2 })
+    .returning();
+
+  // Products
+  const [p1] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat1.id,
+      code: 'P001',
+      name: '六角螺栓 M8×30',
+      spec: 'M8×30 8.8级',
+      unit: '件',
+      unitPrice: '12.50',
+      costPrice: '8.00',
+      minStock: '50',
+      maxStock: '500',
+    })
+    .returning();
+  const [p2] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat1.id,
+      code: 'P002',
+      name: '不锈钢平垫 M8',
+      spec: 'M8 304不锈钢',
+      unit: '件',
+      unitPrice: '0.80',
+      costPrice: '0.35',
+      minStock: '200',
+      maxStock: '2000',
+    })
+    .returning();
+  const [p3] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat2.id,
+      code: 'E001',
+      name: '贴片电阻 10KΩ 0805',
+      spec: '0805 ±5%',
+      unit: '个',
+      unitPrice: '0.05',
+      costPrice: '0.02',
+      minStock: '1000',
+      maxStock: '10000',
+    })
+    .returning();
+  const [p4] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat2.id,
+      code: 'E002',
+      name: '电解电容 100μF 25V',
+      spec: 'Φ8×12 105℃',
+      unit: '个',
+      unitPrice: '0.35',
+      costPrice: '0.18',
+      minStock: '500',
+    })
+    .returning();
+  const [p5] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      code: 'M001',
+      name: '通用清洁剂 500ml',
+      spec: '500ml 喷雾装',
+      unit: '瓶',
+      unitPrice: '15.00',
+      costPrice: '9.50',
+      minStock: '20',
+      maxStock: '100',
+    })
+    .returning();
+
+  // Suppliers
+  await db
+    .insert(schema.suppliers)
+    .values({
+      enterpriseId,
+      name: '杭州某某五金批发',
+      contactName: '张三',
+      phone: '13900001111',
+      address: '杭州市余杭区某某路100号',
+    })
+    .returning();
+  await db
+    .insert(schema.suppliers)
+    .values({
+      enterpriseId,
+      name: '深圳某某电子商行',
+      contactName: '李四',
+      phone: '13800002222',
+    })
+    .returning();
+
+  // Initial inventory stock
+  await db.insert(schema.inventory).values([
+    { enterpriseId, productId: p1.id, quantity: '200', warehouseId: 1 },
+    { enterpriseId, productId: p2.id, quantity: '800', warehouseId: 1 },
+    { enterpriseId, productId: p3.id, quantity: '5000', warehouseId: 1 },
+    { enterpriseId, productId: p4.id, quantity: '1200', warehouseId: 1 },
+    { enterpriseId, productId: p5.id, quantity: '15', warehouseId: 1 },
+  ]);
+
+  // Write initial inventory logs (seeding)
+  const now = new Date();
+  await db.insert(schema.inventoryLogs).values([
     {
       enterpriseId,
-      name: '示例 · 湖滨便利店',
-      phone: '0571-82821111',
-      remark: '种子数据 · 货到付款',
+      productId: p1.id,
+      type: 'in',
+      quantity: '200',
+      beforeQty: '0',
+      afterQty: '200',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
     },
     {
       enterpriseId,
-      name: '示例 · 城南五金批发',
-      phone: '13900001234',
+      productId: p2.id,
+      type: 'in',
+      quantity: '800',
+      beforeQty: '0',
+      afterQty: '800',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
     },
     {
       enterpriseId,
-      name: '示例 · XX 塑料制品厂',
-      remark: '月结 · 含税专票',
+      productId: p3.id,
+      type: 'in',
+      quantity: '5000',
+      beforeQty: '0',
+      afterQty: '5000',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p4.id,
+      type: 'in',
+      quantity: '1200',
+      beforeQty: '0',
+      afterQty: '1200',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p5.id,
+      type: 'in',
+      quantity: '15',
+      beforeQty: '0',
+      afterQty: '15',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
     },
   ]);
 
-  console.log(`Seeded ${3} demo customers for enterpriseId=${enterpriseId}`);
+  console.log(
+    `Seeded 2 categories, 5 products, 2 suppliers, 5 inventory records for enterpriseId=${enterpriseId}`,
+  );
 }
 
 async function main() {
@@ -75,7 +326,12 @@ async function main() {
       .limit(1);
     const enterpriseId = membership?.enterpriseId;
     if (enterpriseId != null) {
+<<<<<<< HEAD
+      await seedSampleCustomers(db, enterpriseId, user.id);
+=======
       await seedSampleCustomers(db, enterpriseId);
+      await seedSampleInventory(db, enterpriseId, user.id);
+>>>>>>> prompt/agent-inventory
     }
     await pool.end();
     return;
@@ -117,7 +373,12 @@ async function main() {
     isDefault: true,
   });
 
+<<<<<<< HEAD
+  await seedSampleCustomers(db, enterprise.id, user.id);
+=======
   await seedSampleCustomers(db, enterprise.id);
+  await seedSampleInventory(db, enterprise.id, user.id);
+>>>>>>> prompt/agent-inventory
 
   console.log(
     `Seeded dev user phone=${SEED_PHONE} password=${SEED_PASSWORD} enterpriseId=${enterprise.id}`,

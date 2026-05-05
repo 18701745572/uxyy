@@ -4,30 +4,43 @@ import type { ConfigService } from '@nestjs/config';
 export const JWT_ACCESS_SECRET_DEV_PLACEHOLDER =
   'please-change-this-to-a-long-random-string-for-dev-only';
 
-export function resolveJwtAccessSecret(config?: ConfigService): string {
-  // 首先尝试从 config 获取
+export const JWT_REFRESH_SECRET_DEV_PLACEHOLDER =
+  'please-change-this-refresh-secret-for-dev-only';
+
+function resolveSecret(
+  config: ConfigService | undefined,
+  envKey: string,
+  devPlaceholder: string,
+): string {
   let value = '';
   if (config && typeof config.get === 'function') {
-    const raw = config.get<string>('JWT_ACCESS_SECRET');
-    if (typeof raw === 'string') {
-      value = raw.trim();
-    }
+    const raw = config.get<string>(envKey);
+    if (typeof raw === 'string') value = raw.trim();
   }
-
-  // 如果 config 没有，尝试从 process.env 获取
-  if (value === '' && process.env.JWT_ACCESS_SECRET) {
-    value = process.env.JWT_ACCESS_SECRET.trim();
+  if (value === '' && process.env[envKey]) {
+    value = process.env[envKey].trim();
   }
-
-  if (value !== '') {
-    return value;
-  }
-
+  if (value !== '') return value;
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'JWT_ACCESS_SECRET must be set to a strong secret when NODE_ENV is production',
+      `${envKey} must be set to a strong secret when NODE_ENV is production`,
     );
   }
+  return devPlaceholder;
+}
 
-  return JWT_ACCESS_SECRET_DEV_PLACEHOLDER;
+export function resolveJwtAccessSecret(config?: ConfigService): string {
+  return resolveSecret(
+    config,
+    'JWT_ACCESS_SECRET',
+    JWT_ACCESS_SECRET_DEV_PLACEHOLDER,
+  );
+}
+
+export function resolveJwtRefreshSecret(config?: ConfigService): string {
+  return resolveSecret(
+    config,
+    'JWT_REFRESH_SECRET',
+    JWT_REFRESH_SECRET_DEV_PLACEHOLDER,
+  );
 }

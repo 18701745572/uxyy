@@ -26,8 +26,43 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1777898153009,
-      "tag": "0003_nosy_rocket_racer",
+      "when": 1777971538431,
+      "tag": "0003_inventory_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777972729855,
+      "tag": "0004_oa_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777978403230,
+      "tag": "0005_stocktaking_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777971151111,
+      "tag": "0006_crm_enrich",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777971289126,
+      "tag": "0007_init_finance_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777971835907,
+      "tag": "0004_ai_tasks",
       "breakpoints": true
     }
   ]

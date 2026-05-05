@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     super(opts);
   }
 
-  validate(payload: { sub?: string; enterpriseId?: number }) {
+  validate(payload: { sub?: string; enterpriseId?: number; role?: string }) {
     const sub = payload.sub;
     if (sub === undefined) {
       throw new UnauthorizedException();
@@ -28,6 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       userId,
       enterpriseId: payload.enterpriseId,
+      role: payload.role,
     } satisfies Express.UserPayload;
   }
 }

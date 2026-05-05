@@ -23,7 +23,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     if (this.config.get<string>('AUTH_DEV_BYPASS') === 'true') {
       const req = context.switchToHttp().getRequest<Express.Request>();
-      req.user = { userId: 1, enterpriseId: 1, devBypass: true };
+      req.user = { userId: 1, enterpriseId: 1, role: 'boss', devBypass: true };
       return true;
     }
 

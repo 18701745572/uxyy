@@ -3,6 +3,7 @@ declare global {
     interface UserPayload {
       userId: number;
       enterpriseId?: number;
+      role?: string;
       devBypass?: boolean;
     }
 
