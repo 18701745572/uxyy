@@ -12,3 +12,22 @@ export const enterpriseStatusEnum = pgEnum('enterprise_status', [
   'suspended',
   'deleted',
 ]);
+
+export const approvalFlowTypeEnum = pgEnum('approval_flow_type', [
+  'purchase',
+  'sales',
+  'reimbursement',
+  'leave',
+]);
+
+export const approvalFlowStatusEnum = pgEnum('approval_flow_status', [
+  'active',
+  'inactive',
+]);
+
+export const approvalRecordStatusEnum = pgEnum('approval_record_status', [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+]);

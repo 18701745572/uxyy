@@ -1,50 +1,40 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-export enum Role {
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  USER = 'user',
-}
-
-export const ROLES_KEY = 'roles';
+export const ROLES_KEY = 'uxyy_roles';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
-    if (!requiredRoles) {
+    if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
+    const roles: string[] = requiredRoles;
 
-    const { user } = context.switchToHttp().getRequest();
-    
-    if (!user || !user.role) {
-      throw new ForbiddenException('Access denied: no role assigned');
+    const request = context.switchToHttp().getRequest<Express.Request>();
+    const { user } = request;
+
+    if (!user || typeof user.role !== 'string') {
+      throw new ForbiddenException('当前用户无角色信息');
     }
 
-    const hasRole = requiredRoles.some((role) => user.role === role);
-    
-    if (!hasRole) {
-      throw new ForbiddenException(`Access denied: requires ${requiredRoles.join(' or ')}`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    if (!roles.includes(user.role)) {
+      throw new ForbiddenException(`角色权限不足，需要: ${roles.join(' 或 ')}`);
     }
 
     return true;
   }
-}
-
-export function RequireRoles(...roles: Role[]) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    if (descriptor) {
-      Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value);
-    } else {
-      Reflect.defineMetadata(ROLES_KEY, roles, target);
-    }
-  };
 }
