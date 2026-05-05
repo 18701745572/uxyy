@@ -1,73 +1,47 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { paginationSchema } from "./pagination";
 
-export const customerTypeEnum = z.enum(['personal', 'enterprise']);
-export type CustomerType = z.infer<typeof customerTypeEnum>;
-
-export const customerLevelEnum = z.enum(['VIP', 'regular', 'potential']);
-export type CustomerLevel = z.infer<typeof customerLevelEnum>;
-
-export const customerSourceEnum = z.enum(['manual', 'import', 'wechat']);
-export type CustomerSource = z.infer<typeof customerSourceEnum>;
-
-export const followUpTypeEnum = z.enum(['text', 'image', 'voice', 'file']);
-export type FollowUpType = z.infer<typeof followUpTypeEnum>;
-
-export const createCustomerSchema = z.object({
-  name: z.string().min(1).max(200),
-  phone: z.string().max(20).optional(),
-  contactPerson: z.string().max(50).optional(),
-  address: z.string().optional(),
-  type: customerTypeEnum.optional().default('enterprise'),
-  level: customerLevelEnum.optional().default('regular'),
-  industry: z.string().max(50).optional(),
-  tags: z.array(z.string()).optional(),
-  source: customerSourceEnum.optional().default('manual'),
-  assignedTo: z.number().int().positive().optional(),
-  creditLimit: z.number().min(0).optional(),
-  remark: z.string().max(4000).optional(),
-  force: z.boolean().optional().default(false),
+/** 客户记录：与 NestJS CustomerResponseDto 对齐 */
+export const customerSchema = z.object({
+  id: z.number(),
+  enterpriseId: z.number(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  remark: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
+
+export type CustomerDto = z.infer<typeof customerSchema>;
+
+/** 客户分页列表响应 */
+export const customerListSchema = z.object({
+  items: z.array(customerSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+
+export type CustomerListResponse = z.infer<typeof customerListSchema>;
+
+/** 创建客户 */
+export const createCustomerSchema = z.object({
+  name: z.string().min(1, "名称不能为空").max(200),
+  phone: z.string().max(20).optional(),
+  remark: z.string().max(4000).optional(),
+});
+
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 
-export const updateCustomerSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  phone: z.string().max(20).optional().nullable(),
-  contactPerson: z.string().max(50).optional().nullable(),
-  address: z.string().optional().nullable(),
-  type: customerTypeEnum.optional(),
-  level: customerLevelEnum.optional(),
-  industry: z.string().max(50).optional().nullable(),
-  tags: z.array(z.string()).optional().nullable(),
-  source: customerSourceEnum.optional(),
-  assignedTo: z.number().int().positive().optional().nullable(),
-  creditLimit: z.number().min(0).optional().nullable(),
-  remark: z.string().max(4000).optional().nullable(),
-});
+/** 更新客户（部分字段） */
+export const updateCustomerSchema = createCustomerSchema.partial();
+
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 
-export const customerListQuerySchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  pageSize: z.coerce.number().min(1).max(100).default(20),
-  type: customerTypeEnum.optional(),
-  level: customerLevelEnum.optional(),
-  industry: z.string().optional(),
-  search: z.string().optional(),
-  isDeleted: z.coerce.boolean().optional().default(false),
+/** 客户列表查询参数：分页基 + 可选搜索 */
+export const customerListQuerySchema = paginationSchema.extend({
+  /** 预留搜索字段（后续对接 CRM search 参数） */
+  // search: z.string().optional(),
 });
-export type CustomerListQueryInput = z.infer<typeof customerListQuerySchema>;
 
-export const createFollowUpSchema = z.object({
-  content: z.string().min(1),
-  type: followUpTypeEnum.optional().default('text'),
-  attachmentUrls: z.array(z.string()).optional(),
-  nextFollowUpAt: z.string().datetime().optional().nullable(),
-});
-export type CreateFollowUpInput = z.infer<typeof createFollowUpSchema>;
-
-export const updateFollowUpSchema = z.object({
-  content: z.string().min(1).optional(),
-  type: followUpTypeEnum.optional(),
-  attachmentUrls: z.array(z.string()).optional().nullable(),
-  nextFollowUpAt: z.string().datetime().optional().nullable(),
-});
-export type UpdateFollowUpInput = z.infer<typeof updateFollowUpSchema>;
+export type CustomerListQuery = z.infer<typeof customerListQuerySchema>;

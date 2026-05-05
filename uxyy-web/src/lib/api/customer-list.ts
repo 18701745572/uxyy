@@ -1,34 +1,15 @@
+/**
+ * @deprecated 使用 src/lib/api/customers.ts 与 @uxyy/shared 类型。
+ * 保留此文件以免破坏现有 import，逐步迁移后删除。
+ */
+export { readStoredAccessToken, persistAccessToken } from "./token-store";
+export type { CustomerDto, CustomerListResponse } from "@uxyy/shared";
+
+import type { CustomerListResponse } from "@uxyy/shared";
+import { readStoredAccessToken } from "./token-store";
 import { getPublicApiBaseUrl } from "./public-env";
 
-const TOKEN_KEY = "uxyy_access_token";
-
-export function readStoredAccessToken(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  return window.sessionStorage.getItem(TOKEN_KEY) ?? undefined;
-}
-
-export function persistAccessToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(TOKEN_KEY, token);
-}
-
-export type CustomerDto = {
-  id: number;
-  enterpriseId: number;
-  name: string;
-  phone: string | null;
-  remark: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CustomerListResponse = {
-  items: CustomerDto[];
-  total: number;
-  page: number;
-  pageSize: number;
-};
-
+/** @deprecated 用 fetchCustomers 替代 */
 export async function fetchCustomersList(params: {
   page: number;
   pageSize: number;
