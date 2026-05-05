@@ -50,6 +50,13 @@
       "when": 1777971151111,
       "tag": "0006_crm_enrich",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777971289126,
+      "tag": "0007_init_finance_tables",
+      "breakpoints": true
     }
   ]
 }
