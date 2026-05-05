@@ -1,11 +1,20 @@
 # 当前智能体工作上下文（本分支）
 
-> **分支**：`prompt/agent-ai`  
-> **角色**：**Agent-AI** — AI、OCR、队列与智能记账建议
+> **分支**：`prompt/agent-all`  
+> **角色**：**多智能体协作** — Auth、AI、CRM、Inventory、Finance、Frontend
 
 ## 主提示词（必读）
 
-请 **完整阅读并遵守**：**`docs/prompts/agent-ai.prompt.md`**，并辅以：
+根据你的角色，请 **完整阅读并遵守** 对应的提示词文件：
+
+- **Agent-Auth**: `docs/prompts/agent-auth.prompt.md`
+- **Agent-AI**: `docs/prompts/agent-ai.prompt.md`
+- **Agent-CRM**: `docs/prompts/agent-crm.prompt.md`
+- **Agent-Inventory**: `docs/prompts/agent-inventory.prompt.md`
+- **Agent-Finance**: `docs/prompts/agent-finance.prompt.md`
+- **Agent-Frontend**: `docs/prompts/agent-frontend.prompt.md`
+
+并辅以：
 
 1. `多智能体并行开发指南.md`
 2. **PRD**（`优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md`）
@@ -15,5 +24,5 @@
 
 ## Git 协作约定
 
-- 实现功能时从 **develop** 拉出 `feature/ai-*`，通过 PR/MR 合回 **develop**。
+- 实现功能时从 **develop** 拉出 `feature/<domain>-*`，通过 PR/MR 合回 **develop**。
 - 本 `prompt/agent-*` 分支用于 **固化该角色的提示词入口**（根目录本文件）；与 `develop` 代码差异仅限本说明文件时，可随时将 `develop` 合并进来以保持最新脚手架。
