@@ -12,3 +12,11 @@ export const enterpriseStatusEnum = pgEnum('enterprise_status', [
   'suspended',
   'deleted',
 ]);
+
+export const aiTaskStatusEnum = pgEnum('ai_task_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'dead',
+]);

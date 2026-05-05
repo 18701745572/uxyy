@@ -1,18 +1,20 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { AI_DEFAULT_QUEUE } from './ai.constants';
+import { DatabaseModule } from '../database/database.module';
+import { AI_DEFAULT_QUEUE, AI_DLQ_QUEUE } from './ai.constants';
 import { AiController } from './ai.controller';
+import { AiLlmService } from './ai.llm';
+import { AiProcessor } from './ai.processor';
 import { AiService } from './ai.service';
-import { AiTaskProcessor } from './ai-task.processor';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: AI_DEFAULT_QUEUE,
-    }),
+    DatabaseModule,
+    BullModule.registerQueue({ name: AI_DEFAULT_QUEUE }),
+    BullModule.registerQueue({ name: AI_DLQ_QUEUE }),
   ],
   controllers: [AiController],
-  providers: [AiService, AiTaskProcessor],
+  providers: [AiService, AiLlmService, AiProcessor],
   exports: [AiService],
 })
 export class AiModule {}
