@@ -326,12 +326,8 @@ async function main() {
       .limit(1);
     const enterpriseId = membership?.enterpriseId;
     if (enterpriseId != null) {
-<<<<<<< HEAD
       await seedSampleCustomers(db, enterpriseId, user.id);
-=======
-      await seedSampleCustomers(db, enterpriseId);
       await seedSampleInventory(db, enterpriseId, user.id);
->>>>>>> prompt/agent-inventory
     }
     await pool.end();
     return;
@@ -373,12 +369,8 @@ async function main() {
     isDefault: true,
   });
 
-<<<<<<< HEAD
   await seedSampleCustomers(db, enterprise.id, user.id);
-=======
-  await seedSampleCustomers(db, enterprise.id);
   await seedSampleInventory(db, enterprise.id, user.id);
->>>>>>> prompt/agent-inventory
 
   console.log(
     `Seeded dev user phone=${SEED_PHONE} password=${SEED_PASSWORD} enterpriseId=${enterprise.id}`,

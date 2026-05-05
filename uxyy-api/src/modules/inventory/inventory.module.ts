@@ -1,14 +1,4 @@
 import { Module } from '@nestjs/common';
-<<<<<<< HEAD
-import { InventoryController } from './inventory.controller';
-import { InventoryService } from './inventory.service';
-import { PurchaseOrderItemService } from './purchase-order-item.service';
-
-@Module({
-  controllers: [InventoryController],
-  providers: [InventoryService, PurchaseOrderItemService],
-  exports: [InventoryService, PurchaseOrderItemService],
-=======
 import { ProductsController } from './controllers/products.controller';
 import { SuppliersController } from './controllers/suppliers.controller';
 import { SalesOrdersController } from './controllers/sales-orders.controller';
@@ -39,6 +29,5 @@ import { StocktakingService } from './services/stocktaking.service';
     InventoryService,
     StocktakingService,
   ],
->>>>>>> prompt/agent-inventory
 })
 export class InventoryModule {}
