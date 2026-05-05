@@ -60,3 +60,12 @@ export const balanceDirectionEnum = pgEnum('balance_direction', [
   'debit',
   'credit',
 ]);
+
+/** AI 任务状态 */
+export const aiTaskStatusEnum = pgEnum('ai_task_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'dead',
+]);

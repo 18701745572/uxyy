@@ -4,3 +4,4 @@ export * from './crm';
 export * from './inventory';
 export * from './finance';
 export * from './oa';
+export * from './ai';

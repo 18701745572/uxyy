@@ -1,67 +1,98 @@
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
-import { AiService, type OcrResult } from './ai.service';
+import { Job } from 'bullmq';
+import { AiLlmService } from './ai.llm';
+import { AiService } from './ai.service';
+import { AI_DEFAULT_QUEUE, AI_PROCESS_JOB } from './ai.constants';
 
-@Processor('ai-ocr')
-export class OcrProcessor extends WorkerHost {
-  private readonly logger = new Logger(OcrProcessor.name);
+interface AiJobPayload {
+  taskId: number;
+  taskType: string;
+  payload: Record<string, unknown>;
+}
 
-  constructor(private readonly aiService: AiService) {
+@Processor(AI_DEFAULT_QUEUE)
+export class AiProcessor extends WorkerHost {
+  private readonly logger = new Logger(AiProcessor.name);
+
+  constructor(
+    private readonly llm: AiLlmService,
+    private readonly ai: AiService,
+  ) {
     super();
   }
 
-  async process(
-    job: Job<{ imageUrl: string; enterpriseId: number }>,
-  ): Promise<OcrResult> {
+  @Process(AI_PROCESS_JOB)
+  async process(job: Job<AiJobPayload>): Promise<Record<string, unknown>> {
+    const { taskId, taskType, payload } = job.data;
+    const attempt = (job.attemptsMade ?? 0) + 1;
+    const maxAttempts = (job.opts.attempts as number) ?? 3;
+
     this.logger.log(
-      `Processing OCR job ${job.id} for image: ${job.data.imageUrl}`,
+      `处理任务 taskId=${taskId} type=${taskType} attempt=${attempt}/${maxAttempts}`,
     );
 
-    try {
-      // 调用 AI 服务进行 OCR 识别
-      const result = await this.aiService.processOcr(job.data.imageUrl);
+    await this.ai.markProcessing(taskId);
 
-      this.logger.log(`OCR job ${job.id} completed successfully`);
-      return result;
-    } catch (error) {
-      this.logger.error(`OCR job ${job.id} failed:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+    try {
+      const messages = this.buildPrompt(taskType, payload);
+      const raw = await this.llm.chat(messages, {
+        temperature: 0.3,
+        maxTokens: 2000,
+      });
+
+      const output = this.extractJson(raw);
+      await this.ai.markCompleted(taskId, output);
+      this.logger.log(`任务完成 taskId=${taskId}`);
+      return output;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '未知错误';
+      const toDlq = attempt >= maxAttempts;
+
+      this.logger.error(
+        `任务失败 taskId=${taskId} attempt=${attempt}/${maxAttempts} dlq=${toDlq}: ${message}`,
+      );
+
+      await this.ai.markFailed(taskId, message, toDlq);
+
+      if (toDlq) {
+        // 移入死信队列供人工排查
+        await this.ai['dlqQueue'].add(
+          'dlq',
+          { taskId, taskType, payload, error: message },
+          { jobId: `dlq:${taskId}:${Date.now()}` },
+        );
+      }
+
+      throw err;
     }
   }
 
-  @OnWorkerEvent('completed')
-  onCompleted(job: Job) {
-    this.logger.log(`Job ${job.id} has completed!`);
+  private buildPrompt(
+    taskType: string,
+    payload: Record<string, unknown>,
+  ): Array<{ role: 'system' | 'user'; content: string }> {
+    const sys = '你是专业的企业财务 AI。仅输出 JSON，不输出任何其他内容。';
+
+    let user = '';
+    if (taskType === 'ocr_invoice') {
+      user = `识别以下发票并输出 JSON（字段：invoiceType, amount, sellerName, buyerName, items）: ${JSON.stringify(payload)}`;
+    } else if (taskType === 'accounting_suggestion') {
+      user = `根据以下信息生成记账建议 JSON（字段：suggestionType, confidence 0-1, entries[{accountSubject, debit, credit, description}]）: ${JSON.stringify(payload)}`;
+    } else {
+      user = `对以下内容进行财务分类 JSON（字段：suggestionType, confidence 0-1, entries[{accountSubject, debit, credit, description}]）: ${JSON.stringify(payload)}`;
+    }
+
+    return [
+      { role: 'system', content: sys },
+      { role: 'user', content: user },
+    ];
   }
 
-  @OnWorkerEvent('failed')
-  onFailed(job: Job, error: Error) {
-    this.logger.error(`Job ${job.id} has failed with error: ${error.message}`);
-  }
-}
-
-@Processor('ai-suggestion')
-export class SuggestionProcessor extends WorkerHost {
-  private readonly logger = new Logger(SuggestionProcessor.name);
-
-  async process(
-    job: Job<{ type: string; enterpriseId: number }>,
-  ): Promise<any> {
-    this.logger.log(
-      `Processing suggestion job ${job.id} for type: ${job.data.type}`,
-    );
-
-    // 这里可以实现更复杂的 AI 分析逻辑
-    // 例如调用大语言模型 API 进行数据分析
-
-    return {
-      type: job.data.type,
-      enterpriseId: job.data.enterpriseId,
-      generatedAt: new Date().toISOString(),
-    };
+  private extractJson(raw: string): Record<string, unknown> {
+    let json = raw.trim();
+    const m = json.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (m) json = m[1].trim();
+    return JSON.parse(json) as Record<string, unknown>;
   }
 }
