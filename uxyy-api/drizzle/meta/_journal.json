@@ -22,6 +22,20 @@
       "when": 1777895777659,
       "tag": "0002_crm_customers_index",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777971538431,
+      "tag": "0003_inventory_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777978403230,
+      "tag": "0004_stocktaking_tables",
+      "breakpoints": true
     }
   ]
 }

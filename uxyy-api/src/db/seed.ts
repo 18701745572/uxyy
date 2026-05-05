@@ -46,6 +46,200 @@ async function seedSampleCustomers(
   console.log(`Seeded ${3} demo customers for enterpriseId=${enterpriseId}`);
 }
 
+async function seedSampleInventory(
+  db: NodePgDatabase<typeof schema>,
+  enterpriseId: number,
+  userId: number,
+) {
+  const [existingProduct] = await db
+    .select({ c: count() })
+    .from(schema.products)
+    .where(eq(schema.products.enterpriseId, enterpriseId));
+  const n = Number(existingProduct?.c ?? 0);
+  if (n > 0) {
+    return;
+  }
+
+  // Categories
+  const [cat1] = await db
+    .insert(schema.productCategories)
+    .values({ enterpriseId, name: '五金工具', sortOrder: 1 })
+    .returning();
+  const [cat2] = await db
+    .insert(schema.productCategories)
+    .values({ enterpriseId, name: '电子元器件', sortOrder: 2 })
+    .returning();
+
+  // Products
+  const [p1] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat1.id,
+      code: 'P001',
+      name: '六角螺栓 M8×30',
+      spec: 'M8×30 8.8级',
+      unit: '件',
+      unitPrice: '12.50',
+      costPrice: '8.00',
+      minStock: '50',
+      maxStock: '500',
+    })
+    .returning();
+  const [p2] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat1.id,
+      code: 'P002',
+      name: '不锈钢平垫 M8',
+      spec: 'M8 304不锈钢',
+      unit: '件',
+      unitPrice: '0.80',
+      costPrice: '0.35',
+      minStock: '200',
+      maxStock: '2000',
+    })
+    .returning();
+  const [p3] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat2.id,
+      code: 'E001',
+      name: '贴片电阻 10KΩ 0805',
+      spec: '0805 ±5%',
+      unit: '个',
+      unitPrice: '0.05',
+      costPrice: '0.02',
+      minStock: '1000',
+      maxStock: '10000',
+    })
+    .returning();
+  const [p4] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      categoryId: cat2.id,
+      code: 'E002',
+      name: '电解电容 100μF 25V',
+      spec: 'Φ8×12 105℃',
+      unit: '个',
+      unitPrice: '0.35',
+      costPrice: '0.18',
+      minStock: '500',
+    })
+    .returning();
+  const [p5] = await db
+    .insert(schema.products)
+    .values({
+      enterpriseId,
+      code: 'M001',
+      name: '通用清洁剂 500ml',
+      spec: '500ml 喷雾装',
+      unit: '瓶',
+      unitPrice: '15.00',
+      costPrice: '9.50',
+      minStock: '20',
+      maxStock: '100',
+    })
+    .returning();
+
+  // Suppliers
+  await db
+    .insert(schema.suppliers)
+    .values({
+      enterpriseId,
+      name: '杭州某某五金批发',
+      contactName: '张三',
+      phone: '13900001111',
+      address: '杭州市余杭区某某路100号',
+    })
+    .returning();
+  await db
+    .insert(schema.suppliers)
+    .values({
+      enterpriseId,
+      name: '深圳某某电子商行',
+      contactName: '李四',
+      phone: '13800002222',
+    })
+    .returning();
+
+  // Initial inventory stock
+  await db.insert(schema.inventory).values([
+    { enterpriseId, productId: p1.id, quantity: '200', warehouseId: 1 },
+    { enterpriseId, productId: p2.id, quantity: '800', warehouseId: 1 },
+    { enterpriseId, productId: p3.id, quantity: '5000', warehouseId: 1 },
+    { enterpriseId, productId: p4.id, quantity: '1200', warehouseId: 1 },
+    { enterpriseId, productId: p5.id, quantity: '15', warehouseId: 1 },
+  ]);
+
+  // Write initial inventory logs (seeding)
+  const now = new Date();
+  await db.insert(schema.inventoryLogs).values([
+    {
+      enterpriseId,
+      productId: p1.id,
+      type: 'in',
+      quantity: '200',
+      beforeQty: '0',
+      afterQty: '200',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p2.id,
+      type: 'in',
+      quantity: '800',
+      beforeQty: '0',
+      afterQty: '800',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p3.id,
+      type: 'in',
+      quantity: '5000',
+      beforeQty: '0',
+      afterQty: '5000',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p4.id,
+      type: 'in',
+      quantity: '1200',
+      beforeQty: '0',
+      afterQty: '1200',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+    {
+      enterpriseId,
+      productId: p5.id,
+      type: 'in',
+      quantity: '15',
+      beforeQty: '0',
+      afterQty: '15',
+      sourceType: 'adjust',
+      createdBy: userId,
+      createdAt: now,
+    },
+  ]);
+
+  console.log(
+    `Seeded 2 categories, 5 products, 2 suppliers, 5 inventory records for enterpriseId=${enterpriseId}`,
+  );
+}
+
 async function main() {
   if (!DATABASE_URL) {
     console.error('Missing DATABASE_URL');
@@ -76,6 +270,7 @@ async function main() {
     const enterpriseId = membership?.enterpriseId;
     if (enterpriseId != null) {
       await seedSampleCustomers(db, enterpriseId);
+      await seedSampleInventory(db, enterpriseId, user.id);
     }
     await pool.end();
     return;
@@ -118,6 +313,7 @@ async function main() {
   });
 
   await seedSampleCustomers(db, enterprise.id);
+  await seedSampleInventory(db, enterprise.id, user.id);
 
   console.log(
     `Seeded dev user phone=${SEED_PHONE} password=${SEED_PASSWORD} enterpriseId=${enterprise.id}`,

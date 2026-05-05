@@ -1,0 +1,446 @@
+import {
+  decimal,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+import { enterprises, users } from './auth';
+import { customers } from './crm';
+import { orderStatusEnum } from './enums';
+
+// ==================== 商品分类 ====================
+export const productCategories = pgTable(
+  'product_categories',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    name: varchar('name', { length: 50 }).notNull(),
+    parentId: integer('parent_id').references((): any => productCategories.id),
+    sortOrder: integer('sort_order').default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [index('product_categories_enterprise_idx').on(t.enterpriseId)],
+);
+
+// ==================== 商品管理 ====================
+export const products = pgTable(
+  'products',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    categoryId: integer('category_id').references(() => productCategories.id),
+    code: varchar('code', { length: 50 }).notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    spec: varchar('spec', { length: 100 }),
+    unit: varchar('unit', { length: 20 }).default('件'),
+    unitPrice: decimal('unit_price', { precision: 12, scale: 2 }).notNull(),
+    costPrice: decimal('cost_price', { precision: 12, scale: 2 }),
+    minStock: decimal('min_stock', { precision: 12, scale: 2 }).default('0'),
+    maxStock: decimal('max_stock', { precision: 12, scale: 2 }),
+    status: varchar('status', { length: 20 }).default('active'),
+    retailExt: jsonb('retail_ext'),
+    autoPartsExt: jsonb('auto_parts_ext'),
+    foodExt: jsonb('food_ext'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('products_enterprise_idx').on(t.enterpriseId),
+    index('products_code_idx').on(t.enterpriseId, t.code),
+    index('products_category_idx').on(t.categoryId),
+  ],
+);
+
+// ==================== 供应商 ====================
+export const suppliers = pgTable(
+  'suppliers',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    contactName: varchar('contact_name', { length: 50 }),
+    phone: varchar('phone', { length: 20 }),
+    address: text('address'),
+    status: varchar('status', { length: 20 }).default('active'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [index('suppliers_enterprise_idx').on(t.enterpriseId)],
+);
+
+// ==================== 销售订单 ====================
+export const salesOrders = pgTable(
+  'sales_orders',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    customerId: integer('customer_id')
+      .references(() => customers.id)
+      .notNull(),
+    orderNo: varchar('order_no', { length: 50 }).notNull().unique(),
+    totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull(),
+    discountAmount: decimal('discount_amount', {
+      precision: 12,
+      scale: 2,
+    }).default('0'),
+    payableAmount: decimal('payable_amount', {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    status: orderStatusEnum('status').default('draft').notNull(),
+    deliveryType: varchar('delivery_type', { length: 20 }).default('self'),
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id)
+      .notNull(),
+    completedAt: timestamp('completed_at'),
+    cancelledAt: timestamp('cancelled_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('sales_orders_enterprise_idx').on(t.enterpriseId),
+    index('sales_orders_customer_idx').on(t.customerId),
+    index('sales_orders_status_idx').on(t.enterpriseId, t.status),
+    index('sales_orders_created_idx').on(t.enterpriseId, t.createdAt),
+  ],
+);
+
+export const salesOrderItems = pgTable(
+  'sales_order_items',
+  {
+    id: serial('id').primaryKey(),
+    orderId: integer('order_id')
+      .references(() => salesOrders.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    unitPrice: decimal('unit_price', { precision: 12, scale: 2 }).notNull(),
+    amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+    deliveredQty: decimal('delivered_qty', { precision: 12, scale: 2 }).default(
+      '0',
+    ),
+  },
+  (t) => [
+    index('sales_order_items_order_idx').on(t.orderId),
+    index('sales_order_items_product_idx').on(t.productId),
+  ],
+);
+
+// ==================== 采购订单 ====================
+export const purchaseOrders = pgTable(
+  'purchase_orders',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    supplierId: integer('supplier_id')
+      .references(() => suppliers.id)
+      .notNull(),
+    orderNo: varchar('order_no', { length: 50 }).notNull().unique(),
+    totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull(),
+    status: orderStatusEnum('status').default('draft').notNull(),
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id)
+      .notNull(),
+    completedAt: timestamp('completed_at'),
+    cancelledAt: timestamp('cancelled_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('purchase_orders_enterprise_idx').on(t.enterpriseId),
+    index('purchase_orders_supplier_idx').on(t.supplierId),
+    index('purchase_orders_status_idx').on(t.enterpriseId, t.status),
+  ],
+);
+
+export const purchaseOrderItems = pgTable(
+  'purchase_order_items',
+  {
+    id: serial('id').primaryKey(),
+    orderId: integer('order_id')
+      .references(() => purchaseOrders.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    unitPrice: decimal('unit_price', { precision: 12, scale: 2 }).notNull(),
+    amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+    receivedQty: decimal('received_qty', { precision: 12, scale: 2 }).default(
+      '0',
+    ),
+  },
+  (t) => [
+    index('purchase_order_items_order_idx').on(t.orderId),
+    index('purchase_order_items_product_idx').on(t.productId),
+  ],
+);
+
+// ==================== 库存管理 ====================
+export const inventory = pgTable(
+  'inventory',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    warehouseId: integer('warehouse_id').default(1),
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    batchNo: varchar('batch_no', { length: 50 }),
+    expiryDate: timestamp('expiry_date'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('inventory_product_enterprise_uk').on(
+      t.enterpriseId,
+      t.productId,
+    ),
+    index('inventory_product_idx').on(t.productId),
+    index('inventory_enterprise_idx').on(t.enterpriseId),
+  ],
+);
+
+// ==================== 库存流水 ====================
+export const inventoryLogs = pgTable(
+  'inventory_logs',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    type: varchar('type', { length: 20 }).notNull(),
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    beforeQty: decimal('before_qty', { precision: 12, scale: 2 }).notNull(),
+    afterQty: decimal('after_qty', { precision: 12, scale: 2 }).notNull(),
+    sourceType: varchar('source_type', { length: 20 }),
+    sourceId: integer('source_id'),
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('inventory_logs_product_idx').on(t.enterpriseId, t.productId),
+    index('inventory_logs_created_idx').on(t.enterpriseId, t.createdAt),
+    index('inventory_logs_source_idx').on(t.sourceType, t.sourceId),
+  ],
+);
+
+// ==================== 盘点单 ====================
+export const stocktakingOrders = pgTable(
+  'stocktaking_orders',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    warehouseId: integer('warehouse_id').default(1),
+    status: varchar('status', { length: 20 }).default('draft').notNull(),
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id)
+      .notNull(),
+    confirmedBy: integer('confirmed_by').references(() => users.id),
+    confirmedAt: timestamp('confirmed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('stocktaking_orders_enterprise_idx').on(t.enterpriseId),
+    index('stocktaking_orders_status_idx').on(t.enterpriseId, t.status),
+  ],
+);
+
+export const stocktakingItems = pgTable(
+  'stocktaking_items',
+  {
+    id: serial('id').primaryKey(),
+    orderId: integer('order_id')
+      .references(() => stocktakingOrders.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    bookQty: decimal('book_qty', { precision: 12, scale: 2 }).notNull(),
+    actualQty: decimal('actual_qty', { precision: 12, scale: 2 }),
+    diffQty: decimal('diff_qty', { precision: 12, scale: 2 }),
+    remark: text('remark'),
+  },
+  (t) => [
+    index('stocktaking_items_order_idx').on(t.orderId),
+    index('stocktaking_items_product_idx').on(t.productId),
+  ],
+);
+
+// ==================== 关系定义 ====================
+export const productsRelations = relations(products, ({ one, many }) => ({
+  enterprise: one(enterprises, {
+    fields: [products.enterpriseId],
+    references: [enterprises.id],
+  }),
+  category: one(productCategories, {
+    fields: [products.categoryId],
+    references: [productCategories.id],
+  }),
+  inventory: many(inventory),
+}));
+
+export const productCategoriesRelations = relations(
+  productCategories,
+  ({ one, many }) => ({
+    parent: one(productCategories, {
+      fields: [productCategories.parentId],
+      references: [productCategories.id],
+    }),
+    children: many(productCategories),
+  }),
+);
+
+export const salesOrdersRelations = relations(salesOrders, ({ one, many }) => ({
+  enterprise: one(enterprises, {
+    fields: [salesOrders.enterpriseId],
+    references: [enterprises.id],
+  }),
+  customer: one(customers, {
+    fields: [salesOrders.customerId],
+    references: [customers.id],
+  }),
+  createdByUser: one(users, {
+    fields: [salesOrders.createdBy],
+    references: [users.id],
+  }),
+  items: many(salesOrderItems),
+}));
+
+export const salesOrderItemsRelations = relations(
+  salesOrderItems,
+  ({ one }) => ({
+    order: one(salesOrders, {
+      fields: [salesOrderItems.orderId],
+      references: [salesOrders.id],
+    }),
+    product: one(products, {
+      fields: [salesOrderItems.productId],
+      references: [products.id],
+    }),
+  }),
+);
+
+export const purchaseOrdersRelations = relations(
+  purchaseOrders,
+  ({ one, many }) => ({
+    enterprise: one(enterprises, {
+      fields: [purchaseOrders.enterpriseId],
+      references: [enterprises.id],
+    }),
+    supplier: one(suppliers, {
+      fields: [purchaseOrders.supplierId],
+      references: [suppliers.id],
+    }),
+    createdByUser: one(users, {
+      fields: [purchaseOrders.createdBy],
+      references: [users.id],
+    }),
+    items: many(purchaseOrderItems),
+  }),
+);
+
+export const purchaseOrderItemsRelations = relations(
+  purchaseOrderItems,
+  ({ one }) => ({
+    order: one(purchaseOrders, {
+      fields: [purchaseOrderItems.orderId],
+      references: [purchaseOrders.id],
+    }),
+    product: one(products, {
+      fields: [purchaseOrderItems.productId],
+      references: [products.id],
+    }),
+  }),
+);
+
+export const inventoryRelations = relations(inventory, ({ one }) => ({
+  enterprise: one(enterprises, {
+    fields: [inventory.enterpriseId],
+    references: [enterprises.id],
+  }),
+  product: one(products, {
+    fields: [inventory.productId],
+    references: [products.id],
+  }),
+}));
+
+export const inventoryLogsRelations = relations(inventoryLogs, ({ one }) => ({
+  enterprise: one(enterprises, {
+    fields: [inventoryLogs.enterpriseId],
+    references: [enterprises.id],
+  }),
+  product: one(products, {
+    fields: [inventoryLogs.productId],
+    references: [products.id],
+  }),
+  createdByUser: one(users, {
+    fields: [inventoryLogs.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const stocktakingOrdersRelations = relations(
+  stocktakingOrders,
+  ({ one, many }) => ({
+    enterprise: one(enterprises, {
+      fields: [stocktakingOrders.enterpriseId],
+      references: [enterprises.id],
+    }),
+    createdByUser: one(users, {
+      fields: [stocktakingOrders.createdBy],
+      references: [users.id],
+    }),
+    confirmedByUser: one(users, {
+      fields: [stocktakingOrders.confirmedBy],
+      references: [users.id],
+    }),
+    items: many(stocktakingItems),
+  }),
+);
+
+export const stocktakingItemsRelations = relations(
+  stocktakingItems,
+  ({ one }) => ({
+    order: one(stocktakingOrders, {
+      fields: [stocktakingItems.orderId],
+      references: [stocktakingOrders.id],
+    }),
+    product: one(products, {
+      fields: [stocktakingItems.productId],
+      references: [products.id],
+    }),
+  }),
+);

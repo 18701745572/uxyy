@@ -12,3 +12,11 @@ export const enterpriseStatusEnum = pgEnum('enterprise_status', [
   'suspended',
   'deleted',
 ]);
+
+export const orderStatusEnum = pgEnum('order_status', [
+  'draft',
+  'pending',
+  'approved',
+  'completed',
+  'cancelled',
+]);
