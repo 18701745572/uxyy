@@ -14,6 +14,7 @@ const ROUNDS = 10;
 async function seedSampleCustomers(
   db: NodePgDatabase<typeof schema>,
   enterpriseId: number,
+  userId: number,
 ) {
   const [row] = await db
     .select({ c: count() })
@@ -24,26 +25,82 @@ async function seedSampleCustomers(
     return;
   }
 
-  await db.insert(schema.customers).values([
-    {
-      enterpriseId,
-      name: '示例 · 湖滨便利店',
-      phone: '0571-82821111',
-      remark: '种子数据 · 货到付款',
-    },
-    {
-      enterpriseId,
-      name: '示例 · 城南五金批发',
-      phone: '13900001234',
-    },
-    {
-      enterpriseId,
-      name: '示例 · XX 塑料制品厂',
-      remark: '月结 · 含税专票',
-    },
-  ]);
+  const customers = await db
+    .insert(schema.customers)
+    .values([
+      {
+        enterpriseId,
+        name: '示例 · 湖滨便利店',
+        phone: '0571-82821111',
+        contactPerson: '王店主',
+        address: '杭州市西湖区湖滨路100号',
+        type: 'enterprise',
+        level: 'VIP',
+        industry: '零售',
+        tags: ['重点客户', '货到付款'],
+        source: 'manual',
+        assignedTo: userId,
+        creditLimit: '50000',
+        remark: '种子数据 · 货到付款',
+      },
+      {
+        enterpriseId,
+        name: '示例 · 城南五金批发',
+        phone: '13900001234',
+        contactPerson: '李经理',
+        address: '杭州市萧山区建设三路88号',
+        type: 'enterprise',
+        level: 'regular',
+        industry: '五金',
+        tags: ['批发'],
+        source: 'import',
+        assignedTo: userId,
+        creditLimit: '20000',
+      },
+      {
+        enterpriseId,
+        name: '示例 · XX 塑料制品厂',
+        contactPerson: '陈采购',
+        type: 'enterprise',
+        level: 'potential',
+        industry: '制造业',
+        tags: ['月结', '含税专票'],
+        source: 'wechat',
+        remark: '月结 · 含税专票',
+        creditLimit: '100000',
+      },
+    ])
+    .returning();
 
-  console.log(`Seeded ${3} demo customers for enterpriseId=${enterpriseId}`);
+  console.log(
+    `Seeded ${customers.length} demo customers for enterpriseId=${enterpriseId}`,
+  );
+
+  if (customers.length > 0) {
+    const [firstCustomer] = customers;
+    if (firstCustomer) {
+      await db.insert(schema.followUpRecords).values([
+        {
+          customerId: firstCustomer.id,
+          enterpriseId,
+          content: '初次电话沟通，客户对进货渠道比较关注，约定下周三面谈。',
+          type: 'text',
+          nextFollowUpAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          createdBy: userId,
+        },
+        {
+          customerId: firstCustomer.id,
+          enterpriseId,
+          content: '面谈顺利，客户同意试用一批货，已发送报价单。',
+          type: 'text',
+          createdBy: userId,
+        },
+      ]);
+      console.log(
+        `Seeded 2 follow-up records for customer id=${firstCustomer.id}`,
+      );
+    }
+  }
 }
 
 async function main() {
@@ -75,7 +132,7 @@ async function main() {
       .limit(1);
     const enterpriseId = membership?.enterpriseId;
     if (enterpriseId != null) {
-      await seedSampleCustomers(db, enterpriseId);
+      await seedSampleCustomers(db, enterpriseId, user.id);
     }
     await pool.end();
     return;
@@ -117,7 +174,7 @@ async function main() {
     isDefault: true,
   });
 
-  await seedSampleCustomers(db, enterprise.id);
+  await seedSampleCustomers(db, enterprise.id, user.id);
 
   console.log(
     `Seeded dev user phone=${SEED_PHONE} password=${SEED_PASSWORD} enterpriseId=${enterprise.id}`,
