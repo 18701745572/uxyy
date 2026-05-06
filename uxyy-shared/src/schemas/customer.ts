@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "./pagination";
+import { paginationSchema } from "./pagination.js";
 
 /** 客户记录：与 NestJS CustomerResponseDto 对齐 */
 export const customerSchema = z.object({

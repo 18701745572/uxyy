@@ -21,9 +21,17 @@ export async function fetchCustomersList(params: {
       "缺少 NEXT_PUBLIC_API_URL（见 uxyy-web/.env.example → .env.local）",
     );
   }
+  const page =
+    typeof params.page === "number" && params.page >= 1 ? params.page : 1;
+  const rawSize =
+    typeof params.pageSize === "number" && params.pageSize >= 1
+      ? params.pageSize
+      : 20;
+  const pageSize = Math.min(100, rawSize);
+
   const sp = new URLSearchParams({
-    page: String(params.page),
-    pageSize: String(params.pageSize),
+    page: String(page),
+    pageSize: String(pageSize),
   });
 
   const headers: HeadersInit = { Accept: "application/json" };

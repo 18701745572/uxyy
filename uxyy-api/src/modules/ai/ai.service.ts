@@ -1,19 +1,36 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { mapAiOutputToSuggestedVoucher } from '@uxyy/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Queue } from 'bullmq';
 import type { AppDrizzleDb } from '../database/database.module';
 import { DRIZZLE_DB } from '../database/database.constants';
 import { aiTasks } from '../../db/schema';
+import { FinanceService } from '../finance/finance.service';
+import type { CreateVoucherDto } from '../finance/dto/voucher.dto';
 import {
   AI_DEFAULT_QUEUE,
   AI_DLQ_QUEUE,
   AI_PROCESS_JOB,
   AI_JOB_OPTS,
 } from './ai.constants';
-import type { AiTaskType } from './ai.constants';
 import { AiLlmService } from './ai.llm';
-import type { SubmitTaskDto } from './ai.dto';
+import type { ApplyVoucherFromAiTaskDto, SubmitTaskDto } from './ai.dto';
+
+/** 与 ?? 不同：空串视为未传，避免 raw API 写入空科目 */
+function pickOverrideOrSuggested(
+  override: string | undefined | null,
+  suggested: string,
+): string {
+  const t = override?.trim();
+  return t ? t : suggested;
+}
 
 @Injectable()
 export class AiService {
@@ -24,6 +41,7 @@ export class AiService {
     @InjectQueue(AI_DLQ_QUEUE) private readonly dlqQueue: Queue,
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
     private readonly llm: AiLlmService,
+    private readonly finance: FinanceService,
   ) {}
 
   // ── 异步任务提交 ──
@@ -102,7 +120,14 @@ export class AiService {
     const conditions = [eq(aiTasks.enterpriseId, enterpriseId)];
     if (filters.taskType)
       conditions.push(eq(aiTasks.taskType, filters.taskType));
-    if (filters.status) conditions.push(eq(aiTasks.status, filters.status));
+    if (filters.status) {
+      conditions.push(
+        eq(
+          aiTasks.status,
+          filters.status as typeof aiTasks.$inferSelect.status,
+        ),
+      );
+    }
 
     const [rows, [{ count }]] = await Promise.all([
       this.db
@@ -134,6 +159,67 @@ export class AiService {
       .limit(1);
 
     return row ? this.toResponse(row) : null;
+  }
+
+  /**
+   * 将已完成的 AI 任务输出写入财务凭证（同一任务幂等：已存在则返回已有凭证）。
+   */
+  async applyVoucherFromAiTask(
+    enterpriseId: number,
+    userId: number,
+    taskId: number,
+    dto?: ApplyVoucherFromAiTaskDto,
+  ) {
+    const task = await this.getTask(enterpriseId, taskId);
+    if (!task) {
+      throw new NotFoundException('任务不存在');
+    }
+    if (task.status !== 'completed') {
+      throw new BadRequestException('仅已完成的任务可写入凭证');
+    }
+
+    const existing = await this.finance.findVoucherBySource(
+      enterpriseId,
+      'ai_task',
+      taskId,
+    );
+    if (existing) {
+      return { created: false as const, voucher: existing };
+    }
+
+    let suggested;
+    try {
+      suggested = mapAiOutputToSuggestedVoucher(task.outputPayload);
+    } catch (e) {
+      throw new BadRequestException(
+        e instanceof Error ? e.message : '无法解析 AI 输出',
+      );
+    }
+
+    const createDto: CreateVoucherDto = {
+      voucherNo: this.finance.nextVoucherNo(),
+      sourceType: 'ai_task',
+      sourceId: taskId,
+      entryDate: dto?.entryDate?.trim() || undefined,
+      debitAccount: pickOverrideOrSuggested(
+        dto?.debitAccount,
+        suggested.debitAccount,
+      ),
+      creditAccount: pickOverrideOrSuggested(
+        dto?.creditAccount,
+        suggested.creditAccount,
+      ),
+      amount: pickOverrideOrSuggested(dto?.amount, suggested.amount),
+      summary:
+        dto?.summary != null && dto.summary.trim() !== ''
+          ? dto.summary.trim()
+          : suggested.summary,
+    };
+
+    const voucher = await this.finance.createVoucher(enterpriseId, createDto, {
+      createdByUserId: userId,
+    });
+    return { created: true as const, voucher };
   }
 
   // ── 智能建议（同步便捷接口，内部走异步任务） ──
@@ -271,7 +357,7 @@ export class AiService {
       inputPayload: row.inputPayload as Record<string, unknown> | null,
       outputPayload: row.outputPayload as Record<string, unknown> | null,
       errorMessage: row.errorMessage,
-      attempts: row.attempts,
+      attempts: row.attempts ?? 0,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

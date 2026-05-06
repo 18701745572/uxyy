@@ -33,7 +33,7 @@ function userIdFromRequest(req: Express.Request): number {
 }
 
 @ApiTags('库存盘点')
-@Controller('stocktaking')
+@Controller('inventory/stocktaking')
 export class StocktakingController {
   constructor(private readonly service: StocktakingService) {}
 

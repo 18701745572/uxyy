@@ -1,9 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * 文本内容部分
+ */
+export interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+/**
+ * 图片内容部分（支持 URL 或 Base64）
+ */
+export interface ImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string;
+  };
+}
+
+export type MessageContent = TextContent | ImageContent;
+
 export interface LlmMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | MessageContent[];
 }
 
 export interface LlmChatOptions {
@@ -11,64 +31,111 @@ export interface LlmChatOptions {
   maxTokens?: number;
 }
 
+interface ProviderConfig {
+  apiKey: string;
+  model: string;
+  baseUrl: string;
+}
+
 @Injectable()
 export class AiLlmService {
   private readonly logger = new Logger(AiLlmService.name);
-  private readonly provider: string;
-  private readonly apiKey: string;
-  private readonly model: string;
-  private readonly baseUrl: string;
+  private readonly defaultProvider: string;
+  private readonly deepseekConfig: ProviderConfig;
+  private readonly qwenConfig: ProviderConfig;
 
   constructor(private readonly config: ConfigService) {
-    this.provider =
+    // 默认文本推理 Provider
+    this.defaultProvider =
       config.get<string>('AI_LLM_PROVIDER')?.toLowerCase() ?? 'mock';
 
-    if (this.provider === 'qwen') {
-      this.apiKey = config.getOrThrow<string>('AI_QWEN_API_KEY');
-      this.model = config.get<string>('AI_LLM_MODEL') ?? 'qwen-turbo';
-      this.baseUrl =
-        config.get<string>('AI_LLM_BASE_URL') ??
-        'https://dashscope.aliyuncs.com/compatible-mode/v1';
-    } else if (this.provider === 'deepseek') {
-      this.apiKey = config.getOrThrow<string>('AI_DEEPSEEK_API_KEY');
-      this.model = config.get<string>('AI_LLM_MODEL') ?? 'deepseek-chat';
-      this.baseUrl =
-        config.get<string>('AI_LLM_BASE_URL') ?? 'https://api.deepseek.com/v1';
-    } else {
-      this.apiKey = '';
-      this.model = 'mock';
-      this.baseUrl = '';
+    // DeepSeek 配置（默认文本任务）
+    this.deepseekConfig = {
+      apiKey: config.get<string>('AI_DEEPSEEK_API_KEY') ?? '',
+      model: config.get<string>('AI_LLM_MODEL') ?? 'deepseek-v4-flash',
+      baseUrl:
+        config.get<string>('AI_LLM_BASE_URL') ?? 'https://api.deepseek.com/v1',
+    };
+
+    // 阿里云百炼配置（OCR 多模态任务）
+    this.qwenConfig = {
+      apiKey: config.get<string>('AI_QWEN_API_KEY') ?? '',
+      model: config.get<string>('AI_QWEN_MODEL') ?? 'qwen-vl-plus',
+      baseUrl:
+        config.get<string>('AI_QWEN_BASE_URL') ??
+        'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    };
+
+    // 检查配置
+    if (this.defaultProvider === 'mock') {
       this.logger.warn(
         'AI_LLM_PROVIDER 未设置或为 "mock"，将使用 MockProvider。线上请配置真实 Provider。',
       );
     }
   }
 
+  /**
+   * 默认文本聊天（使用 DeepSeek）
+   */
   async chat(
     messages: LlmMessage[],
     opts: LlmChatOptions = {},
   ): Promise<string> {
-    if (this.provider === 'mock') {
+    if (this.defaultProvider === 'mock') {
       return this.mockChat(messages);
     }
-    return this.openAiCompatChat(messages, opts);
+    // 默认使用 DeepSeek 进行文本推理
+    return this.openAiCompatChat(this.deepseekConfig, messages, opts);
   }
 
   /**
-   * 通过 OpenAI 兼容 API 调用（通义千问 DashScope / DeepSeek 均为兼容格式）
+   * 多模态 OCR 识别（使用 Qwen-VL）
+   * 适用于发票识别等需要图片输入的场景
+   */
+  async chatWithImage(
+    systemPrompt: string,
+    userText: string,
+    imageUrl: string,
+    opts: LlmChatOptions = {},
+  ): Promise<string> {
+    if (this.defaultProvider === 'mock') {
+      return this.mockChat([{ role: 'user', content: userText }]);
+    }
+
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: userText },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      },
+    ];
+
+    // OCR 任务使用阿里云百炼 Qwen-VL
+    return this.openAiCompatChat(this.qwenConfig, messages, opts);
+  }
+
+  /**
+   * 通过 OpenAI 兼容 API 调用
    */
   private async openAiCompatChat(
+    provider: ProviderConfig,
     messages: LlmMessage[],
     opts: LlmChatOptions,
   ): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${provider.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
+        model: provider.model,
         messages,
         temperature: opts.temperature ?? 0.3,
         max_tokens: opts.maxTokens ?? 2000,
@@ -95,7 +162,12 @@ export class AiLlmService {
 
   private mockChat(messages: LlmMessage[]): string {
     this.logger.debug('MockProvider 生成回复');
-    const userMsg = messages.find((m) => m.role === 'user')?.content ?? '';
+    const content = messages.find((m) => m.role === 'user')?.content ?? '';
+    // 支持多模态消息（数组格式）
+    const userMsg =
+      typeof content === 'string'
+        ? content
+        : (content.find((c) => c.type === 'text')?.text ?? '');
 
     if (userMsg.includes('发票') || userMsg.includes('invoice')) {
       return JSON.stringify({

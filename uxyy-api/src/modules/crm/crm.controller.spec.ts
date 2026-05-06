@@ -52,7 +52,11 @@ describe('CrmController', () => {
       });
 
       const req = { user: { enterpriseId: 1, userId: 1 } } as any;
-      await controller.listCustomers(req, { page: 1, pageSize: 20 });
+      await controller.listCustomers(req, {
+        page: 1,
+        pageSize: 20,
+        isDeleted: false,
+      });
 
       expect(mockCrmService.findPage).toHaveBeenCalledWith(
         expect.objectContaining({

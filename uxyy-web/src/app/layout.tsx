@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 
 import { QueryProvider } from "@/lib/query/query-provider";
 import { AuthProvider } from "@/components/auth/auth-context";
-import { MswProvider } from "@/components/msw-provider";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -33,11 +33,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MswProvider>
-          <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </QueryProvider>
-        </MswProvider>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
+        <Toaster richColors closeButton position="top-center" />
       </body>
     </html>
   );

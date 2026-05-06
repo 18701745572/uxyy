@@ -1,14 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
 function mockAuth(): Partial<AuthService> {
   return {
-    login: jest.fn().mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
-    register: jest.fn().mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
-    refreshToken: jest.fn().mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
+    login: jest
+      .fn()
+      .mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
+    register: jest
+      .fn()
+      .mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
+    refreshToken: jest
+      .fn()
+      .mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
     resetPassword: jest.fn().mockResolvedValue({ success: true }),
     getProfile: jest.fn().mockResolvedValue({ id: 1, phone: '13800138000' }),
     switchEnterprise: jest.fn().mockResolvedValue({ access_token: 'at' }),
@@ -38,10 +44,7 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        { provide: AuthService, useValue: auth },
-        Reflector,
-      ],
+      providers: [{ provide: AuthService, useValue: auth }, Reflector],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -62,7 +65,11 @@ describe('AuthController', () => {
 
   describe('POST /auth/register', () => {
     it('should call auth.register with dto', async () => {
-      const dto = { phone: '13800138000', password: 'Dev12345!', enterpriseName: 'Co' };
+      const dto = {
+        phone: '13800138000',
+        password: 'Dev12345!',
+        enterpriseName: 'Co',
+      };
       await controller.register(dto);
       expect(auth.register).toHaveBeenCalledWith(dto);
     });
@@ -96,9 +103,11 @@ describe('AuthController', () => {
       expect(auth.getProfile).toHaveBeenCalledWith(1);
     });
 
-    it('should handle missing user on request', async () => {
-      await controller.profile(mockReq({ user: undefined }));
-      expect(auth.getProfile).toHaveBeenCalledWith(undefined);
+    it('should throw UnauthorizedException when user is missing on request', () => {
+      expect(() => controller.profile(mockReq({ user: undefined }))).toThrow(
+        UnauthorizedException,
+      );
+      expect(auth.getProfile).not.toHaveBeenCalled();
     });
   });
 
@@ -115,14 +124,22 @@ describe('AuthController', () => {
 
   describe('POST /auth/approval-flows', () => {
     it('should call auth.createApprovalFlow with dto and enterpriseId', async () => {
-      const dto = { name: 'Test', type: 'purchase', steps: [{ step: 1, role: 'boss' }] };
+      const dto = {
+        name: 'Test',
+        type: 'purchase',
+        steps: [{ step: 1, role: 'boss' }],
+      };
       await controller.createApprovalFlow(mockReq(), dto);
       expect(auth.createApprovalFlow).toHaveBeenCalledWith(dto, 10);
     });
 
     it('should throw ForbiddenException if no enterpriseId', () => {
       expect(() =>
-        controller.createApprovalFlow(mockReq({ user: { userId: 1 } }), { name: 'T', type: 'purchase', steps: [] }),
+        controller.createApprovalFlow(mockReq({ user: { userId: 1 } }), {
+          name: 'T',
+          type: 'purchase',
+          steps: [],
+        }),
       ).toThrow(ForbiddenException);
     });
   });
@@ -151,7 +168,12 @@ describe('AuthController', () => {
 
   describe('POST /auth/approvals', () => {
     it('should call auth.submitApproval with dto and userId', async () => {
-      const dto = { flowId: 1, businessType: 'purchase_order', businessId: 5001, title: 'Test' };
+      const dto = {
+        flowId: 1,
+        businessType: 'purchase_order',
+        businessId: 5001,
+        title: 'Test',
+      };
       await controller.submitApproval(mockReq(), dto);
       expect(auth.submitApproval).toHaveBeenCalledWith(dto, 1);
     });
@@ -181,13 +203,17 @@ describe('AuthController', () => {
 
     it('should throw ForbiddenException if no user context', () => {
       expect(() =>
-        controller.actionApproval(mockReq({ user: null }), '3', { action: 'approve' }),
+        controller.actionApproval(mockReq({ user: null }), '3', {
+          action: 'approve',
+        }),
       ).toThrow(ForbiddenException);
     });
 
     it('should throw ForbiddenException if no role', () => {
       expect(() =>
-        controller.actionApproval(mockReq({ user: { userId: 1 } }), '3', { action: 'approve' }),
+        controller.actionApproval(mockReq({ user: { userId: 1 } }), '3', {
+          action: 'approve',
+        }),
       ).toThrow(ForbiddenException);
     });
   });

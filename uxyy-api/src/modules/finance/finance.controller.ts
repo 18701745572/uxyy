@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -86,13 +87,19 @@ export class FinanceController {
     },
   })
   @ApiOperation({
-    summary: 'OCR 发票识别（占位）',
+    summary: 'OCR 发票识别',
     description:
-      '上传发票图片（jpg/png，≤5MB），返回 OCR 识别结果。\n\n当前为占位实现，Agent-AI 就绪后对接真实 OCR。',
+      '上传发票图片（jpg/png，≤5MB），返回 OCR 识别结果。使用 Qwen-VL 多模态模型进行识别。',
   })
   @UseInterceptors(FileInterceptor('file'))
-  ocrInvoice(@Req() req: Express.Request): OcrInvoiceResponseDto {
-    return this.finance.ocrInvoice(enterpriseIdFromRequest(req));
+  async ocrInvoice(
+    @Req() req: Express.Request & { file?: { buffer: Buffer; mimetype: string } },
+    @Body() _body: unknown,
+  ): Promise<OcrInvoiceResponseDto> {
+    if (!req.file) {
+      throw new BadRequestException('请上传发票图片文件');
+    }
+    return this.finance.crInvoice(enterpriseIdFromRequest(req), req.file);
   }
 
   @ApiBearerAuth()

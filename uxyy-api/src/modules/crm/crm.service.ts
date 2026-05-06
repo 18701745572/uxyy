@@ -11,6 +11,14 @@ import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
 import type { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 import type { CreateFollowUpDto, UpdateFollowUpDto } from './dto/follow-up.dto';
+import type {
+  CreateOpportunityDto,
+  UpdateOpportunityDto,
+} from './dto/opportunity.dto';
+import type {
+  CreateCustomerCategoryDto,
+  UpdateCustomerCategoryDto,
+} from './dto/customer-category.dto';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -446,6 +454,543 @@ export class CrmService {
       lastFollowUpAt,
       daysSinceLastFollowUp,
     };
+  }
+
+  // ─── Opportunities ──────────────────────────────────────────────
+
+  async findOpportunities(params: {
+    enterpriseId?: number;
+    page: number;
+    pageSize: number;
+    customerId?: number;
+    status?: string;
+    assignedTo?: number;
+    search?: string;
+  }) {
+    const eid = requireEnterpriseId(params.enterpriseId);
+    const offset = (params.page - 1) * params.pageSize;
+
+    const whereConditions = [
+      eq(schema.opportunities.enterpriseId, eid),
+      eq(schema.opportunities.isDeleted, false),
+    ];
+
+    if (params.customerId) {
+      whereConditions.push(
+        eq(schema.opportunities.customerId, params.customerId),
+      );
+    }
+    if (params.status) {
+      whereConditions.push(eq(schema.opportunities.status, params.status));
+    }
+    if (params.assignedTo) {
+      whereConditions.push(
+        eq(schema.opportunities.assignedTo, params.assignedTo),
+      );
+    }
+    if (params.search) {
+      const pattern = `%${params.search}%`;
+      whereConditions.push(ilike(schema.opportunities.name, pattern));
+    }
+
+    const where = and(...whereConditions);
+
+    const [totalRows] = await this.db
+      .select({ c: count() })
+      .from(schema.opportunities)
+      .where(where);
+
+    const total = Number(totalRows?.c ?? 0);
+
+    const rows = await this.db
+      .select({
+        opportunity: schema.opportunities,
+        customerName: schema.customers.name,
+      })
+      .from(schema.opportunities)
+      .leftJoin(
+        schema.customers,
+        eq(schema.opportunities.customerId, schema.customers.id),
+      )
+      .where(where)
+      .orderBy(desc(schema.opportunities.updatedAt))
+      .limit(params.pageSize)
+      .offset(offset);
+
+    return {
+      items: rows.map(({ opportunity, customerName }) => ({
+        id: opportunity.id,
+        enterpriseId: opportunity.enterpriseId,
+        customerId: opportunity.customerId,
+        customerName: customerName ?? null,
+        name: opportunity.name,
+        description: opportunity.description ?? null,
+        status: opportunity.status,
+        estimatedAmount: opportunity.estimatedAmount
+          ? Number(opportunity.estimatedAmount)
+          : null,
+        actualAmount: opportunity.actualAmount
+          ? Number(opportunity.actualAmount)
+          : null,
+        expectedCloseAt: opportunity.expectedCloseAt?.toISOString() ?? null,
+        actualCloseAt: opportunity.actualCloseAt?.toISOString() ?? null,
+        assignedTo: opportunity.assignedTo ?? null,
+        probability: opportunity.probability ?? 0,
+        remark: opportunity.remark ?? null,
+        createdAt: opportunity.createdAt.toISOString(),
+        updatedAt: opportunity.updatedAt.toISOString(),
+      })),
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+    };
+  }
+
+  async createOpportunity(
+    enterpriseId: number | undefined,
+    dto: CreateOpportunityDto,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+    await this.findOne(dto.customerId, eid);
+
+    const [inserted] = await this.db
+      .insert(schema.opportunities)
+      .values({
+        enterpriseId: eid,
+        customerId: dto.customerId,
+        name: dto.name,
+        description: dto.description ?? null,
+        status: dto.status ?? 'potential',
+        estimatedAmount:
+          dto.estimatedAmount != null ? String(dto.estimatedAmount) : null,
+        actualAmount:
+          dto.actualAmount != null ? String(dto.actualAmount) : null,
+        expectedCloseAt: dto.expectedCloseAt
+          ? new Date(dto.expectedCloseAt)
+          : null,
+        actualCloseAt: dto.actualCloseAt ? new Date(dto.actualCloseAt) : null,
+        assignedTo: dto.assignedTo ?? null,
+        probability: dto.probability ?? 0,
+        remark: dto.remark ?? null,
+      })
+      .returning();
+
+    if (!inserted) {
+      throw new NotFoundException('创建商机失败');
+    }
+
+    return {
+      id: inserted.id,
+      enterpriseId: inserted.enterpriseId,
+      customerId: inserted.customerId,
+      name: inserted.name,
+      description: inserted.description ?? null,
+      status: inserted.status,
+      estimatedAmount: inserted.estimatedAmount
+        ? Number(inserted.estimatedAmount)
+        : null,
+      actualAmount: inserted.actualAmount
+        ? Number(inserted.actualAmount)
+        : null,
+      expectedCloseAt: inserted.expectedCloseAt?.toISOString() ?? null,
+      actualCloseAt: inserted.actualCloseAt?.toISOString() ?? null,
+      assignedTo: inserted.assignedTo ?? null,
+      probability: inserted.probability ?? 0,
+      remark: inserted.remark ?? null,
+      createdAt: inserted.createdAt.toISOString(),
+      updatedAt: inserted.updatedAt.toISOString(),
+    };
+  }
+
+  async findOneOpportunity(id: number, enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+    const [row] = await this.db
+      .select({
+        opportunity: schema.opportunities,
+        customerName: schema.customers.name,
+      })
+      .from(schema.opportunities)
+      .leftJoin(
+        schema.customers,
+        eq(schema.opportunities.customerId, schema.customers.id),
+      )
+      .where(
+        and(
+          eq(schema.opportunities.id, id),
+          eq(schema.opportunities.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!row || row.opportunity.enterpriseId !== eid) {
+      throw new NotFoundException('商机不存在');
+    }
+
+    const { opportunity, customerName } = row;
+    return {
+      id: opportunity.id,
+      enterpriseId: opportunity.enterpriseId,
+      customerId: opportunity.customerId,
+      customerName: customerName ?? null,
+      name: opportunity.name,
+      description: opportunity.description ?? null,
+      status: opportunity.status,
+      estimatedAmount: opportunity.estimatedAmount
+        ? Number(opportunity.estimatedAmount)
+        : null,
+      actualAmount: opportunity.actualAmount
+        ? Number(opportunity.actualAmount)
+        : null,
+      expectedCloseAt: opportunity.expectedCloseAt?.toISOString() ?? null,
+      actualCloseAt: opportunity.actualCloseAt?.toISOString() ?? null,
+      assignedTo: opportunity.assignedTo ?? null,
+      probability: opportunity.probability ?? 0,
+      remark: opportunity.remark ?? null,
+      createdAt: opportunity.createdAt.toISOString(),
+      updatedAt: opportunity.updatedAt.toISOString(),
+    };
+  }
+
+  async updateOpportunity(
+    id: number,
+    enterpriseId: number | undefined,
+    dto: UpdateOpportunityDto,
+  ) {
+    await this.findOneOpportunity(id, enterpriseId);
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const patch: Record<string, unknown> = { updatedAt: new Date() };
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.description !== undefined)
+      patch.description = dto.description || null;
+    if (dto.status !== undefined) patch.status = dto.status;
+    if (dto.estimatedAmount !== undefined) {
+      patch.estimatedAmount =
+        dto.estimatedAmount != null ? String(dto.estimatedAmount) : null;
+    }
+    if (dto.actualAmount !== undefined) {
+      patch.actualAmount =
+        dto.actualAmount != null ? String(dto.actualAmount) : null;
+    }
+    if (dto.expectedCloseAt !== undefined) {
+      patch.expectedCloseAt = dto.expectedCloseAt
+        ? new Date(dto.expectedCloseAt)
+        : null;
+    }
+    if (dto.actualCloseAt !== undefined) {
+      patch.actualCloseAt = dto.actualCloseAt
+        ? new Date(dto.actualCloseAt)
+        : null;
+    }
+    if (dto.assignedTo !== undefined) patch.assignedTo = dto.assignedTo || null;
+    if (dto.probability !== undefined) patch.probability = dto.probability;
+    if (dto.remark !== undefined) patch.remark = dto.remark || null;
+
+    const [updated] = await this.db
+      .update(schema.opportunities)
+      .set(patch)
+      .where(eq(schema.opportunities.id, id))
+      .returning();
+
+    if (!updated || updated.enterpriseId !== eid) {
+      throw new NotFoundException('商机不存在');
+    }
+
+    return {
+      id: updated.id,
+      enterpriseId: updated.enterpriseId,
+      customerId: updated.customerId,
+      name: updated.name,
+      description: updated.description ?? null,
+      status: updated.status,
+      estimatedAmount: updated.estimatedAmount
+        ? Number(updated.estimatedAmount)
+        : null,
+      actualAmount: updated.actualAmount ? Number(updated.actualAmount) : null,
+      expectedCloseAt: updated.expectedCloseAt?.toISOString() ?? null,
+      actualCloseAt: updated.actualCloseAt?.toISOString() ?? null,
+      assignedTo: updated.assignedTo ?? null,
+      probability: updated.probability ?? 0,
+      remark: updated.remark ?? null,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+  }
+
+  async removeOpportunity(id: number, enterpriseId: number | undefined) {
+    await this.findOneOpportunity(id, enterpriseId);
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [deleted] = await this.db
+      .update(schema.opportunities)
+      .set({ isDeleted: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.opportunities.id, id),
+          eq(schema.opportunities.enterpriseId, eid),
+        ),
+      )
+      .returning({ id: schema.opportunities.id });
+
+    if (!deleted) {
+      throw new NotFoundException('商机不存在');
+    }
+    return { ok: true, id: deleted.id, enterpriseId: eid };
+  }
+
+  // ─── Customer Categories ────────────────────────────────────────
+
+  async findCategories(params: { enterpriseId?: number; type?: string }) {
+    const eid = requireEnterpriseId(params.enterpriseId);
+
+    const whereConditions = [
+      eq(schema.customerCategories.enterpriseId, eid),
+      eq(schema.customerCategories.isDeleted, false),
+    ];
+
+    if (params.type) {
+      whereConditions.push(eq(schema.customerCategories.type, params.type));
+    }
+
+    const where = and(...whereConditions);
+
+    const rows = await this.db
+      .select()
+      .from(schema.customerCategories)
+      .where(where)
+      .orderBy(asc(schema.customerCategories.sortOrder));
+
+    return rows.map((row) => ({
+      id: row.id,
+      enterpriseId: row.enterpriseId,
+      name: row.name,
+      type: row.type,
+      description: row.description ?? null,
+      color: row.color ?? '#1890ff',
+      sortOrder: row.sortOrder ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+  }
+
+  async createCategory(
+    enterpriseId: number | undefined,
+    dto: CreateCustomerCategoryDto,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [inserted] = await this.db
+      .insert(schema.customerCategories)
+      .values({
+        enterpriseId: eid,
+        name: dto.name,
+        type: dto.type ?? 'custom',
+        description: dto.description ?? null,
+        color: dto.color ?? '#1890ff',
+        sortOrder: dto.sortOrder ?? 0,
+      })
+      .returning();
+
+    if (!inserted) {
+      throw new NotFoundException('创建客户分类失败');
+    }
+
+    return {
+      id: inserted.id,
+      enterpriseId: inserted.enterpriseId,
+      name: inserted.name,
+      type: inserted.type,
+      description: inserted.description ?? null,
+      color: inserted.color ?? '#1890ff',
+      sortOrder: inserted.sortOrder ?? 0,
+      createdAt: inserted.createdAt.toISOString(),
+      updatedAt: inserted.updatedAt.toISOString(),
+    };
+  }
+
+  async findOneCategory(id: number, enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+    const [row] = await this.db
+      .select()
+      .from(schema.customerCategories)
+      .where(
+        and(
+          eq(schema.customerCategories.id, id),
+          eq(schema.customerCategories.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!row || row.enterpriseId !== eid) {
+      throw new NotFoundException('客户分类不存在');
+    }
+
+    return {
+      id: row.id,
+      enterpriseId: row.enterpriseId,
+      name: row.name,
+      type: row.type,
+      description: row.description ?? null,
+      color: row.color ?? '#1890ff',
+      sortOrder: row.sortOrder ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  async updateCategory(
+    id: number,
+    enterpriseId: number | undefined,
+    dto: UpdateCustomerCategoryDto,
+  ) {
+    await this.findOneCategory(id, enterpriseId);
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const patch: Record<string, unknown> = { updatedAt: new Date() };
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.type !== undefined) patch.type = dto.type;
+    if (dto.description !== undefined)
+      patch.description = dto.description || null;
+    if (dto.color !== undefined) patch.color = dto.color;
+    if (dto.sortOrder !== undefined) patch.sortOrder = dto.sortOrder;
+
+    const [updated] = await this.db
+      .update(schema.customerCategories)
+      .set(patch)
+      .where(eq(schema.customerCategories.id, id))
+      .returning();
+
+    if (!updated || updated.enterpriseId !== eid) {
+      throw new NotFoundException('客户分类不存在');
+    }
+
+    return {
+      id: updated.id,
+      enterpriseId: updated.enterpriseId,
+      name: updated.name,
+      type: updated.type,
+      description: updated.description ?? null,
+      color: updated.color ?? '#1890ff',
+      sortOrder: updated.sortOrder ?? 0,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+  }
+
+  async removeCategory(id: number, enterpriseId: number | undefined) {
+    await this.findOneCategory(id, enterpriseId);
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [deleted] = await this.db
+      .update(schema.customerCategories)
+      .set({ isDeleted: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.customerCategories.id, id),
+          eq(schema.customerCategories.enterpriseId, eid),
+        ),
+      )
+      .returning({ id: schema.customerCategories.id });
+
+    if (!deleted) {
+      throw new NotFoundException('客户分类不存在');
+    }
+
+    await this.db
+      .delete(schema.customerCategoryRelations)
+      .where(eq(schema.customerCategoryRelations.categoryId, id));
+
+    return { ok: true, id: deleted.id, enterpriseId: eid };
+  }
+
+  // ─── Customer Category Relations ────────────────────────────────
+
+  async assignCustomerToCategory(
+    customerId: number,
+    categoryId: number,
+    enterpriseId: number | undefined,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+    await this.findOne(customerId, eid);
+    await this.findOneCategory(categoryId, eid);
+
+    const [existing] = await this.db
+      .select()
+      .from(schema.customerCategoryRelations)
+      .where(
+        and(
+          eq(schema.customerCategoryRelations.customerId, customerId),
+          eq(schema.customerCategoryRelations.categoryId, categoryId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      return { ok: true, message: '客户已在该分类中' };
+    }
+
+    await this.db.insert(schema.customerCategoryRelations).values({
+      customerId,
+      categoryId,
+    });
+
+    return { ok: true, message: '分配成功' };
+  }
+
+  async removeCustomerFromCategory(
+    customerId: number,
+    categoryId: number,
+    enterpriseId: number | undefined,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+    await this.findOne(customerId, eid);
+    await this.findOneCategory(categoryId, eid);
+
+    await this.db
+      .delete(schema.customerCategoryRelations)
+      .where(
+        and(
+          eq(schema.customerCategoryRelations.customerId, customerId),
+          eq(schema.customerCategoryRelations.categoryId, categoryId),
+        ),
+      );
+
+    return { ok: true, message: '移除成功' };
+  }
+
+  async getCustomerCategories(
+    customerId: number,
+    enterpriseId: number | undefined,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+    await this.findOne(customerId, eid);
+
+    const rows = await this.db
+      .select({
+        category: schema.customerCategories,
+      })
+      .from(schema.customerCategoryRelations)
+      .innerJoin(
+        schema.customerCategories,
+        eq(
+          schema.customerCategoryRelations.categoryId,
+          schema.customerCategories.id,
+        ),
+      )
+      .where(
+        and(
+          eq(schema.customerCategoryRelations.customerId, customerId),
+          eq(schema.customerCategories.enterpriseId, eid),
+          eq(schema.customerCategories.isDeleted, false),
+        ),
+      );
+
+    return rows.map(({ category }) => ({
+      id: category.id,
+      name: category.name,
+      type: category.type,
+      color: category.color ?? '#1890ff',
+    }));
   }
 
   async getOverviewStats(enterpriseId: number | undefined) {

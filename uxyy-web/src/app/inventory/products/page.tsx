@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api/client';
 
+/** 列表展示用（由后端 ProductResponseDto 映射） */
 interface Product {
   id: number;
   name: string;
@@ -16,39 +18,102 @@ interface Product {
   status: 'active' | 'inactive';
 }
 
-// API 客户端
-const apiClient = {
+interface ApiProduct {
+  id: number;
+  code: string;
+  name: string;
+  unit: string | null;
+  unitPrice: string;
+  costPrice: string | null;
+  minStock: string | null;
+  currentStock: string | null;
+  categoryId: number | null;
+  status: string;
+}
+
+interface ProductListResponse {
+  items: ApiProduct[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+function mapApiProduct(p: ApiProduct): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    code: p.code,
+    category: p.categoryId != null ? `分类 #${p.categoryId}` : '—',
+    unit: p.unit ?? '件',
+    price: Number.parseFloat(p.unitPrice || '0'),
+    cost: Number.parseFloat(p.costPrice ?? '0'),
+    stock: Number.parseFloat(p.currentStock ?? '0'),
+    minStock: Number.parseFloat(p.minStock ?? '0'),
+    status: p.status === 'inactive' ? 'inactive' : 'active',
+  };
+}
+
+const LIST_QUERY = '/products?page=1&pageSize=500';
+
+const productsApi = {
   async getProducts(): Promise<Product[]> {
-    const res = await fetch('/api/inventory/products');
-    if (!res.ok) throw new Error('Failed to fetch products');
-    return res.json();
+    const res = await apiFetch<ProductListResponse>(LIST_QUERY);
+    return res.items.map(mapApiProduct);
   },
-  
-  async createProduct(data: Partial<Product>): Promise<Product> {
-    const res = await fetch('/api/inventory/products', {
+
+  async createProduct(data: {
+    name: string;
+    code: string;
+    unit: string;
+    price: number;
+    cost: number;
+    minStock: number;
+  }): Promise<Product> {
+    const created = await apiFetch<ApiProduct>('/products', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        code: data.code,
+        name: data.name,
+        unit: data.unit,
+        unitPrice: data.price,
+        costPrice: data.cost,
+        minStock: data.minStock,
+        status: 'active',
+      }),
     });
-    if (!res.ok) throw new Error('Failed to create product');
-    return res.json();
+    return mapApiProduct(created);
   },
-  
-  async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
-    const res = await fetch(`/api/inventory/products/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+
+  async updateProduct(
+    id: number,
+    data: Partial<{
+      name: string;
+      code: string;
+      unit: string;
+      price: number;
+      cost: number;
+      minStock: number;
+    }>,
+  ): Promise<Product> {
+    const body: Record<string, unknown> = {};
+    if (data.code !== undefined) body.code = data.code;
+    if (data.name !== undefined) body.name = data.name;
+    if (data.unit !== undefined) body.unit = data.unit;
+    if (data.price !== undefined) body.unitPrice = data.price;
+    if (data.cost !== undefined) body.costPrice = data.cost;
+    if (data.minStock !== undefined) body.minStock = data.minStock;
+
+    const updated = await apiFetch<ApiProduct>(`/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('Failed to update product');
-    return res.json();
+    return mapApiProduct(updated);
   },
-  
+
   async deleteProduct(id: number): Promise<void> {
-    const res = await fetch(`/api/inventory/products/${id}`, {
+    await apiFetch<{ ok: boolean }>(`/products/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error('Failed to delete product');
   },
 };
 
@@ -58,25 +123,27 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 查询商品列表
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['products'],
-    queryFn: apiClient.getProducts,
+    queryFn: productsApi.getProducts,
   });
 
-  // 创建商品
   const createMutation = useMutation({
-    mutationFn: apiClient.createProduct,
+    mutationFn: productsApi.createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsModalOpen(false);
     },
   });
 
-  // 更新商品
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Product> }) =>
-      apiClient.updateProduct(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Parameters<typeof productsApi.updateProduct>[1];
+    }) => productsApi.updateProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsModalOpen(false);
@@ -84,22 +151,19 @@ export default function ProductsPage() {
     },
   });
 
-  // 删除商品
   const deleteMutation = useMutation({
-    mutationFn: apiClient.deleteProduct,
+    mutationFn: productsApi.deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 
-  // 过滤商品
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.code.toLowerCase().includes(searchQuery.toLowerCase())
+      p.code.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // 库存预警商品
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -108,7 +172,6 @@ export default function ProductsPage() {
     const data = {
       name: formData.get('name') as string,
       code: formData.get('code') as string,
-      category: formData.get('category') as string,
       unit: formData.get('unit') as string,
       price: Number(formData.get('price')),
       cost: Number(formData.get('cost')),
@@ -116,7 +179,17 @@ export default function ProductsPage() {
     };
 
     if (editingProduct) {
-      updateMutation.mutate({ id: editingProduct.id, data });
+      updateMutation.mutate({
+        id: editingProduct.id,
+        data: {
+          name: data.name,
+          code: data.code,
+          unit: data.unit,
+          price: data.price,
+          cost: data.cost,
+          minStock: data.minStock,
+        },
+      });
     } else {
       createMutation.mutate(data);
     }
@@ -140,10 +213,10 @@ export default function ProductsPage() {
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">商品管理</h1>
         <button
+          type="button"
           onClick={() => {
             setEditingProduct(null);
             setIsModalOpen(true);
@@ -154,15 +227,18 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-sm text-gray-500">商品总数</div>
-          <div className="text-2xl font-bold text-gray-900">{products.length}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {products.length}
+          </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-sm text-gray-500">库存预警</div>
-          <div className="text-2xl font-bold text-orange-600">{lowStockProducts.length}</div>
+          <div className="text-2xl font-bold text-orange-600">
+            {lowStockProducts.length}
+          </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-sm text-gray-500">库存总值</div>
@@ -172,7 +248,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* 搜索栏 */}
       <div className="mb-4">
         <input
           type="text"
@@ -183,7 +258,6 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* 商品列表 */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
@@ -214,14 +288,20 @@ export default function ProductsPage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {product.name}
+                      </div>
                       <div className="text-sm text-gray-500">{product.code}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">{product.category}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {product.category}
+                </td>
                 <td className="px-6 py-4">
-                  <div className={`text-sm ${product.stock <= product.minStock ? 'text-orange-600 font-medium' : 'text-gray-900'}`}>
+                  <div
+                    className={`text-sm ${product.stock <= product.minStock ? 'text-orange-600 font-medium' : 'text-gray-900'}`}
+                  >
                     {product.stock} {product.unit}
                     {product.stock <= product.minStock && (
                       <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
@@ -231,8 +311,12 @@ export default function ProductsPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">¥{product.price.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500">成本: ¥{product.cost.toFixed(2)}</div>
+                  <div className="text-sm text-gray-900">
+                    ¥{product.price.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    成本: ¥{product.cost.toFixed(2)}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -247,6 +331,7 @@ export default function ProductsPage() {
                 </td>
                 <td className="px-6 py-4 text-right text-sm font-medium">
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingProduct(product);
                       setIsModalOpen(true);
@@ -256,6 +341,7 @@ export default function ProductsPage() {
                     编辑
                   </button>
                   <button
+                    type="button"
                     onClick={() => deleteMutation.mutate(product.id)}
                     className="text-red-600 hover:text-red-900"
                   >
@@ -268,7 +354,6 @@ export default function ProductsPage() {
         </table>
       </div>
 
-      {/* 新增/编辑弹窗 */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
@@ -298,17 +383,6 @@ export default function ProductsPage() {
                     type="text"
                     defaultValue={editingProduct?.code}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    分类
-                  </label>
-                  <input
-                    name="category"
-                    type="text"
-                    defaultValue={editingProduct?.category}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

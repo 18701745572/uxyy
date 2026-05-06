@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   ParseIntPipe,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiQuery,
   ApiTags,
@@ -17,7 +19,27 @@ import {
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { AiService } from './ai.service';
-import { SubmitTaskDto, QueueStatsResponse, AiTaskResponse } from './ai.dto';
+import {
+  ApplyAiTaskVoucherResponse,
+  ApplyVoucherFromAiTaskDto,
+  AiTaskResponse,
+  QueueStatsResponse,
+  SubmitTaskDto,
+} from './ai.dto';
+
+function requireAiCtx(
+  req: Request,
+): Express.UserPayload & { enterpriseId: number } {
+  const u = req.user as Express.UserPayload | undefined;
+  if (!u) {
+    throw new ForbiddenException('未登录');
+  }
+  const enterpriseId = u.enterpriseId;
+  if (enterpriseId == null || Number.isNaN(enterpriseId)) {
+    throw new ForbiddenException('当前会话未绑定企业');
+  }
+  return { ...u, enterpriseId: Number(enterpriseId) };
+}
 
 @ApiTags('ai')
 @Controller('ai')
@@ -49,7 +71,7 @@ export class AiController {
     @Req() req: Request,
     @Body() dto: SubmitTaskDto,
   ): Promise<AiTaskResponse> {
-    const { userId, enterpriseId } = req.user as Express.UserPayload;
+    const { userId, enterpriseId } = requireAiCtx(req);
     return this.ai.submitTask(dto, enterpriseId, userId);
   }
 
@@ -67,7 +89,7 @@ export class AiController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    const { enterpriseId } = req.user as Express.UserPayload;
+    const { enterpriseId } = requireAiCtx(req);
     return this.ai.listTasks(enterpriseId, {
       taskType,
       status,
@@ -83,8 +105,24 @@ export class AiController {
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<AiTaskResponse | null> {
-    const { enterpriseId } = req.user as Express.UserPayload;
+    const { enterpriseId } = requireAiCtx(req);
     return this.ai.getTask(enterpriseId, id);
+  }
+
+  @ApiBearerAuth()
+  @Post('tasks/:id/voucher')
+  @ApiOperation({
+    summary:
+      '将已完成任务的 AI 输出写入财务凭证（可覆盖科目/金额/摘要；同一任务重复调用幂等）',
+  })
+  @ApiBody({ type: ApplyVoucherFromAiTaskDto, required: false })
+  async applyVoucherFromAiTask(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ApplyVoucherFromAiTaskDto,
+  ): Promise<ApplyAiTaskVoucherResponse> {
+    const { userId, enterpriseId } = requireAiCtx(req);
+    return this.ai.applyVoucherFromAiTask(enterpriseId, userId, id, dto);
   }
 
   // ── 智能建议（同步便捷接口） ──
@@ -99,7 +137,7 @@ export class AiController {
     @Req() req: Request,
     @Query('type') type: 'inventory' | 'finance' | 'customer',
   ) {
-    const { userId, enterpriseId } = req.user as Express.UserPayload;
+    const { userId, enterpriseId } = requireAiCtx(req);
     return this.ai.getSmartSuggestions(type, enterpriseId, userId);
   }
 }

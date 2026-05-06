@@ -21,6 +21,12 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
 # Debug
 npm-debug.log*
 pnpm-debug.log*

@@ -2,7 +2,7 @@
 
 **版本**: v1.0  
 **基础URL**: `http://localhost:3001/api/v1`  
-**最后更新**: 2026-05-04
+**最后更新**: 2026-05-06
 
 ---
 
@@ -328,6 +328,8 @@ GET /inventory/alerts
 
 ## 3. 财务 (Finance)
 
+> **说明**：部分小节仍沿用本文「通用规范」中的 `{ code, data }` 示例；而 **凭证、报表、`/finance/account-subjects` 等接口为服务端直返 DTO**。以部署环境 Swagger `/docs` 为准。报表口径见产品需求 **第 2.5.5 节**。
+
 ### 3.1 发票管理
 
 #### 获取发票列表
@@ -379,131 +381,191 @@ POST /finance/invoices
 }
 ```
 
-### 3.2 凭证管理
+#### 发票影像 OCR（占位 / 对齐 Swagger）
 
-#### 获取凭证列表
+识别 **不单独落库**，仅返回结构化草稿供前端填入「新建发票」表单；创建发票仍为 **`POST /finance/invoices`**。
 
 ```http
-GET /finance/vouchers?page=1&pageSize=20
+POST /finance/invoices/ocr
+Content-Type: multipart/form-data
 ```
 
-#### 创建凭证
+表单字段：**`file`**（jpg/png 等，`finance.controller` 与 AI 助手一致的限制以 Swagger 为准）。
+
+**响应**（直返 `OcrInvoiceResponseDto`，摘录）：
+
+```json
+{
+  "invoiceNo": "4400123111",
+  "invoiceCode": "044001900211",
+  "type": "normal",
+  "amount": "10000.00",
+  "taxRate": "13.00",
+  "taxAmount": "1300.00",
+  "totalAmount": "11300.00",
+  "buyerName": "某某商贸有限公司",
+  "buyerTaxNo": "91440100MA5xxxxxx",
+  "sellerName": "某某供应商有限公司",
+  "sellerTaxNo": "91440100MA5yyyyyy",
+  "issueDate": "2024-01-10",
+  "ocrConfidence": 0.98
+}
+```
+
+前端将 **`issueDate`** 映射为创建接口的 **`invoiceDate`**（`YYYY-MM-DD`）。列表、创建请求的真实字段以 Swagger 与 `@uxyy/shared` 中 `CreateInvoiceDto` 为准（与上表早期示例可能不一致时以契约为准）。
+
+### 3.2 凭证管理
+
+当前为 **单行分录**：借方科目名称、贷方科目名称、`amount` 为 **字符串金额**（如 `"1994.90"`）；**不提供** `status` 等草稿/已过账筛选（MVP 列表仅日期范围 + `sourceType`）。
+
+#### 分页列表
+
+```http
+GET /finance/vouchers?page=1&pageSize=20&startDate=2026-05-01&endDate=2026-05-31&sourceType=ai_task
+```
+
+**查询**：`page`、`pageSize`（最大 100）、`startDate` / `endDate`（`YYYY-MM-DD`）、可选 `sourceType`：`sales_order` | `purchase_order` | `manual` | `ai_task`。
+
+**响应**（直返分页 DTO）:
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "enterpriseId": 1,
+      "voucherNo": "V202605060001",
+      "sourceType": "manual",
+      "sourceId": null,
+      "entryDate": "2026-05-06T00:00:00.000Z",
+      "debitAccount": "银行存款",
+      "creditAccount": "主营业务收入",
+      "amount": "10000.00",
+      "summary": "服务费",
+      "createdBy": 1,
+      "createdAt": "2026-05-06T10:00:00.000Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+#### 凭证详情
+
+```http
+GET /finance/vouchers/:id
+```
+
+返回单条结构与 `items[]` 中元素相同。
+
+#### 手动创建凭证
 
 ```http
 POST /finance/vouchers
 ```
 
-**请求体**:
+借、贷科目 **名称** 不可相同。**请求体**:
 ```json
 {
-  "voucherDate": "2026-05-04",
-  "entries": [
-    {
-      "subjectId": 1,
-      "debit": 10000.00,
-      "credit": 0,
-      "summary": "收到服务费"
-    },
-    {
-      "subjectId": 2,
-      "debit": 0,
-      "credit": 10000.00,
-      "summary": "主营业务收入"
-    }
-  ],
-  "remark": "5月收入"
+  "voucherNo": "V202605060002",
+  "sourceType": "manual",
+  "entryDate": "2026-05-06T00:00:00.000Z",
+  "debitAccount": "银行存款",
+  "creditAccount": "主营业务收入",
+  "amount": "10000.00",
+  "summary": "5月收入"
 }
 ```
+
+可选：`sourceId`（关联业务单据 ID）。
 
 ### 3.3 财务报表
 
-#### 资产负债表
+#### 经营概览（仪表盘）
 
 ```http
-GET /finance/reports/balance-sheet?date=2026-05-31
+GET /finance/reports/dashboard?period=month&date=2026-05
 ```
 
-**响应**:
+`period`: `month` | `quarter` | `year`；`date` 形如 `YYYY-MM`。
+
+#### 资产负债表（截止日）
+
+```http
+GET /finance/reports/balance-sheet?asOfDate=2026-05-31
+```
+
+**响应**（摘录）:
 ```json
 {
-  "code": 200,
-  "data": {
-    "date": "2026-05-31",
-    "assets": [
-      { "subject": "现金", "amount": 100000.00 },
-      { "subject": "应收账款", "amount": 50000.00 }
-    ],
-    "liabilities": [
-      { "subject": "应付账款", "amount": 30000.00 }
-    ],
-    "equity": [
-      { "subject": "实收资本", "amount": 100000.00 },
-      { "subject": "未分配利润", "amount": 20000.00 }
-    ],
-    "totalAssets": 150000.00,
-    "totalLiabilities": 30000.00,
-    "totalEquity": 120000.00
+  "period": "2026-05-31",
+  "assets": [{ "code": "1002", "name": "银行存款", "amount": "50000.00" }],
+  "totalAssets": "120000.00",
+  "liabilities": [{ "code": "2202", "name": "应付账款", "amount": "30000.00" }],
+  "totalLiabilities": "30000.00",
+  "equity": [{ "code": "4001", "name": "实收资本", "amount": "90000.00" }],
+  "totalEquity": "90000.00"
+}
+```
+
+#### 利润表（自然月）
+
+```http
+GET /finance/reports/income-statement?period=2026-05
+```
+
+`period` 为 `YYYY-MM`。响应含 `revenue` / `costs` / `expenses` 分项及 `netProfit`（均为字符串金额）。
+
+#### 现金流量表（简版，自然月）
+
+```http
+GET /finance/reports/cash-flow?period=2026-05
+```
+
+响应含 `operatingActivities`、`investingActivities`、`financingActivities` 分项及 `netOperatingCashFlow`、`netCashFlow`、`beginningCash`、`endingCash` 等。
+
+#### 应收应付汇总
+
+```http
+GET /finance/reports/ar-ap
+```
+
+返回 `receivables`、`payables` 列表及 `totalReceivables`、`totalPayables`。
+
+### 3.4 会计科目（account-subjects）
+
+#### 列表
+
+```http
+GET /finance/account-subjects
+```
+
+**响应**（数组，直返）:
+```json
+[
+  {
+    "id": 1,
+    "enterpriseId": 1,
+    "code": "1001",
+    "name": "库存现金",
+    "category": "asset",
+    "parentId": null,
+    "balanceDirection": "debit",
+    "isActive": true,
+    "createdAt": "2026-05-01T00:00:00.000Z"
   }
-}
+]
 ```
 
-#### 利润表
+`category`: `asset` | `liability` | `equity` | `income` | `expense`。
+
+#### 新增 / 详情 / 修改
 
 ```http
-GET /finance/reports/income-statement?startDate=2026-05-01&endDate=2026-05-31
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "data": {
-    "startDate": "2026-05-01",
-    "endDate": "2026-05-31",
-    "revenue": 100000.00,
-    "cost": 60000.00,
-    "grossProfit": 40000.00,
-    "expenses": 20000.00,
-    "netProfit": 20000.00
-  }
-}
-```
-
-#### 现金流量表
-
-```http
-GET /finance/reports/cash-flow?startDate=2026-05-01&endDate=2026-05-31
-```
-
-### 3.4 会计科目
-
-#### 获取科目列表
-
-```http
-GET /finance/subjects
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "code": "1001",
-      "name": "现金",
-      "type": "asset",
-      "parentId": null
-    },
-    {
-      "id": 2,
-      "code": "6001",
-      "name": "主营业务收入",
-      "type": "revenue",
-      "parentId": null
-    }
-  ]
-}
+POST /finance/account-subjects
+GET /finance/account-subjects/:id
+PATCH /finance/account-subjects/:id
 ```
 
 ---
@@ -647,143 +709,81 @@ GET /crm/opportunities/funnel
 
 ## 5. 智能服务 (AI)
 
-### 5.1 OCR 发票识别
+> **说明**：本模块控制器直返 JSON（无统一 `{ code, data }` 包装）；需登录且 JWT 中包含企业上下文。**OCR（发票影像）**：优先使用 **本文第 3.1 节** 的 `POST /finance/invoices/ocr`（multipart）；亦可通过本节 **异步任务** `taskType: ocr_invoice` 投递。
 
-#### 提交 OCR 任务
+### 5.1 健康检查与队列统计
 
 ```http
-POST /ai/ocr
+GET /ai/ping
+```
+
+无需鉴权，用于探活。
+
+```http
+GET /ai/queue/stats
+```
+
+返回主队列与死信队列的 BullMQ Job 计数（`waiting`、`active`、`completed`、`failed` 等）。
+
+### 5.2 异步任务（提交 / 列表 / 详情）
+
+```http
+POST /ai/tasks
 ```
 
 **请求体**:
 ```json
 {
-  "imageUrl": "https://example.com/invoice.jpg",
-  "enterpriseId": 1
+  "taskType": "accounting_suggestion",
+  "clientKey": "optional-idempotency-key",
+  "payload": { "imageUrl": "https://example.com/invoice.png" }
 }
 ```
 
-**响应**:
-```json
-{
-  "code": 200,
-  "data": {
-    "jobId": "job_123456",
-    "status": "pending"
-  }
-}
-```
-
-#### 查询 OCR 结果
+**`taskType`**：`ocr_invoice` | `accounting_suggestion` | `classification`。同一企业下 **`taskType + clientKey` 相同则幂等**，不会重复建任务。
 
 ```http
-GET /ai/ocr/:jobId
+GET /ai/tasks?taskType=ocr_invoice&status=completed&page=1&pageSize=20
+GET /ai/tasks/:id
 ```
 
-**响应**:
-```json
-{
-  "code": 200,
-  "data": {
-    "status": "completed",
-    "result": {
-      "success": true,
-      "invoiceType": "增值税专用发票",
-      "invoiceCode": "3100123456",
-      "invoiceNumber": "12345678",
-      "invoiceDate": "2026-05-01",
-      "amount": 10000.00,
-      "sellerName": "某某科技有限公司",
-      "buyerName": "某某企业",
-      "items": [
-        {
-          "name": "服务费",
-          "quantity": 1,
-          "price": 9433.96,
-          "amount": 9433.96
-        }
-      ]
-    }
-  }
-}
-```
+列表返回形如 `{ "list": [ AiTask ], "pagination": { "page", "pageSize", "total" } }`。单任务对象含 `status`、`inputPayload`、`outputPayload`、`errorMessage`、`attempts` 等（见 Swagger `AiTaskResponse`）。
 
-### 5.2 智能建议
+### 5.3 将已完成任务写入财务凭证
 
 ```http
-POST /ai/suggestions
+POST /ai/tasks/:id/voucher
 ```
 
-**请求体**:
+对 **已完成** 的任务，按其 `outputPayload` 写入 **本文第 3.2 节** 所述单行凭证；请求体可为空，或由调用方选择性覆盖字段：
+
 ```json
 {
-  "type": "inventory",
-  "enterpriseId": 1
+  "debitAccount": "银行存款",
+  "creditAccount": "应收账款",
+  "amount": "50000.00",
+  "summary": "收客户货款",
+  "entryDate": "2026-05-06T00:00:00.000Z"
 }
 ```
 
-**类型说明**:
-- `inventory` - 库存优化建议
-- `finance` - 财务优化建议
-- `customer` - 客户管理建议
-
-**响应**:
+**响应**（节选）:
 ```json
 {
-  "code": 200,
-  "data": {
-    "suggestions": [
-      "库存商品A库存量较低，建议及时补货",
-      "商品B近30天销量下降20%，建议调整营销策略",
-      "发现3个商品存在滞销风险，建议促销处理"
-    ]
-  }
+  "created": true,
+  "voucher": { "id": 1, "voucherNo": "...", "sourceType": "ai_task", "amount": "50000.00" }
 }
 ```
 
-### 5.3 智能记账
+`created === false` 表示该任务此前已入账，本次返回已有凭证（**幂等**）。
+
+### 5.4 智能建议（同步便捷接口）
 
 ```http
-POST /ai/auto-bookkeeping
+GET /ai/suggestions?type=finance
 ```
 
-**请求体**:
-```json
-{
-  "invoiceData": {
-    "invoiceType": "增值税专用发票",
-    "amount": 10000.00,
-    "sellerName": "某某科技有限公司",
-    "buyerName": "某某企业"
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "data": {
-    "success": true,
-    "voucherData": {
-      "entries": [
-        {
-          "subjectId": 1,
-          "debit": 10000.00,
-          "credit": 0,
-          "summary": "收到发票"
-        },
-        {
-          "subjectId": 2,
-          "debit": 0,
-          "credit": 10000.00,
-          "summary": "应付账款"
-        }
-      ]
-    }
-  }
-}
-```
+**查询参数 `type`**：`inventory` | `finance` | `customer`。服务端会先创建一条异步任务记录，再 **同步调用 LLM** 返回 `{ "task": { … }, "suggestions": [ "字符串", … ] }`（条目数可能因模型输出而异）。
 
 ---
 
@@ -824,7 +824,7 @@ GET /inventory/products?category=电子产品&status=active
 
 ### E. 金额格式
 
-金额使用数字类型，保留 2 位小数：
+示例性约定为 **JSON 数字**，保留 2 位小数。**财务凭证手写创建、AI 入账** 等与 `CreateVoucherDto` / 报表 DTO 对齐的字段请使用 **字符串**，如 `"10000.00"`，见 **本文第 3.2 节**、Swagger。
 
 ```json
 {

@@ -38,7 +38,7 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
 }
 
 @ApiTags('inventory')
-@Controller('products')
+@Controller('inventory/products')
 export class ProductsController {
   constructor(private readonly service: ProductsService) {}
 

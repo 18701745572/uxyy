@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
@@ -15,6 +15,7 @@ import type {
 } from './dto/account-subject.dto';
 import type { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import type { CreateVoucherDto } from './dto/voucher.dto';
+import { AiLlmService } from '../ai/ai.llm';
 
 // ==================== 工具函数 ====================
 
@@ -35,6 +36,68 @@ function dateToIso(value: unknown): string | null {
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'string') return value;
   return null;
+}
+
+function parseAmountSafe(s: string): number {
+  const n = parseFloat(s ?? '0');
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** 凭证科目与子目前缀汇总到父科目名（支持「父科目名-子目」） */
+function sumMatchingSubjectName(
+  subjectName: string,
+  amountsByAccount: Map<string, number>,
+): number {
+  let sum = 0;
+  for (const [acc, amt] of amountsByAccount) {
+    if (acc === subjectName || acc.startsWith(`${subjectName}-`)) {
+      sum += amt;
+    }
+  }
+  return sum;
+}
+
+async function voucherDebitCreditMaps(
+  db: AppDrizzleDb,
+  eid: number,
+  range: { endDate: Date; startDate?: Date },
+): Promise<{ debit: Map<string, number>; credit: Map<string, number> }> {
+  const dateCond =
+    range.startDate != null
+      ? and(
+          gte(schema.voucherEntries.entryDate, range.startDate),
+          lte(schema.voucherEntries.entryDate, range.endDate),
+        )
+      : lte(schema.voucherEntries.entryDate, range.endDate);
+
+  const [debitRows, creditRows] = await Promise.all([
+    db
+      .select({
+        account: schema.voucherEntries.debitAccount,
+        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
+      })
+      .from(schema.voucherEntries)
+      .where(and(eq(schema.voucherEntries.enterpriseId, eid), dateCond))
+      .groupBy(schema.voucherEntries.debitAccount),
+    db
+      .select({
+        account: schema.voucherEntries.creditAccount,
+        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
+      })
+      .from(schema.voucherEntries)
+      .where(and(eq(schema.voucherEntries.enterpriseId, eid), dateCond))
+      .groupBy(schema.voucherEntries.creditAccount),
+  ]);
+
+  const debit = new Map<string, number>();
+  for (const r of debitRows) {
+    debit.set(r.account, parseAmountSafe(r.total));
+  }
+  const credit = new Map<string, number>();
+  for (const r of creditRows) {
+    credit.set(r.account, parseAmountSafe(r.total));
+  }
+  return { debit, credit };
 }
 
 // ==================== 发票映射 ====================
@@ -214,28 +277,162 @@ function generateVoucherNo(): string {
 
 @Injectable()
 export class FinanceService {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
+  constructor(
+    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
+    private readonly aiLlm: AiLlmService,
+  ) {}
 
   // ==================== 发票 ====================
 
-  /** OCR 识别占位（Agent-AI 就绪后改为调用 AI 模块） */
-  ocrInvoice(enterpriseId: number | undefined) {
+  /** OCR 发票识别 - 使用 Qwen-VL 多模态模型 */
+  async crInvoice(
+    enterpriseId: number | undefined,
+    file: { buffer: Buffer; mimetype: string },
+  ): Promise<{
+    invoiceNo: string;
+    invoiceCode: string | null;
+    type: 'special' | 'normal' | 'electronic';
+    amount: string;
+    taxRate: string;
+    taxAmount: string;
+    totalAmount: string;
+    buyerName: string | null;
+    buyerTaxNo: string | null;
+    sellerName: string | null;
+    sellerTaxNo: string | null;
+    issueDate: string | null;
+    ocrConfidence: number;
+  }> {
     requireEnterpriseId(enterpriseId);
-    return {
-      invoiceNo: '4400123111',
-      invoiceCode: '044001900211',
-      type: 'special' as const,
-      amount: '10000.00',
-      taxRate: '13.00',
-      taxAmount: '1300.00',
-      totalAmount: '11300.00',
-      buyerName: '某某商贸有限公司',
-      buyerTaxNo: '91440100MA5xxxxxx',
-      sellerName: '某某供应商有限公司',
-      sellerTaxNo: '91440100MA5xxxxxx',
-      issueDate: '2024-01-10',
-      ocrConfidence: 0.98,
-    };
+
+    // 将文件转为 base64
+    const base64Image = file.buffer.toString('base64');
+    const mimeType = file.mimetype || 'image/jpeg';
+    const imageUrl = `data:${mimeType};base64,${base64Image}`;
+
+    // OCR 识别 Prompt
+    const sysPrompt = `你是专业的发票识别 AI。请仔细识别发票图片，提取所有可见字段并以 JSON 格式输出，不要输出任何其他内容。
+
+输出格式要求：
+{
+  "invoiceType": "发票类型（增值税专用发票/增值税普通发票/电子普通发票/专用发票等）",
+  "invoiceCode": "发票代码（10位或12位数字）",
+  "invoiceNumber": "发票号码（8位数字）",
+  "invoiceDate": "开票日期（格式：YYYY-MM-DD）",
+  
+  "buyerName": "购买方名称",
+  "buyerTaxId": "购买方纳税人识别号/统一社会信用代码",
+  
+  "sellerName": "销售方名称",
+  "sellerTaxId": "销售方纳税人识别号/统一社会信用代码",
+  
+  "amount": "不含税金额合计数值",
+  "taxRate": "税率（如：13%、6%、免税等）",
+  "taxAmount": "税额合计数值",
+  "totalAmount": "价税合计（小写）数值",
+  
+  "confidence": 0.95
+}`;
+
+    try {
+      const response = await this.aiLlm.chatWithImage(
+        sysPrompt,
+        '请识别这张发票的所有信息，以 JSON 格式返回',
+        imageUrl,
+        { temperature: 0.1 },
+      );
+
+      // 解析 JSON 响应
+      let result: Record<string, unknown>;
+      try {
+        // 尝试提取 JSON 部分
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          result = JSON.parse(response);
+        }
+      } catch {
+        throw new BadRequestException('OCR 识别结果解析失败，请重试或手动录入');
+      }
+
+      // 映射发票类型
+      const typeStr = String(result.invoiceType || '').toLowerCase();
+      let type: 'special' | 'normal' | 'electronic' = 'normal';
+      if (typeStr.includes('专用')) {
+        type = 'special';
+      } else if (typeStr.includes('电子')) {
+        type = 'electronic';
+      }
+
+      // 提取金额数值
+      const extractAmount = (val: unknown): string => {
+        if (typeof val === 'number') return val.toFixed(2);
+        if (typeof val === 'string') {
+          const num = parseFloat(val.replace(/[¥,]/g, ''));
+          return Number.isFinite(num) ? num.toFixed(2) : '0.00';
+        }
+        return '0.00';
+      };
+
+      // 提取税率
+      const extractTaxRate = (val: unknown): string => {
+        if (typeof val === 'number') return val.toFixed(2);
+        if (typeof val === 'string') {
+          const cleaned = val.replace(/[%]/g, '');
+          const num = parseFloat(cleaned);
+          return Number.isFinite(num) ? num.toFixed(2) : '0.00';
+        }
+        return '0.00';
+      };
+
+      // 格式化日期
+      const formatDate = (val: unknown): string | null => {
+        if (!val) return null;
+        const str = String(val);
+        // 尝试匹配 YYYY-MM-DD
+        if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(str)) {
+          return str.replace(/\//g, '-').slice(0, 10);
+        }
+        // 尝试匹配 YYYY年MM月DD日
+        const cnMatch = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+        if (cnMatch) {
+          return `${cnMatch[1]}-${cnMatch[2].padStart(2, '0')}-${cnMatch[3].padStart(2, '0')}`;
+        }
+        return str;
+      };
+
+      const confidence =
+        typeof result.confidence === 'number'
+          ? result.confidence
+          : typeof result.confidence === 'string'
+            ? parseFloat(result.confidence)
+            : 0.85;
+
+      return {
+        invoiceNo: String(result.invoiceNumber || '').trim() || '',
+        invoiceCode: String(result.invoiceCode || '').trim() || null,
+        type,
+        amount: extractAmount(result.amount),
+        taxRate: extractTaxRate(result.taxRate),
+        taxAmount: extractAmount(result.taxAmount),
+        totalAmount: extractAmount(result.totalAmount),
+        buyerName: String(result.buyerName || '').trim() || null,
+        buyerTaxNo: String(result.buyerTaxId || '').trim() || null,
+        sellerName: String(result.sellerName || '').trim() || null,
+        sellerTaxNo: String(result.sellerTaxId || '').trim() || null,
+        issueDate: formatDate(result.invoiceDate),
+        ocrConfidence: Number.isFinite(confidence) ? confidence : 0.85,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'OCR 识别失败: ' +
+          (error instanceof Error ? error.message : '未知错误'),
+      );
+    }
   }
 
   async createInvoice(enterpriseId: number | undefined, dto: CreateInvoiceDto) {
@@ -482,7 +679,11 @@ export class FinanceService {
 
   // ==================== 凭证 ====================
 
-  async createVoucher(enterpriseId: number | undefined, dto: CreateVoucherDto) {
+  async createVoucher(
+    enterpriseId: number | undefined,
+    dto: CreateVoucherDto,
+    opts?: { createdByUserId?: number },
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     if (dto.debitAccount === dto.creditAccount) {
@@ -501,12 +702,38 @@ export class FinanceService {
         creditAccount: dto.creditAccount,
         amount: dto.amount,
         summary: dto.summary ?? null,
-        createdBy: 0,
+        createdBy: opts?.createdByUserId ?? 0,
       })
       .returning();
 
     if (!inserted) throw new NotFoundException('创建凭证失败');
     return mapVoucherRow(inserted);
+  }
+
+  /** 按业务来源查找凭证（用于 AI 任务写入幂等） */
+  async findVoucherBySource(
+    enterpriseId: number | undefined,
+    sourceType: string,
+    sourceId: number,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+    const [row] = await this.db
+      .select()
+      .from(schema.voucherEntries)
+      .where(
+        and(
+          eq(schema.voucherEntries.enterpriseId, eid),
+          eq(schema.voucherEntries.sourceType, sourceType),
+          eq(schema.voucherEntries.sourceId, sourceId),
+        ),
+      )
+      .limit(1);
+    return row ? mapVoucherRow(row) : null;
+  }
+
+  /** 生成新凭证号（与发票入账等逻辑一致） */
+  nextVoucherNo(): string {
+    return generateVoucherNo();
   }
 
   async findVoucherPage(params: {
@@ -791,49 +1018,54 @@ export class FinanceService {
 
   async getBalanceSheet(enterpriseId: number | undefined, asOfDate?: string) {
     const eid = requireEnterpriseId(enterpriseId);
-    const endDate = asOfDate ? new Date(asOfDate) : new Date();
+    const endRaw = asOfDate
+      ? new Date(`${asOfDate}T23:59:59.999Z`)
+      : new Date();
 
-    // 查询科目及其余额汇总
-    const rows = await this.db
+    const { debit, credit } = await voucherDebitCreditMaps(this.db, eid, {
+      endDate: endRaw,
+    });
+
+    const subjectRows = await this.db
       .select({
         code: schema.accountSubjects.code,
         name: schema.accountSubjects.name,
         category: schema.accountSubjects.category,
         balanceDirection: schema.accountSubjects.balanceDirection,
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
       })
       .from(schema.accountSubjects)
-      .leftJoin(
-        schema.voucherEntries,
+      .where(
         and(
-          eq(
-            schema.accountSubjects.enterpriseId,
-            schema.voucherEntries.enterpriseId,
-          ),
-          lte(schema.voucherEntries.entryDate, endDate),
+          eq(schema.accountSubjects.enterpriseId, eid),
+          eq(schema.accountSubjects.isActive, true),
         ),
-      )
-      .where(eq(schema.accountSubjects.enterpriseId, eid))
-      .groupBy(
-        schema.accountSubjects.code,
-        schema.accountSubjects.name,
-        schema.accountSubjects.category,
-        schema.accountSubjects.balanceDirection,
       )
       .orderBy(asc(schema.accountSubjects.code));
 
-    const assets = rows
-      .filter((r) => r.category === 'asset')
-      .map((r) => ({ code: r.code, name: r.name, amount: r.total }));
-    const liabilities = rows
-      .filter((r) => r.category === 'liability')
-      .map((r) => ({ code: r.code, name: r.name, amount: r.total }));
-    const equity = rows
-      .filter((r) => r.category === 'equity')
-      .map((r) => ({ code: r.code, name: r.name, amount: r.total }));
+    const itemFor = (
+      cat: typeof schema.accountSubjects.$inferSelect.category,
+    ) => {
+      return subjectRows
+        .filter((s) => s.category === cat)
+        .map((s) => {
+          const d = sumMatchingSubjectName(s.name, debit);
+          const c = sumMatchingSubjectName(s.name, credit);
+          const raw = s.balanceDirection === 'debit' ? d - c : c - d;
+          return {
+            code: s.code,
+            name: s.name,
+            amount: raw.toFixed(2),
+          };
+        })
+        .filter((x) => parseFloat(x.amount) !== 0);
+    };
+
+    const assets = itemFor('asset');
+    const liabilities = itemFor('liability');
+    const equity = itemFor('equity');
 
     const sumAmounts = (items: { amount: string }[]) =>
-      items.reduce((sum, i) => sum + parseFloat(i.amount || '0'), 0).toFixed(2);
+      items.reduce((sum, i) => sum + parseAmountSafe(i.amount), 0).toFixed(2);
 
     return {
       period: asOfDate ?? new Date().toISOString().slice(0, 10),
@@ -855,83 +1087,83 @@ export class FinanceService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // 收入凭证汇总
-    const incomeRows = await this.db
+    const { debit, credit } = await voucherDebitCreditMaps(this.db, eid, {
+      startDate,
+      endDate,
+    });
+
+    const subjectRows = await this.db
       .select({
-        code: schema.voucherEntries.creditAccount,
-        name: schema.voucherEntries.creditAccount,
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
+        code: schema.accountSubjects.code,
+        name: schema.accountSubjects.name,
+        category: schema.accountSubjects.category,
       })
-      .from(schema.voucherEntries)
+      .from(schema.accountSubjects)
       .where(
         and(
-          eq(schema.voucherEntries.enterpriseId, eid),
-          gte(schema.voucherEntries.entryDate, startDate),
-          lte(schema.voucherEntries.entryDate, endDate),
-          eq(schema.voucherEntries.creditAccount, '主营业务收入'),
+          eq(schema.accountSubjects.enterpriseId, eid),
+          eq(schema.accountSubjects.isActive, true),
         ),
       )
-      .groupBy(schema.voucherEntries.creditAccount);
+      .orderBy(asc(schema.accountSubjects.code));
 
-    const revenue = incomeRows.map((r) => ({
-      code: r.code,
-      name: r.name,
-      amount: r.total,
-    }));
-    const totalRevenue = revenue
-      .reduce((sum, i) => sum + parseFloat(i.amount || '0'), 0)
+    function isPrincipalCost(subject: {
+      code: string;
+      name: string;
+      category: string;
+    }) {
+      return (
+        subject.category === 'expense' &&
+        (subject.code === '6401' || subject.name === '主营业务成本')
+      );
+    }
+
+    const revenueLines: { code: string; name: string; amount: string }[] = [];
+    for (const s of subjectRows) {
+      if (s.category !== 'income') continue;
+      const amt = sumMatchingSubjectName(s.name, credit);
+      if (amt !== 0) {
+        revenueLines.push({
+          code: s.code,
+          name: s.name,
+          amount: amt.toFixed(2),
+        });
+      }
+    }
+    const totalRevenue = revenueLines
+      .reduce((sum, i) => sum + parseAmountSafe(i.amount), 0)
       .toFixed(2);
 
-    // 成本凭证汇总
-    const costRows = await this.db
-      .select({
-        code: schema.voucherEntries.debitAccount,
-        name: schema.voucherEntries.debitAccount,
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
-      })
-      .from(schema.voucherEntries)
-      .where(
-        and(
-          eq(schema.voucherEntries.enterpriseId, eid),
-          gte(schema.voucherEntries.entryDate, startDate),
-          lte(schema.voucherEntries.entryDate, endDate),
-          eq(schema.voucherEntries.debitAccount, '主营业务成本'),
-        ),
-      )
-      .groupBy(schema.voucherEntries.debitAccount);
-
-    const costs = costRows.map((r) => ({
-      code: r.code,
-      name: r.name,
-      amount: r.total,
-    }));
-    const totalCosts = costs
-      .reduce((sum, i) => sum + parseFloat(i.amount || '0'), 0)
+    const costLines: { code: string; name: string; amount: string }[] = [];
+    for (const s of subjectRows) {
+      if (!isPrincipalCost(s)) continue;
+      const amt = sumMatchingSubjectName(s.name, debit);
+      if (amt !== 0) {
+        costLines.push({
+          code: s.code,
+          name: s.name,
+          amount: amt.toFixed(2),
+        });
+      }
+    }
+    const totalCosts = costLines
+      .reduce((sum, i) => sum + parseAmountSafe(i.amount), 0)
       .toFixed(2);
 
-    // 费用凭证汇总
-    const expenseRows = await this.db
-      .select({
-        code: schema.voucherEntries.debitAccount,
-        name: schema.voucherEntries.debitAccount,
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
-      })
-      .from(schema.voucherEntries)
-      .where(
-        and(
-          eq(schema.voucherEntries.enterpriseId, eid),
-          gte(schema.voucherEntries.entryDate, startDate),
-          lte(schema.voucherEntries.entryDate, endDate),
-        ),
-      )
-      .groupBy(schema.voucherEntries.debitAccount);
-
-    const expenseAccounts = ['销售费用', '管理费用', '财务费用'];
-    const expenses = expenseRows
-      .filter((r) => expenseAccounts.includes(r.code))
-      .map((r) => ({ code: r.code, name: r.name, amount: r.total }));
-    const totalExpenses = expenses
-      .reduce((sum, i) => sum + parseFloat(i.amount || '0'), 0)
+    const expenseLines: { code: string; name: string; amount: string }[] = [];
+    for (const s of subjectRows) {
+      if (s.category !== 'expense' || isPrincipalCost(s)) continue;
+      const amt = sumMatchingSubjectName(s.name, debit);
+      if (amt !== 0) {
+        expenseLines.push({
+          code: s.code,
+          name: s.name,
+          amount: amt.toFixed(2),
+        });
+      }
+    }
+    const totalExpenses = expenseLines
+      .reduce((sum, i) => sum + parseAmountSafe(i.amount), 0)
       .toFixed(2);
 
     const netProfit = (
@@ -942,11 +1174,11 @@ export class FinanceService {
 
     return {
       period: reportPeriod,
-      revenue,
+      revenue: revenueLines,
       totalRevenue,
-      costs,
+      costs: costLines,
       totalCosts,
-      expenses,
+      expenses: expenseLines,
       totalExpenses,
       netProfit,
     };
@@ -961,10 +1193,11 @@ export class FinanceService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // 经营活动现金流：涉及银行存款/库存现金的凭证
-    const operatingRows = await this.db
+    const cashAcc = ['银行存款', '库存现金'] as const;
+
+    const [inflowRow] = await this.db
       .select({
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
+        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
       })
       .from(schema.voucherEntries)
       .where(
@@ -972,16 +1205,13 @@ export class FinanceService {
           eq(schema.voucherEntries.enterpriseId, eid),
           gte(schema.voucherEntries.entryDate, startDate),
           lte(schema.voucherEntries.entryDate, endDate),
-          eq(schema.voucherEntries.debitAccount, '银行存款'),
-          eq(schema.voucherEntries.creditAccount, '主营业务收入'),
+          inArray(schema.voucherEntries.debitAccount, [...cashAcc]),
         ),
       );
 
-    const operatingInflow = operatingRows[0]?.total ?? '0.00';
-
-    const operatingOutflowRows = await this.db
+    const [outflowRow] = await this.db
       .select({
-        total: sql<string>`COALESCE(SUM(${schema.voucherEntries.amount}), '0')`,
+        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
       })
       .from(schema.voucherEntries)
       .where(
@@ -989,13 +1219,14 @@ export class FinanceService {
           eq(schema.voucherEntries.enterpriseId, eid),
           gte(schema.voucherEntries.entryDate, startDate),
           lte(schema.voucherEntries.entryDate, endDate),
-          eq(schema.voucherEntries.creditAccount, '银行存款'),
-          eq(schema.voucherEntries.debitAccount, '库存商品'),
+          inArray(schema.voucherEntries.creditAccount, [...cashAcc]),
         ),
       );
 
-    const operatingOutflow = operatingOutflowRows[0]?.total ?? '0.00';
-
+    const operatingInflow = parseAmountSafe(inflowRow?.total ?? '0').toFixed(2);
+    const operatingOutflow = parseAmountSafe(outflowRow?.total ?? '0').toFixed(
+      2,
+    );
     const netOperatingCashFlow = (
       parseFloat(operatingInflow) - parseFloat(operatingOutflow)
     ).toFixed(2);
@@ -1003,10 +1234,14 @@ export class FinanceService {
     return {
       period: reportPeriod,
       operatingActivities: [
-        { code: 'CFO-I', name: '经营活动现金流入', amount: operatingInflow },
         {
-          code: 'CFO-O',
-          name: '经营活动现金流出',
+          code: 'CFO-IN',
+          name: '经营活动现金流入（借：现金/银行存款）',
+          amount: operatingInflow,
+        },
+        {
+          code: 'CFO-OUT',
+          name: '经营活动现金流出（贷：现金/银行存款）',
           amount: '-' + operatingOutflow,
         },
       ],

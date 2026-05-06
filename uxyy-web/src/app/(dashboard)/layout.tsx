@@ -11,17 +11,24 @@ const pageTitles: Record<string, string> = {
   "/dashboard/crm": "客户管理",
   "/dashboard/inventory": "进销存",
   "/dashboard/finance": "财务",
+  "/dashboard/finance/ar-ap": "应收应付",
   "/dashboard/ai": "AI 智能",
   "/dashboard/profile": "用户资料",
 };
 
 function titleForPath(pathname: string): string {
-  // 优先精确匹配，再尝试前缀匹配
+  // 优先精确匹配，再尝试最长前缀匹配（避免 /dashboard 抢先匹配 /dashboard/crm/...）
   if (pageTitles[pathname]) return pageTitles[pathname];
+  let bestPrefix = "";
+  let bestTitle = "";
   for (const [prefix, title] of Object.entries(pageTitles)) {
-    if (prefix !== "/" && pathname.startsWith(prefix)) return title;
+    if (prefix === "/") continue;
+    if (pathname.startsWith(prefix) && prefix.length > bestPrefix.length) {
+      bestPrefix = prefix;
+      bestTitle = title;
+    }
   }
-  return "";
+  return bestTitle;
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

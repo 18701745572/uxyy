@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Put, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Express } from 'express';
 import {
   ApiBearerAuth,
@@ -16,6 +25,11 @@ import {
   InventoryLogQueryDto,
   StockAlertResponseDto,
 } from '../dto/inventory.dto';
+import {
+  CreateStockAlertDto,
+  StockAlertListQueryDto,
+  UpdateStockAlertDto,
+} from '../dto/stock-alert.dto';
 
 function enterpriseIdFromRequest(req: Express.Request): number | undefined {
   const u = req.user;
@@ -98,5 +112,63 @@ export class InventoryController {
   @ApiOperation({ summary: '库存预警列表（低于下限的商品）' })
   async alerts(@Req() req: Express.Request): Promise<StockAlertResponseDto> {
     return this.service.getAlerts(enterpriseIdFromRequest(req));
+  }
+
+  // ==================== 库存预警管理 ====================
+
+  @ApiBearerAuth()
+  @Get('stock-alerts')
+  @ApiOperation({ summary: '库存预警记录列表（分页，支持类型/状态筛选）' })
+  async listStockAlerts(
+    @Req() req: Express.Request,
+    @Query() query: StockAlertListQueryDto,
+  ) {
+    return this.service.findStockAlerts({
+      enterpriseId: enterpriseIdFromRequest(req),
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+      type: query.type,
+      status: query.status,
+      productId: query.productId,
+    });
+  }
+
+  @ApiBearerAuth()
+  @Get('stock-alerts/stats')
+  @ApiOperation({ summary: '库存预警统计' })
+  async getStockAlertStats(@Req() req: Express.Request) {
+    return this.service.getStockAlertStats(enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Post('stock-alerts/check')
+  @ApiOperation({ summary: '手动触发库存检查并创建预警' })
+  async checkAndCreateAlerts(@Req() req: Express.Request) {
+    return this.service.checkAndCreateAlerts(enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Post('stock-alerts')
+  @ApiOperation({ summary: '手动创建库存预警' })
+  async createStockAlert(
+    @Req() req: Express.Request,
+    @Body() body: CreateStockAlertDto,
+  ) {
+    return this.service.createStockAlert(enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Put('stock-alerts/:id')
+  @ApiOperation({ summary: '更新库存预警状态' })
+  async updateStockAlert(
+    @Req() req: Express.Request,
+    @Param('id') id: string,
+    @Body() body: UpdateStockAlertDto,
+  ) {
+    return this.service.updateStockAlert(
+      enterpriseIdFromRequest(req),
+      Number(id),
+      body,
+    );
   }
 }

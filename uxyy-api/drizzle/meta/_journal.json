@@ -59,10 +59,17 @@
       "breakpoints": true
     },
     {
-      "idx": 4,
+      "idx": 8,
       "version": "7",
       "when": 1777971835907,
-      "tag": "0004_ai_tasks",
+      "tag": "0008_ai_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778043000000,
+      "tag": "0009_crm_opportunities_categories",
       "breakpoints": true
     }
   ]

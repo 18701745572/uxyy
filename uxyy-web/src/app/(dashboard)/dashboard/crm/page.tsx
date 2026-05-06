@@ -16,20 +16,32 @@ export default function CrmOverviewPage() {
           </Card>
         </Link>
 
-        <Card>
-          <h2 className="font-medium text-zinc-400">商机管理</h2>
-          <p className="mt-1 text-sm text-zinc-400">即将上线</p>
-        </Card>
+        <Link href="/dashboard/crm/opportunities">
+          <Card className="transition-shadow hover:shadow-md cursor-pointer">
+            <h2 className="font-medium text-zinc-900">商机管理</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              管理销售商机，跟踪成交进度
+            </p>
+          </Card>
+        </Link>
 
-        <Card>
-          <h2 className="font-medium text-zinc-400">跟进记录</h2>
-          <p className="mt-1 text-sm text-zinc-400">即将上线</p>
-        </Card>
+        <Link href="/dashboard/crm/follow-ups">
+          <Card className="transition-shadow hover:shadow-md cursor-pointer">
+            <h2 className="font-medium text-zinc-900">跟进记录</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              记录客户跟进历史，安排下次跟进
+            </p>
+          </Card>
+        </Link>
 
-        <Card>
-          <h2 className="font-medium text-zinc-400">客户分类</h2>
-          <p className="mt-1 text-sm text-zinc-400">即将上线</p>
-        </Card>
+        <Link href="/dashboard/crm/categories">
+          <Card className="transition-shadow hover:shadow-md cursor-pointer">
+            <h2 className="font-medium text-zinc-900">客户分类</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              按状态、行业、区域等维度分类客户
+            </p>
+          </Card>
+        </Link>
       </div>
     </div>
   );

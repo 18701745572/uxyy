@@ -9,12 +9,17 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { and, count, desc, eq } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
 import { resolveJwtRefreshSecret } from './jwt-access-secret';
+
+function jwtExpiresIn(value: string): NonNullable<JwtSignOptions['expiresIn']> {
+  return value as NonNullable<JwtSignOptions['expiresIn']>;
+}
 
 export interface RegisterDto {
   phone: string;
@@ -87,7 +92,7 @@ export class AuthService {
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(user.id), type: 'refresh' },
-      { secret: refreshSecret, expiresIn: refreshExpiresIn },
+      { secret: refreshSecret, expiresIn: jwtExpiresIn(refreshExpiresIn) },
     );
 
     return {
@@ -162,7 +167,7 @@ export class AuthService {
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(user.id), type: 'refresh' },
-      { secret: refreshSecret, expiresIn: refreshExpiresIn },
+      { secret: refreshSecret, expiresIn: jwtExpiresIn(refreshExpiresIn) },
     );
 
     return {
@@ -223,7 +228,7 @@ export class AuthService {
         this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
       const newRefreshToken = await this.jwt.signAsync(
         { sub: String(user.id), type: 'refresh' },
-        { secret, expiresIn: expiresInRaw },
+        { secret, expiresIn: jwtExpiresIn(expiresInRaw) },
       );
 
       return {
@@ -350,7 +355,7 @@ export class AuthService {
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
     const refreshToken = await this.jwt.signAsync(
       { sub: String(userId), type: 'refresh' },
-      { secret, expiresIn: expiresInRaw },
+      { secret, expiresIn: jwtExpiresIn(expiresInRaw) },
     );
 
     return {

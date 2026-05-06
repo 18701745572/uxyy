@@ -1,228 +1,179 @@
 import { z } from 'zod';
+import { paginationSchema } from './pagination.js';
 
-// ==================== 枚举 ====================
+// Invoice schemas
+export const invoiceStatusSchema = z.enum(['unverified', 'verified', 'entered', 'void']);
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
 
 export const invoiceTypeSchema = z.enum(['special', 'normal', 'electronic']);
 export type InvoiceType = z.infer<typeof invoiceTypeSchema>;
 
-export const invoiceStatusSchema = z.enum([
-  'unverified',
-  'verified',
-  'entered',
-  'void',
-]);
-export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
-
-export const balanceDirectionSchema = z.enum(['debit', 'credit']);
-export type BalanceDirection = z.infer<typeof balanceDirectionSchema>;
-
-export const accountCategorySchema = z.enum([
-  'asset',
-  'liability',
-  'equity',
-  'income',
-  'expense',
-]);
-export type AccountCategory = z.infer<typeof accountCategorySchema>;
-
-// ==================== 金额（字符串序列化，避免浮点误差）====================
-
-export const amountSchema = z
-  .string()
-  .regex(/^\d+(\.\d{1,2})?$/, '金额格式：整数或最多两位小数，如 10000.00');
-
-// ==================== 发票 ====================
-
-export const invoiceResponseSchema = z.object({
+export const invoiceSchema = z.object({
   id: z.number(),
-  enterpriseId: z.number(),
   invoiceNo: z.string(),
-  invoiceCode: z.string().nullable(),
+  invoiceCode: z.string().optional(),
   type: invoiceTypeSchema,
-  amount: amountSchema,
-  taxRate: amountSchema,
-  taxAmount: amountSchema,
-  totalAmount: amountSchema,
-  buyerName: z.string().nullable(),
-  buyerTaxNo: z.string().nullable(),
-  sellerName: z.string().nullable(),
-  sellerTaxNo: z.string().nullable(),
-  issueDate: z.string().nullable(),
+  amount: z.string(),
+  taxRate: z.string().optional(),
+  taxAmount: z.string().optional(),
+  totalAmount: z.string(),
+  buyerName: z.string().optional(),
+  buyerTaxNo: z.string().optional(),
+  sellerName: z.string().optional(),
+  sellerTaxNo: z.string().optional(),
+  invoiceDate: z.string().optional(),
   status: invoiceStatusSchema,
-  ocrData: z.unknown().nullable(),
-  sourceType: z.string().nullable(),
-  sourceId: z.number().nullable(),
-  createdBy: z.number().nullable(),
+  remark: z.string().optional(),
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
-export type InvoiceResponse = z.infer<typeof invoiceResponseSchema>;
+export type InvoiceDto = z.infer<typeof invoiceSchema>;
+
+export const invoiceListQuerySchema = paginationSchema.extend({
+  status: invoiceStatusSchema.optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+export type InvoiceListQueryDto = z.infer<typeof invoiceListQuerySchema>;
 
 export const invoiceListResponseSchema = z.object({
-  items: z.array(invoiceResponseSchema),
+  list: z.array(invoiceSchema),
   total: z.number(),
   page: z.number(),
   pageSize: z.number(),
 });
-export type InvoiceListResponse = z.infer<typeof invoiceListResponseSchema>;
+export type InvoiceListResponseDto = z.infer<typeof invoiceListResponseSchema>;
 
-// ==================== 凭证分录 ====================
+export const createInvoiceSchema = z.object({
+  invoiceNo: z.string(),
+  invoiceCode: z.string().optional(),
+  type: invoiceTypeSchema,
+  amount: z.string(),
+  taxRate: z.string().optional(),
+  taxAmount: z.string().optional(),
+  totalAmount: z.string(),
+  buyerName: z.string().optional(),
+  buyerTaxNo: z.string().optional(),
+  sellerName: z.string().optional(),
+  sellerTaxNo: z.string().optional(),
+  invoiceDate: z.string().optional(),
+  remark: z.string().optional(),
+});
+export type CreateInvoiceDto = z.infer<typeof createInvoiceSchema>;
 
-export const voucherEntryResponseSchema = z.object({
+export const updateInvoiceSchema = createInvoiceSchema.partial();
+export type UpdateInvoiceDto = z.infer<typeof updateInvoiceSchema>;
+
+export const invoiceResponseSchema = invoiceSchema;
+export type InvoiceResponseDto = z.infer<typeof invoiceResponseSchema>;
+
+/** 与 Nest `POST /finance/invoices/ocr` → OcrInvoiceResponseDto 对齐 */
+export const ocrInvoiceResultSchema = z.object({
+  invoiceNo: z.string(),
+  invoiceCode: z.string().nullable().optional(),
+  type: invoiceTypeSchema,
+  amount: z.string(),
+  taxRate: z.string().optional(),
+  taxAmount: z.string().optional(),
+  totalAmount: z.string(),
+  buyerName: z.string().nullable().optional(),
+  buyerTaxNo: z.string().nullable().optional(),
+  sellerName: z.string().nullable().optional(),
+  sellerTaxNo: z.string().nullable().optional(),
+  issueDate: z.string().nullable().optional(),
+  ocrConfidence: z.number(),
+});
+export type InvoiceOcrResult = z.infer<typeof ocrInvoiceResultSchema>;
+
+// Voucher schemas
+export const voucherStatusSchema = z.enum(['draft', 'posted']);
+export type VoucherStatus = z.infer<typeof voucherStatusSchema>;
+
+export const voucherEntrySchema = z.object({
   id: z.number(),
-  enterpriseId: z.number(),
+  subjectId: z.number(),
+  subjectName: z.string().optional(),
+  summary: z.string(),
+  debit: z.string().optional(),
+  credit: z.string().optional(),
+});
+export type VoucherEntryDto = z.infer<typeof voucherEntrySchema>;
+
+export const voucherSchema = z.object({
+  id: z.number(),
   voucherNo: z.string(),
-  sourceType: z.string(),
-  sourceId: z.number().nullable(),
-  entryDate: z.string(),
-  debitAccount: z.string(),
-  creditAccount: z.string(),
-  amount: amountSchema,
-  summary: z.string().nullable(),
-  createdBy: z.number(),
+  voucherDate: z.string(),
+  totalDebit: z.string(),
+  totalCredit: z.string(),
+  status: voucherStatusSchema,
+  entries: z.array(voucherEntrySchema),
+  remark: z.string().optional(),
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
-export type VoucherEntryResponse = z.infer<typeof voucherEntryResponseSchema>;
+export type VoucherDto = z.infer<typeof voucherSchema>;
 
-export const voucherEntryListResponseSchema = z.object({
-  items: z.array(voucherEntryResponseSchema),
+export const voucherListQuerySchema = paginationSchema.extend({
+  status: voucherStatusSchema.optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+export type VoucherListQueryDto = z.infer<typeof voucherListQuerySchema>;
+
+export const voucherListResponseSchema = z.object({
+  list: z.array(voucherSchema),
   total: z.number(),
   page: z.number(),
   pageSize: z.number(),
 });
-export type VoucherEntryListResponse = z.infer<
-  typeof voucherEntryListResponseSchema
->;
+export type VoucherListResponseDto = z.infer<typeof voucherListResponseSchema>;
 
-// ==================== 会计科目 ====================
+export const createVoucherEntrySchema = z.object({
+  subjectId: z.number(),
+  summary: z.string(),
+  debit: z.string().optional(),
+  credit: z.string().optional(),
+});
 
-export const accountSubjectResponseSchema = z.object({
+export const createVoucherSchema = z.object({
+  voucherDate: z.string(),
+  entries: z.array(createVoucherEntrySchema),
+  remark: z.string().optional(),
+});
+export type CreateVoucherDto = z.infer<typeof createVoucherSchema>;
+
+export const updateVoucherSchema = z.object({
+  remark: z.string().optional(),
+});
+export type UpdateVoucherDto = z.infer<typeof updateVoucherSchema>;
+
+export const voucherResponseSchema = voucherSchema;
+export type VoucherResponseDto = z.infer<typeof voucherResponseSchema>;
+
+// Account Subject schemas
+export const accountSubjectTypeSchema = z.enum(['asset', 'liability', 'equity', 'income', 'expense']);
+export type AccountSubjectType = z.infer<typeof accountSubjectTypeSchema>;
+
+export const accountSubjectSchema = z.object({
   id: z.number(),
-  enterpriseId: z.number(),
   code: z.string(),
   name: z.string(),
-  category: accountCategorySchema,
-  parentId: z.number().nullable(),
-  balanceDirection: balanceDirectionSchema,
+  type: accountSubjectTypeSchema,
+  parentId: z.number().optional(),
+  balance: z.string().optional(),
   isActive: z.boolean(),
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
-export type AccountSubjectResponse = z.infer<
-  typeof accountSubjectResponseSchema
->;
+export type AccountSubjectDto = z.infer<typeof accountSubjectSchema>;
 
-// ==================== 经营概览报表 ====================
-
-export const lowStockProductSchema = z.object({
-  productId: z.number(),
-  productName: z.string(),
-  stockQty: amountSchema,
-  minStock: amountSchema,
-});
-
-export const topSalesProductSchema = z.object({
-  productId: z.number(),
-  productName: z.string(),
-  salesQty: amountSchema,
-  salesAmount: amountSchema,
-});
-
-export const dashboardReportResponseSchema = z.object({
-  period: z.string(),
-  salesAmount: amountSchema,
-  salesOrderCount: z.number(),
-  purchaseAmount: amountSchema,
-  purchaseOrderCount: z.number(),
-  grossProfit: amountSchema,
-  grossProfitRate: z.string(),
-  pendingReceivable: amountSchema,
-  pendingPayable: amountSchema,
-  lowStockProducts: z.array(lowStockProductSchema),
-  topSalesProducts: z.array(topSalesProductSchema),
-});
-export type DashboardReportResponse = z.infer<
-  typeof dashboardReportResponseSchema
->;
-
-// ==================== 资产负债表 ====================
-
-export const balanceSheetItemSchema = z.object({
+export const createAccountSubjectSchema = z.object({
   code: z.string(),
   name: z.string(),
-  amount: amountSchema,
+  type: accountSubjectTypeSchema,
+  parentId: z.number().optional(),
 });
+export type CreateAccountSubjectDto = z.infer<typeof createAccountSubjectSchema>;
 
-export const balanceSheetResponseSchema = z.object({
-  period: z.string(),
-  assets: z.array(balanceSheetItemSchema),
-  totalAssets: amountSchema,
-  liabilities: z.array(balanceSheetItemSchema),
-  totalLiabilities: amountSchema,
-  equity: z.array(balanceSheetItemSchema),
-  totalEquity: amountSchema,
-});
-export type BalanceSheetResponse = z.infer<typeof balanceSheetResponseSchema>;
-
-// ==================== 利润表 ====================
-
-export const incomeStatementItemSchema = z.object({
-  code: z.string(),
-  name: z.string(),
-  amount: amountSchema,
-});
-
-export const incomeStatementResponseSchema = z.object({
-  period: z.string(),
-  revenue: z.array(incomeStatementItemSchema),
-  totalRevenue: amountSchema,
-  costs: z.array(incomeStatementItemSchema),
-  totalCosts: amountSchema,
-  expenses: z.array(incomeStatementItemSchema),
-  totalExpenses: amountSchema,
-  netProfit: amountSchema,
-});
-export type IncomeStatementResponse = z.infer<
-  typeof incomeStatementResponseSchema
->;
-
-// ==================== 现金流量表 ====================
-
-export const cashFlowItemSchema = z.object({
-  code: z.string(),
-  name: z.string(),
-  amount: amountSchema,
-});
-
-export const cashFlowResponseSchema = z.object({
-  period: z.string(),
-  operatingActivities: z.array(cashFlowItemSchema),
-  netOperatingCashFlow: amountSchema,
-  investingActivities: z.array(cashFlowItemSchema),
-  netInvestingCashFlow: amountSchema,
-  financingActivities: z.array(cashFlowItemSchema),
-  netFinancingCashFlow: amountSchema,
-  netCashFlow: amountSchema,
-  beginningCash: amountSchema,
-  endingCash: amountSchema,
-});
-export type CashFlowResponse = z.infer<typeof cashFlowResponseSchema>;
-
-// ==================== 应收应付 ====================
-
-export const arApItemSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  invoiceNo: z.string(),
-  amount: amountSchema,
-  paidAmount: amountSchema,
-  balance: amountSchema,
-  issueDate: z.string().nullable(),
-  daysOverdue: z.number(),
-});
-
-export const arApResponseSchema = z.object({
-  receivables: z.array(arApItemSchema),
-  totalReceivables: amountSchema,
-  payables: z.array(arApItemSchema),
-  totalPayables: amountSchema,
-});
-export type ArApResponse = z.infer<typeof arApResponseSchema>;
+export const updateAccountSubjectSchema = createAccountSubjectSchema.partial();
+export type UpdateAccountSubjectDto = z.infer<typeof updateAccountSubjectSchema>;

@@ -2,7 +2,11 @@ import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard, ROLES_KEY } from './roles.guard';
 
-function mockContext(overrides: { handlerRoles?: string[]; classRoles?: string[]; user?: any }) {
+function mockContext(overrides: {
+  handlerRoles?: string[];
+  classRoles?: string[];
+  user?: any;
+}) {
   const reflector = new Reflector();
   jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
     if (key === ROLES_KEY) {

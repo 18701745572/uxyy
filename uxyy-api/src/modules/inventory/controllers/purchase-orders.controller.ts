@@ -45,7 +45,7 @@ function userIdFromRequest(req: Express.Request): number {
 }
 
 @ApiTags('inventory')
-@Controller('purchase-orders')
+@Controller('inventory/purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly service: PurchaseOrdersService) {}
 

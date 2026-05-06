@@ -37,7 +37,7 @@ export class VoucherListQueryDto {
   endDate?: string;
 
   @ApiPropertyOptional({
-    enum: ['sales_order', 'purchase_order', 'manual'],
+    enum: ['sales_order', 'purchase_order', 'manual', 'ai_task'],
   })
   @IsOptional()
   @IsString()
@@ -51,7 +51,7 @@ export class CreateVoucherDto {
   voucherNo!: string;
 
   @ApiProperty({
-    enum: ['sales_order', 'purchase_order', 'manual'],
+    enum: ['sales_order', 'purchase_order', 'manual', 'ai_task'],
   })
   @IsString()
   @MaxLength(20)

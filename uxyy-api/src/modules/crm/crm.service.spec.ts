@@ -130,9 +130,9 @@ describe('CrmService', () => {
 
     it('throws ForbiddenException without enterpriseId', async () => {
       const service = new CrmService(new MockDb([]) as any);
-      await expect(service.create(undefined, { name: 'test' })).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.create(undefined, { name: 'test', force: false }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

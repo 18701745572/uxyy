@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -49,6 +50,14 @@ function enterpriseIdOrThrow(req: Request): number {
     throw new ForbiddenException('未绑定企业');
   }
   return ctx.enterpriseId;
+}
+
+function requireUserId(req: Request): number {
+  const ctx = userFromRequest(req);
+  if (!ctx?.userId) {
+    throw new UnauthorizedException();
+  }
+  return ctx.userId;
 }
 
 @ApiTags('auth')
@@ -92,16 +101,17 @@ export class AuthController {
   @Get('profile')
   @ApiOperation({ summary: '获取当前用户信息' })
   profile(@Req() req: Request) {
-    const ctx = userFromRequest(req);
-    return this.auth.getProfile(ctx?.userId);
+    return this.auth.getProfile(requireUserId(req));
   }
 
   @ApiBearerAuth()
   @Put('switch-enterprise/:id')
   @ApiOperation({ summary: '切换默认企业' })
   switchEnterprise(@Req() req: Request, @Param('id') enterpriseId: string) {
-    const ctx = userFromRequest(req);
-    return this.auth.switchEnterprise(ctx!.userId, parseInt(enterpriseId, 10));
+    return this.auth.switchEnterprise(
+      requireUserId(req),
+      parseInt(enterpriseId, 10),
+    );
   }
 
   // ========== 审批流程 ==========
@@ -157,8 +167,7 @@ export class AuthController {
       remark?: string;
     },
   ) {
-    const ctx = userFromRequest(req);
-    return this.auth.submitApproval(dto, ctx!.userId);
+    return this.auth.submitApproval(dto, requireUserId(req));
   }
 
   @ApiBearerAuth()

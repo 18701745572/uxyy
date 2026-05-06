@@ -33,6 +33,16 @@ import {
   FollowUpResponseDto,
   UpdateFollowUpDto,
 } from './dto/follow-up.dto';
+import {
+  CreateOpportunityDto,
+  OpportunityListQueryDto,
+  UpdateOpportunityDto,
+} from './dto/opportunity.dto';
+import {
+  CreateCustomerCategoryDto,
+  CustomerCategoryListQueryDto,
+  UpdateCustomerCategoryDto,
+} from './dto/customer-category.dto';
 
 function enterpriseIdFromRequest(req: Express.Request): number | undefined {
   const u = req.user;
@@ -213,5 +223,172 @@ export class CrmController {
   @ApiOperation({ summary: '企业客户概览统计（总数、本月新增、分布）' })
   async getOverviewStats(@Req() req: Express.Request) {
     return this.crm.getOverviewStats(enterpriseIdFromRequest(req));
+  }
+
+  // ─── Opportunities ──────────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @Get('opportunities')
+  @ApiOperation({ summary: '商机分页列表（支持筛选与搜索）' })
+  async listOpportunities(
+    @Req() req: Express.Request,
+    @Query() query: OpportunityListQueryDto,
+  ) {
+    const page =
+      typeof query.page === 'number' && query.page >= 1 ? query.page : 1;
+    const pageSize =
+      typeof query.pageSize === 'number' &&
+      query.pageSize >= 1 &&
+      query.pageSize <= 100
+        ? query.pageSize
+        : 20;
+    return this.crm.findOpportunities({
+      enterpriseId: enterpriseIdFromRequest(req),
+      page,
+      pageSize,
+      customerId: query.customerId,
+      status: query.status,
+      assignedTo: query.assignedTo,
+      search: query.search,
+    });
+  }
+
+  @ApiBearerAuth()
+  @Post('opportunities')
+  @ApiOperation({ summary: '创建商机' })
+  async createOpportunity(
+    @Req() req: Express.Request,
+    @Body() body: CreateOpportunityDto,
+  ) {
+    return this.crm.createOpportunity(enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Get('opportunities/:id')
+  @ApiOperation({ summary: '商机详情' })
+  async getOpportunity(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.crm.findOneOpportunity(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Patch('opportunities/:id')
+  @ApiOperation({ summary: '更新商机' })
+  async patchOpportunity(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateOpportunityDto,
+  ) {
+    return this.crm.updateOpportunity(id, enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Delete('opportunities/:id')
+  @ApiOperation({ summary: '删除商机（软删除）' })
+  async deleteOpportunity(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.crm.removeOpportunity(id, enterpriseIdFromRequest(req));
+  }
+
+  // ─── Customer Categories ────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @Get('categories')
+  @ApiOperation({ summary: '客户分类列表' })
+  async listCategories(
+    @Req() req: Express.Request,
+    @Query() query: CustomerCategoryListQueryDto,
+  ) {
+    return this.crm.findCategories({
+      enterpriseId: enterpriseIdFromRequest(req),
+      type: query.type,
+    });
+  }
+
+  @ApiBearerAuth()
+  @Post('categories')
+  @ApiOperation({ summary: '创建客户分类' })
+  async createCategory(
+    @Req() req: Express.Request,
+    @Body() body: CreateCustomerCategoryDto,
+  ) {
+    return this.crm.createCategory(enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Get('categories/:id')
+  @ApiOperation({ summary: '客户分类详情' })
+  async getCategory(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.crm.findOneCategory(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Patch('categories/:id')
+  @ApiOperation({ summary: '更新客户分类' })
+  async patchCategory(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateCustomerCategoryDto,
+  ) {
+    return this.crm.updateCategory(id, enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Delete('categories/:id')
+  @ApiOperation({ summary: '删除客户分类' })
+  async deleteCategory(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.crm.removeCategory(id, enterpriseIdFromRequest(req));
+  }
+
+  // ─── Customer Category Relations ────────────────────────────────
+
+  @ApiBearerAuth()
+  @Get('customers/:id/categories')
+  @ApiOperation({ summary: '获取客户的分类列表' })
+  async getCustomerCategories(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.crm.getCustomerCategories(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Post('customers/:id/categories/:categoryId')
+  @ApiOperation({ summary: '将客户分配到分类' })
+  async assignCustomerToCategory(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+  ) {
+    return this.crm.assignCustomerToCategory(
+      id,
+      categoryId,
+      enterpriseIdFromRequest(req),
+    );
+  }
+
+  @ApiBearerAuth()
+  @Delete('customers/:id/categories/:categoryId')
+  @ApiOperation({ summary: '从分类中移除客户' })
+  async removeCustomerFromCategory(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+  ) {
+    return this.crm.removeCustomerFromCategory(
+      id,
+      categoryId,
+      enterpriseIdFromRequest(req),
+    );
   }
 }

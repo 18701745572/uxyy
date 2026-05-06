@@ -322,4 +322,251 @@ export class InventoryService {
       pageSize: params.pageSize,
     };
   }
+
+  // ==================== 库存预警 ====================
+
+  async findStockAlerts(params: {
+    enterpriseId?: number;
+    page: number;
+    pageSize: number;
+    type?: string;
+    status?: string;
+    productId?: number;
+  }) {
+    const eid = requireEnterpriseId(params.enterpriseId);
+    const offset = (params.page - 1) * params.pageSize;
+
+    const conditions: ReturnType<typeof eq>[] = [
+      eq(schema.stockAlerts.enterpriseId, eid),
+    ];
+    if (params.type) {
+      conditions.push(eq(schema.stockAlerts.type, params.type));
+    }
+    if (params.status) {
+      conditions.push(eq(schema.stockAlerts.status, params.status));
+    }
+    if (params.productId) {
+      conditions.push(eq(schema.stockAlerts.productId, params.productId));
+    }
+
+    const where = and(...conditions);
+
+    const [totalRows] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(where);
+
+    const total = Number(totalRows?.c ?? 0);
+
+    const rows = await this.db
+      .select({
+        alert: schema.stockAlerts,
+        productName: schema.products.name,
+        productCode: schema.products.code,
+      })
+      .from(schema.stockAlerts)
+      .leftJoin(
+        schema.products,
+        eq(schema.stockAlerts.productId, schema.products.id),
+      )
+      .where(where)
+      .orderBy(desc(schema.stockAlerts.createdAt))
+      .limit(params.pageSize)
+      .offset(offset);
+
+    return {
+      items: rows.map(({ alert, productName, productCode }) => ({
+        id: alert.id,
+        enterpriseId: alert.enterpriseId,
+        productId: alert.productId,
+        productName: productName ?? '',
+        productCode: productCode ?? '',
+        type: alert.type,
+        currentStock: Number(alert.currentStock),
+        threshold: Number(alert.threshold),
+        status: alert.status,
+        remark: alert.remark ?? null,
+        createdAt: alert.createdAt.toISOString(),
+        updatedAt: alert.updatedAt.toISOString(),
+      })),
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+    };
+  }
+
+  async createStockAlert(
+    enterpriseId: number | undefined,
+    dto: {
+      productId: number;
+      type: string;
+      currentStock: number;
+      threshold: number;
+      remark?: string;
+    },
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [alert] = await this.db
+      .insert(schema.stockAlerts)
+      .values({
+        enterpriseId: eid,
+        productId: dto.productId,
+        type: dto.type,
+        currentStock: String(dto.currentStock),
+        threshold: String(dto.threshold),
+        status: 'pending',
+        remark: dto.remark ?? null,
+      })
+      .returning();
+
+    return alert;
+  }
+
+  async updateStockAlert(
+    enterpriseId: number | undefined,
+    alertId: number,
+    dto: {
+      status?: string;
+      remark?: string;
+    },
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [alert] = await this.db
+      .update(schema.stockAlerts)
+      .set({
+        ...(dto.status && { status: dto.status }),
+        ...(dto.remark !== undefined && { remark: dto.remark }),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(schema.stockAlerts.id, alertId),
+          eq(schema.stockAlerts.enterpriseId, eid),
+        ),
+      )
+      .returning();
+
+    return alert;
+  }
+
+  async getStockAlertStats(enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    const [pendingRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          eq(schema.stockAlerts.status, 'pending'),
+        ),
+      );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [todayRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          gte(schema.stockAlerts.createdAt, today),
+        ),
+      );
+
+    const [lowRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          eq(schema.stockAlerts.type, 'low'),
+        ),
+      );
+
+    const [highRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          eq(schema.stockAlerts.type, 'high'),
+        ),
+      );
+
+    return {
+      pendingCount: Number(pendingRow?.c ?? 0),
+      todayCount: Number(todayRow?.c ?? 0),
+      lowCount: Number(lowRow?.c ?? 0),
+      highCount: Number(highRow?.c ?? 0),
+    };
+  }
+
+  async checkAndCreateAlerts(enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+
+    // 获取所有库存数据
+    const rows = await this.db
+      .select({
+        inventory: schema.inventory,
+        minStock: schema.products.minStock,
+        maxStock: schema.products.maxStock,
+      })
+      .from(schema.inventory)
+      .innerJoin(
+        schema.products,
+        and(
+          eq(schema.inventory.productId, schema.products.id),
+          eq(schema.products.enterpriseId, eid),
+        ),
+      )
+      .where(eq(schema.inventory.enterpriseId, eid));
+
+    const alerts: (typeof schema.stockAlerts.$inferInsert)[] = [];
+
+    for (const row of rows) {
+      const qty = Number(row.inventory.quantity);
+      const minS = row.minStock != null ? Number(row.minStock) : 0;
+      const maxS = row.maxStock != null ? Number(row.maxStock) : 0;
+
+      // 低于下限预警
+      if (minS > 0 && qty <= minS) {
+        alerts.push({
+          enterpriseId: eid,
+          productId: row.inventory.productId,
+          type: 'low',
+          currentStock: String(qty),
+          threshold: String(minS),
+          status: 'pending',
+          remark: null,
+        });
+      }
+
+      // 高于上限预警
+      if (maxS > 0 && qty >= maxS) {
+        alerts.push({
+          enterpriseId: eid,
+          productId: row.inventory.productId,
+          type: 'high',
+          currentStock: String(qty),
+          threshold: String(maxS),
+          status: 'pending',
+          remark: null,
+        });
+      }
+    }
+
+    // 批量插入预警记录
+    if (alerts.length > 0) {
+      await this.db.insert(schema.stockAlerts).values(alerts);
+    }
+
+    return {
+      checkedCount: rows.length,
+      alertCount: alerts.length,
+    };
+  }
 }

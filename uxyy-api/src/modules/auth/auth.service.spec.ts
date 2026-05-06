@@ -18,11 +18,18 @@ jest.mock('bcrypt', () => ({
 import bcrypt from 'bcrypt';
 import { DRIZZLE_DB } from '../database/database.constants';
 import { AuthService } from './auth.service';
-import type { RegisterDto, RefreshTokenDto, ResetPasswordDto } from './auth.service';
+import type {
+  RegisterDto,
+  RefreshTokenDto,
+  ResetPasswordDto,
+} from './auth.service';
 
 // ---------- helpers ----------
 
-type MockDb = Record<string, jest.Mock> & { __queue: (result: any) => void; __reset: () => void };
+type MockDb = Record<string, jest.Mock> & {
+  __queue: (result: any) => void;
+  __reset: () => void;
+};
 
 function mockDb(): MockDb {
   const results: any[] = [];
@@ -48,14 +55,20 @@ function mockDb(): MockDb {
   chain.innerJoin = jest.fn().mockReturnValue(chain);
   chain.insert = jest.fn().mockReturnValue(chain);
   chain.values = jest.fn().mockReturnValue(chain);
-  chain.returning = jest.fn().mockImplementation(() => Promise.resolve(results.shift() ?? []));
+  chain.returning = jest
+    .fn()
+    .mockImplementation(() => Promise.resolve(results.shift() ?? []));
   chain.update = jest.fn().mockReturnValue(chain);
   chain.set = jest.fn().mockReturnValue(chain);
   chain.delete = jest.fn().mockReturnValue(chain);
 
   const out = chain as unknown as MockDb;
-  out.__queue = (r: any) => { results.push(r); };
-  out.__reset = () => { results.length = 0; };
+  out.__queue = (r: any) => {
+    results.push(r);
+  };
+  out.__reset = () => {
+    results.length = 0;
+  };
   return out;
 }
 
@@ -114,7 +127,13 @@ describe('AuthService', () => {
   describe('login', () => {
     it('should return tokens on valid credentials', async () => {
       db.__queue([
-        { id: 1, phone: '13800138000', passwordHash: '$2b$10$hashed', status: 'active', nickname: '张三' },
+        {
+          id: 1,
+          phone: '13800138000',
+          passwordHash: '$2b$10$hashed',
+          status: 'active',
+          nickname: '张三',
+        },
       ]);
       db.__queue([
         { userId: 1, enterpriseId: 1, role: 'boss', isDefault: true },
@@ -131,29 +150,51 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       db.__queue([]);
 
-      await expect(service.login('13800138000', 'wrong')).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('13800138000', 'wrong')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if password mismatch', async () => {
       db.__queue([
-        { id: 1, phone: '13800138000', passwordHash: '$2b$10$hashed', status: 'active' },
+        {
+          id: 1,
+          phone: '13800138000',
+          passwordHash: '$2b$10$hashed',
+          status: 'active',
+        },
       ]);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
-      await expect(service.login('13800138000', 'wrong')).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('13800138000', 'wrong')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw ForbiddenException if user is banned', async () => {
       db.__queue([
-        { id: 1, phone: '13800138000', passwordHash: '$2b$10$hashed', status: 'banned' },
+        {
+          id: 1,
+          phone: '13800138000',
+          passwordHash: '$2b$10$hashed',
+          status: 'banned',
+        },
       ]);
 
-      await expect(service.login('13800138000', 'Dev12345!')).rejects.toThrow(ForbiddenException);
+      await expect(service.login('13800138000', 'Dev12345!')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should sign access token with role', async () => {
       db.__queue([
-        { id: 2, phone: '13800138001', passwordHash: '$2b$10$hashed', status: 'active', nickname: '李四' },
+        {
+          id: 2,
+          phone: '13800138001',
+          passwordHash: '$2b$10$hashed',
+          status: 'active',
+          nickname: '李四',
+        },
       ]);
       db.__queue([
         { userId: 2, enterpriseId: 5, role: 'finance', isDefault: true },
@@ -196,7 +237,10 @@ describe('AuthService', () => {
     });
 
     it('should register without enterpriseName', async () => {
-      const noEnterpriseDto: RegisterDto = { phone: '13800138000', password: 'Dev12345!' };
+      const noEnterpriseDto: RegisterDto = {
+        phone: '13800138000',
+        password: 'Dev12345!',
+      };
       db.__queue([]);
       db.__queue([{ id: 1, phone: '13800138000' }]);
 
@@ -211,7 +255,9 @@ describe('AuthService', () => {
   describe('refreshToken', () => {
     it('should return new access and refresh tokens', async () => {
       db.__queue([{ id: 1, status: 'active' }]); // user check
-      db.__queue([{ userId: 1, enterpriseId: 1, role: 'boss', isDefault: true }]); // memberships
+      db.__queue([
+        { userId: 1, enterpriseId: 1, role: 'boss', isDefault: true },
+      ]); // memberships
 
       const result = await service.refreshToken('old-refresh-token');
 
@@ -220,21 +266,32 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if refresh token is invalid', async () => {
-      (jwt.verifyAsync as jest.Mock).mockRejectedValueOnce(new Error('jwt expired'));
+      (jwt.verifyAsync as jest.Mock).mockRejectedValueOnce(
+        new Error('jwt expired'),
+      );
 
-      await expect(service.refreshToken('bad-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken('bad-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user inactive', async () => {
       db.__queue([{ id: 1, status: 'banned' }]);
 
-      await expect(service.refreshToken('ok-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken('ok-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if payload type is not refresh', async () => {
-      (jwt.verifyAsync as jest.Mock).mockResolvedValueOnce({ sub: '1', type: 'access' });
+      (jwt.verifyAsync as jest.Mock).mockResolvedValueOnce({
+        sub: '1',
+        type: 'access',
+      });
 
-      await expect(service.refreshToken('access-token-as-refresh')).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refreshToken('access-token-as-refresh'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -243,7 +300,14 @@ describe('AuthService', () => {
   describe('getProfile', () => {
     it('should return user with enterprises', async () => {
       db.__queue([
-        { id: 1, phone: '13800138000', nickname: '张三', avatar: null, status: 'active', createdAt: new Date() },
+        {
+          id: 1,
+          phone: '13800138000',
+          nickname: '张三',
+          avatar: null,
+          status: 'active',
+          createdAt: new Date(),
+        },
       ]);
       db.__queue([
         { id: 1, name: 'Co A', role: 'boss', isDefault: true },
@@ -280,7 +344,9 @@ describe('AuthService', () => {
     it('should throw NotFoundException if not a member', async () => {
       db.__queue([]);
 
-      await expect(service.switchEnterprise(1, 999)).rejects.toThrow(NotFoundException);
+      await expect(service.switchEnterprise(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -289,7 +355,12 @@ describe('AuthService', () => {
   describe('resetPassword', () => {
     it('should update password on valid old password', async () => {
       db.__queue([
-        { id: 1, phone: '13800138000', passwordHash: '$2b$10$old', status: 'active' },
+        {
+          id: 1,
+          phone: '13800138000',
+          passwordHash: '$2b$10$old',
+          status: 'active',
+        },
       ]);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
@@ -305,13 +376,15 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if old password wrong', async () => {
-      db.__queue([
-        { id: 1, phone: '13800138000', passwordHash: '$2b$10$old' },
-      ]);
+      db.__queue([{ id: 1, phone: '13800138000', passwordHash: '$2b$10$old' }]);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
       await expect(
-        service.resetPassword({ phone: '13800138000', oldPassword: 'wrong', newPassword: 'new' }),
+        service.resetPassword({
+          phone: '13800138000',
+          oldPassword: 'wrong',
+          newPassword: 'new',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -327,7 +400,12 @@ describe('AuthService', () => {
 
     it('should create an approval flow', async () => {
       db.__queue([
-        { id: 1, name: '采购审批', status: 'active', createdAt: new Date('2024-01-15') },
+        {
+          id: 1,
+          name: '采购审批',
+          status: 'active',
+          createdAt: new Date('2024-01-15'),
+        },
       ]);
 
       const result = await service.createApprovalFlow(dto, 1);
@@ -340,7 +418,9 @@ describe('AuthService', () => {
     it('should throw if insert fails', async () => {
       db.__queue([]);
 
-      await expect(service.createApprovalFlow(dto, 1)).rejects.toThrow(BadRequestException);
+      await expect(service.createApprovalFlow(dto, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -348,8 +428,24 @@ describe('AuthService', () => {
     it('should return paginated flows', async () => {
       db.__queue([{ c: '2' }]); // total
       db.__queue([
-        { id: 1, enterpriseId: 1, name: '采购审批', type: 'purchase', steps: [{ step: 1, role: 'boss' }], status: 'active', createdAt: new Date('2024-01-15') },
-        { id: 2, enterpriseId: 1, name: '报销审批', type: 'reimbursement', steps: [{ step: 1, role: 'finance' }], status: 'active', createdAt: new Date('2024-02-01') },
+        {
+          id: 1,
+          enterpriseId: 1,
+          name: '采购审批',
+          type: 'purchase',
+          steps: [{ step: 1, role: 'boss' }],
+          status: 'active',
+          createdAt: new Date('2024-01-15'),
+        },
+        {
+          id: 2,
+          enterpriseId: 1,
+          name: '报销审批',
+          type: 'reimbursement',
+          steps: [{ step: 1, role: 'finance' }],
+          status: 'active',
+          createdAt: new Date('2024-02-01'),
+        },
       ]);
 
       const result = await service.listApprovalFlows(1, {});
@@ -372,7 +468,15 @@ describe('AuthService', () => {
   describe('getApprovalFlow', () => {
     it('should return flow by id', async () => {
       db.__queue([
-        { id: 1, enterpriseId: 1, name: '采购审批', type: 'purchase', steps: [], status: 'active', createdAt: new Date() },
+        {
+          id: 1,
+          enterpriseId: 1,
+          name: '采购审批',
+          type: 'purchase',
+          steps: [],
+          status: 'active',
+          createdAt: new Date(),
+        },
       ]);
 
       const result = await service.getApprovalFlow(1, 1);
@@ -383,19 +487,31 @@ describe('AuthService', () => {
     it('should throw NotFoundException for wrong enterprise', async () => {
       db.__queue([]);
 
-      await expect(service.getApprovalFlow(1, 999)).rejects.toThrow(NotFoundException);
+      await expect(service.getApprovalFlow(1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   // ── Approval Records ──
 
   describe('submitApproval', () => {
-    const dto = { flowId: 1, businessType: 'purchase_order', businessId: 5001, title: 'Test' };
+    const dto = {
+      flowId: 1,
+      businessType: 'purchase_order',
+      businessId: 5001,
+      title: 'Test',
+    };
 
     it('should submit an approval', async () => {
       db.__queue([{ id: 1, status: 'active' }]); // flow check
       db.__queue([
-        { id: 100, status: 'pending', currentStep: 1, createdAt: new Date('2024-01-15') },
+        {
+          id: 100,
+          status: 'pending',
+          currentStep: 1,
+          createdAt: new Date('2024-01-15'),
+        },
       ]);
 
       const result = await service.submitApproval(dto, 2);
@@ -407,7 +523,9 @@ describe('AuthService', () => {
     it('should throw if flow is inactive', async () => {
       db.__queue([{ id: 1, status: 'inactive' }]);
 
-      await expect(service.submitApproval(dto, 2)).rejects.toThrow(NotFoundException);
+      await expect(service.submitApproval(dto, 2)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -429,9 +547,14 @@ describe('AuthService', () => {
 
     it('should approve and move to completed when last step', async () => {
       db.__queue([pendingRecord]); // record
-      db.__queue([{ id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] }]); // flow
+      db.__queue([
+        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
+      ]); // flow
 
-      const result = await service.actionApproval(100, 1, 'boss', { action: 'approve', comment: 'OK' });
+      const result = await service.actionApproval(100, 1, 'boss', {
+        action: 'approve',
+        comment: 'OK',
+      });
 
       expect(result.status).toBe('approved');
       expect(result.nextStep).toBeNull();
@@ -439,13 +562,20 @@ describe('AuthService', () => {
 
     it('should approve and move to next step when multistep', async () => {
       db.__queue([pendingRecord]);
-      db.__queue([{
-        id: 1,
-        status: 'active',
-        steps: [{ step: 1, role: 'boss' }, { step: 2, role: 'finance' }],
-      }]);
+      db.__queue([
+        {
+          id: 1,
+          status: 'active',
+          steps: [
+            { step: 1, role: 'boss' },
+            { step: 2, role: 'finance' },
+          ],
+        },
+      ]);
 
-      const result = await service.actionApproval(100, 1, 'boss', { action: 'approve' });
+      const result = await service.actionApproval(100, 1, 'boss', {
+        action: 'approve',
+      });
 
       expect(result.status).toBe('pending');
       expect(result.nextStep).toBe(2);
@@ -453,16 +583,22 @@ describe('AuthService', () => {
 
     it('should reject', async () => {
       db.__queue([pendingRecord]);
-      db.__queue([{ id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] }]);
+      db.__queue([
+        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
+      ]);
 
-      const result = await service.actionApproval(100, 1, 'boss', { action: 'reject' });
+      const result = await service.actionApproval(100, 1, 'boss', {
+        action: 'reject',
+      });
 
       expect(result.status).toBe('rejected');
     });
 
     it('should throw ForbiddenException for wrong role', async () => {
       db.__queue([pendingRecord]);
-      db.__queue([{ id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] }]);
+      db.__queue([
+        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
+      ]);
 
       await expect(
         service.actionApproval(100, 1, 'sales', { action: 'approve' }),

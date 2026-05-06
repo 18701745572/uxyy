@@ -34,7 +34,7 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
 }
 
 @ApiTags('inventory')
-@Controller('suppliers')
+@Controller('inventory/suppliers')
 export class SuppliersController {
   constructor(private readonly service: SuppliersService) {}
 

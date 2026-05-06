@@ -21,6 +21,7 @@ describe('FinanceController', () => {
       updateInvoice: jest.fn(),
       verifyInvoice: jest.fn(),
       enterInvoice: jest.fn(),
+      ocrInvoice: jest.fn(),
       createVoucher: jest.fn(),
       findVoucherPage: jest.fn(),
       findOneVoucher: jest.fn(),

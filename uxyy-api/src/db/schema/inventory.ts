@@ -444,3 +444,45 @@ export const stocktakingItemsRelations = relations(
     }),
   }),
 );
+
+// ==================== 库存预警 ====================
+export const stockAlerts = pgTable(
+  'stock_alerts',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // low: 低于下限, high: 高于上限
+    currentStock: decimal('current_stock', {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    threshold: decimal('threshold', { precision: 12, scale: 2 }).notNull(),
+    status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, read, resolved
+    remark: text('remark'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('stock_alerts_enterprise_idx').on(t.enterpriseId),
+    index('stock_alerts_product_idx').on(t.productId),
+    index('stock_alerts_type_idx').on(t.type),
+    index('stock_alerts_status_idx').on(t.status),
+    index('stock_alerts_created_idx').on(t.createdAt),
+  ],
+);
+
+export const stockAlertsRelations = relations(stockAlerts, ({ one }) => ({
+  enterprise: one(enterprises, {
+    fields: [stockAlerts.enterpriseId],
+    references: [enterprises.id],
+  }),
+  product: one(products, {
+    fields: [stockAlerts.productId],
+    references: [products.id],
+  }),
+}));

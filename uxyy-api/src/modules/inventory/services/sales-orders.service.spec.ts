@@ -3,9 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SalesOrdersService } from './sales-orders.service';
 import { DRIZZLE_DB } from '../../database/database.constants';
 
-type MockDb = Record<string, jest.Mock> & {
-  then?: (resolve: (v: unknown) => void) => void;
-};
+type MockDb = Record<string, jest.Mock>;
 
 function chainThenable(
   methods: Record<string, jest.Mock>,
@@ -13,9 +11,9 @@ function chainThenable(
 ): MockDb {
   const t: MockDb = {
     ...methods,
-    then: (resolve: (v: unknown) => void) => {
+    then: jest.fn((resolve: (v: unknown) => void) => {
       resolve(resolvedValue ?? []);
-    },
+    }) as any,
   };
   return t;
 }

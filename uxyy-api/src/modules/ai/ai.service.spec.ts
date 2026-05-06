@@ -3,18 +3,27 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { AiService } from './ai.service';
 import { AiLlmService } from './ai.llm';
 import { DRIZZLE_DB } from '../database/database.constants';
+import { FinanceService } from '../finance/finance.service';
 import { AI_DEFAULT_QUEUE, AI_DLQ_QUEUE } from './ai.constants';
 
 const now = new Date('2026-05-05T10:00:00Z');
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
-    id: 1, enterpriseId: 1, userId: 1,
-    taskType: 'accounting_suggestion', clientKey: null,
+    id: 1,
+    enterpriseId: 1,
+    userId: 1,
+    taskType: 'accounting_suggestion',
+    clientKey: null,
     status: 'pending',
-    inputPayload: {}, outputPayload: null, errorMessage: null,
-    attempts: 0, maxAttempts: 3, jobId: null,
-    createdAt: now, updatedAt: now,
+    inputPayload: {},
+    outputPayload: null,
+    errorMessage: null,
+    attempts: 0,
+    maxAttempts: 3,
+    jobId: null,
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   };
 }
@@ -29,8 +38,16 @@ function dbMock(rows: unknown[]) {
   const self: Record<string, unknown> = {};
 
   const methods = [
-    'select', 'from', 'insert', 'update', 'values', 'set',
-    'where', 'limit', 'offset', 'orderBy',
+    'select',
+    'from',
+    'insert',
+    'update',
+    'values',
+    'set',
+    'where',
+    'limit',
+    'offset',
+    'orderBy',
   ];
   for (const m of methods) {
     self[m] = jest.fn().mockReturnValue(self);
@@ -55,18 +72,31 @@ describe('AiService', () => {
     aiQueue = {
       add: jest.fn().mockResolvedValue({ id: 'bullmq-job-123' }),
       getJobCounts: jest.fn().mockResolvedValue({
-        waiting: 0, active: 1, completed: 5,
-        failed: 0, delayed: 0, paused: 0,
+        waiting: 0,
+        active: 1,
+        completed: 5,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
       }),
     };
     const dlqQueue = {
       add: jest.fn(),
       getJobCounts: jest.fn().mockResolvedValue({
-        waiting: 0, active: 0, completed: 1,
-        failed: 0, delayed: 0, paused: 0,
+        waiting: 0,
+        active: 0,
+        completed: 1,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
       }),
     };
     const llm = { chat: jest.fn().mockResolvedValue('{"ok":true}') };
+    const finance = {
+      findVoucherBySource: jest.fn().mockResolvedValue(null),
+      createVoucher: jest.fn(),
+      nextVoucherNo: jest.fn().mockReturnValue('V202601010001'),
+    };
 
     // Provide a stub database – we'll replace it on the service after compile
     const stubDb = {};
@@ -77,6 +107,7 @@ describe('AiService', () => {
         { provide: getQueueToken(AI_DLQ_QUEUE), useValue: dlqQueue },
         { provide: DRIZZLE_DB, useValue: stubDb },
         { provide: AiLlmService, useValue: llm },
+        { provide: FinanceService, useValue: finance },
       ],
     }).compile();
 
@@ -88,7 +119,8 @@ describe('AiService', () => {
 
     const result = await service.submitTask(
       { taskType: 'accounting_suggestion', payload: { x: 1 } },
-      1, 1,
+      1,
+      1,
     );
 
     expect(result.id).toBe(1);
@@ -107,7 +139,8 @@ describe('AiService', () => {
 
     const result = await service.submitTask(
       { taskType: 'accounting_suggestion', clientKey: 'dup-key', payload: {} },
-      1, 1,
+      1,
+      1,
     );
 
     expect(result.clientKey).toBe('dup-key');

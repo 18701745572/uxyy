@@ -24,7 +24,11 @@ describe('JwtStrategy', () => {
 
   describe('validate', () => {
     it('should return userId, enterpriseId, role from payload', async () => {
-      const result = await strategy.validate({ sub: '42', enterpriseId: 7, role: 'boss' });
+      const result = await strategy.validate({
+        sub: '42',
+        enterpriseId: 7,
+        role: 'boss',
+      });
 
       expect(result).toEqual({ userId: 42, enterpriseId: 7, role: 'boss' });
     });
@@ -32,7 +36,11 @@ describe('JwtStrategy', () => {
     it('should return undefined enterpriseId and role when not in payload', async () => {
       const result = await strategy.validate({ sub: '1' });
 
-      expect(result).toEqual({ userId: 1, enterpriseId: undefined, role: undefined });
+      expect(result).toEqual({
+        userId: 1,
+        enterpriseId: undefined,
+        role: undefined,
+      });
     });
 
     it('should throw UnauthorizedException when sub is missing', () => {
@@ -40,7 +48,9 @@ describe('JwtStrategy', () => {
     });
 
     it('should throw UnauthorizedException when sub is not a valid number', () => {
-      expect(() => strategy.validate({ sub: 'abc' })).toThrow(UnauthorizedException);
+      expect(() => strategy.validate({ sub: 'abc' })).toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should handle numeric sub strings', async () => {

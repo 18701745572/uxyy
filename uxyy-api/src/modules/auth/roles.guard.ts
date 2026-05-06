@@ -24,13 +24,12 @@ export class RolesGuard implements CanActivate {
     const roles: string[] = requiredRoles;
 
     const request = context.switchToHttp().getRequest<Express.Request>();
-    const { user } = request;
+    const user = request.user as Express.UserPayload | undefined;
 
     if (!user || typeof user.role !== 'string') {
       throw new ForbiddenException('当前用户无角色信息');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     if (!roles.includes(user.role)) {
       throw new ForbiddenException(`角色权限不足，需要: ${roles.join(' 或 ')}`);
     }
