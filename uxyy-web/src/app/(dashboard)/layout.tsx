@@ -12,6 +12,11 @@ const pageTitles: Record<string, string> = {
   "/dashboard/inventory": "进销存",
   "/dashboard/finance": "财务",
   "/dashboard/finance/ar-ap": "应收应付",
+  "/dashboard/oa": "OA 办公",
+  "/dashboard/oa/approval-flows": "审批流程",
+  "/dashboard/oa/leave-requests": "请假管理",
+  "/dashboard/oa/expense-requests": "报销管理",
+  "/dashboard/oa/employee-profiles": "员工通讯录",
   "/dashboard/ai": "AI 智能",
   "/dashboard/profile": "用户资料",
 };

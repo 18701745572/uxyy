@@ -14,6 +14,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 /** 登录成功响应 */
 export const loginResponseSchema = z.object({
   access_token: z.string(),
+  refresh_token: z.string(),
   token_type: z.literal("Bearer"),
   user: z.object({
     id: z.number(),

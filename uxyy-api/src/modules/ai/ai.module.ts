@@ -7,6 +7,9 @@ import { AiController } from './ai.controller';
 import { AiLlmService } from './ai.llm';
 import { AiProcessor } from './ai.processor';
 import { AiService } from './ai.service';
+import { PredictionController } from './controllers/prediction.controller';
+import { OpportunityPredictionService } from './services/opportunity-prediction.service';
+import { ChurnPredictionService } from './services/churn-prediction.service';
 
 @Module({
   imports: [
@@ -15,8 +18,14 @@ import { AiService } from './ai.service';
     BullModule.registerQueue({ name: AI_DEFAULT_QUEUE }),
     BullModule.registerQueue({ name: AI_DLQ_QUEUE }),
   ],
-  controllers: [AiController],
-  providers: [AiService, AiLlmService, AiProcessor],
-  exports: [AiService],
+  controllers: [AiController, PredictionController],
+  providers: [
+    AiService,
+    AiLlmService,
+    AiProcessor,
+    OpportunityPredictionService,
+    ChurnPredictionService,
+  ],
+  exports: [AiService, OpportunityPredictionService, ChurnPredictionService],
 })
 export class AiModule {}

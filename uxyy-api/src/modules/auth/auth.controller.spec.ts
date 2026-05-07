@@ -17,6 +17,7 @@ function mockAuth(): Partial<AuthService> {
       .mockResolvedValue({ access_token: 'at', refresh_token: 'rt' }),
     resetPassword: jest.fn().mockResolvedValue({ success: true }),
     getProfile: jest.fn().mockResolvedValue({ id: 1, phone: '13800138000' }),
+    listEnterprises: jest.fn().mockResolvedValue([]),
     switchEnterprise: jest.fn().mockResolvedValue({ access_token: 'at' }),
     createApprovalFlow: jest.fn().mockResolvedValue({ flowId: 1 }),
     listApprovalFlows: jest.fn().mockResolvedValue({ items: [], total: 0 }),
@@ -108,6 +109,22 @@ describe('AuthController', () => {
         UnauthorizedException,
       );
       expect(auth.getProfile).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── enterprises ──
+
+  describe('GET /auth/enterprises', () => {
+    it('should call auth.listEnterprises with userId from req', async () => {
+      await controller.listEnterprises(mockReq());
+      expect(auth.listEnterprises).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw UnauthorizedException when user is missing on request', () => {
+      expect(() => controller.listEnterprises(mockReq({ user: undefined }))).toThrow(
+        UnauthorizedException,
+      );
+      expect(auth.listEnterprises).not.toHaveBeenCalled();
     });
   });
 

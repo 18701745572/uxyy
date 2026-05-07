@@ -16,6 +16,7 @@ import type {
   UpdateSalesOrderDto,
 } from '../dto/sales-order.dto';
 import { addStock, deductStock, writeInventoryLog } from './inventory-mutation';
+import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -74,7 +75,10 @@ function mapItemRow(row: typeof schema.salesOrderItems.$inferSelect) {
 
 @Injectable()
 export class SalesOrdersService {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
+  constructor(
+    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
+    private readonly autoAccountingService: AutoAccountingService,
+  ) {}
 
   async findPage(params: {
     enterpriseId?: number;
@@ -407,6 +411,17 @@ export class SalesOrdersService {
           .update(schema.salesOrders)
           .set({ updatedAt: new Date() })
           .where(eq(schema.salesOrders.id, id));
+      }
+
+      // 自动记账：销售单完成时生成凭证
+      if (allFullyDelivered) {
+        try {
+          const order = await this.findOne(id, enterpriseId);
+          await this.autoAccountingService.autoAccountSalesOrder(order, eid, userId);
+        } catch (err) {
+          // 记账失败不影响业务流程，记录日志即可
+          console.error('销售单自动记账失败:', err);
+        }
       }
 
       return {

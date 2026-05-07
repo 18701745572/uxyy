@@ -105,6 +105,13 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @Get('enterprises')
+  @ApiOperation({ summary: '当前用户所属企业列表（含默认标记与行业）' })
+  listEnterprises(@Req() req: Request) {
+    return this.auth.listEnterprises(requireUserId(req));
+  }
+
+  @ApiBearerAuth()
   @Put('switch-enterprise/:id')
   @ApiOperation({ summary: '切换默认企业' })
   switchEnterprise(@Req() req: Request, @Param('id') enterpriseId: string) {

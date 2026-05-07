@@ -48,20 +48,41 @@ Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表
 
 5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。
 
-## Phase 0：HTTP / OpenAPI · Auth · 队列约定
+## API 文档
+
+### 在线文档（Swagger UI）
+启动服务后访问：**`http://localhost:3000/docs`**
+
+- 无需带 `/api/v1` 前缀
+- 支持 Bearer Token 认证（点击右上角 "Authorize" 输入 `Bearer <token>`）
+- 所有 DTO 字段、请求/响应示例自动生成
+
+### 离线文档
+详见项目根目录 **`docs/api-documentation.md`**，包含：
+- 完整接口列表与示例
+- 错误码说明
+- 分页、排序、筛选规范
+
+### 核心端点速查
 
 | 路径 | 说明 |
 |------|------|
 | 全局前缀 | **`/api/v1`**（控制器不再重复写前缀） |
-| Swagger UI | **`/docs`**（根路径，不带 `/api/v1` 前缀） |
-| 健康检查 | **`GET /api/v1/health`**（无需鉴权） |
-| 登录 | **`POST /api/v1/auth/login`**，body 示例：`{"phone":"13800138000","password":"Dev12345!"}`（需先 **`db:seed`**） |
-| 个人信息 | **`GET /api/v1/auth/profile`**，Header：`Authorization: Bearer <jwt>` |
-| AI 占位 | **`GET /api/v1/ai/ping`** 公开；**`GET /api/v1/ai/queue/stats`** 需 Bearer（读取 BullMQ 队列计数） |
-| CRM 占位 | **`GET /api/v1/crm/ping`** 公开（演进为业务接口时按需加鉴权） |
-| 进销存占位 | **`GET /api/v1/inventory/ping`** 公开 |
-| 财务占位 | **`GET /api/v1/finance/ping`** 公开 |
-| CRM 客户 | **`GET /api/v1/crm/customers`** Bearer 或 **`AUTH_DEV_BYPASS=true`**；**`POST /api/v1/crm/customers`** 创建；**`GET/PATCH/DELETE /api/v1/crm/customers/:id`** 详情·更新·删除（均按 JWT `enterpriseId` 租户隔离） |
+| **认证** |
+| `POST /auth/login` | 登录（返回 access_token + refresh_token） |
+| `POST /auth/register` | 注册 |
+| `POST /auth/refresh` | 刷新 Token（access_token 过期时使用） |
+| `GET /auth/profile` | 当前用户信息（含企业列表） |
+| `GET /auth/enterprises` | 企业列表（含默认标记） |
+| `PUT /auth/switch-enterprise/:id` | 切换默认企业（返回新 token） |
+| `POST /auth/reset-password` | 修改密码 |
+| **业务** |
+| `GET /crm/customers` | 客户列表（JWT `enterpriseId` 租户隔离） |
+| `GET /inventory/products` | 商品列表 |
+| `GET /finance/invoices` | 发票列表 |
+| `GET /ai/queue/stats` | AI 队列统计 |
+| **健康** |
+| `GET /health` | 服务健康检查（无需鉴权） |
 
 **鉴权规则（并行开发约定）：**
 

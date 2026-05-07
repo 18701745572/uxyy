@@ -41,7 +41,7 @@
       "idx": 5,
       "version": "7",
       "when": 1777978403230,
-      "tag": "0005_stocktaking_tables",
+      "tag": "0004_stocktaking_tables",
       "breakpoints": true
     },
     {
@@ -70,6 +70,13 @@
       "version": "7",
       "when": 1778043000000,
       "tag": "0009_crm_opportunities_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778164484187,
+      "tag": "0010_lively_green_goblin",
       "breakpoints": true
     }
   ]

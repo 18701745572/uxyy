@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEnterpriseStore } from "@/stores/enterprise-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const switchEnterprise = useAuthStore((s) => s.switchEnterprise);
   const { enterprises, isLoading, fetch: fetchEnterprises } = useEnterpriseStore();
+  const [switchingId, setSwitchingId] = useState<number | null>(null);
 
   useEffect(() => {
     void fetchEnterprises();
@@ -76,11 +82,30 @@ export default function ProfilePage() {
                     <Button
                       variant="secondary"
                       className="text-xs px-2.5 py-1"
+                      disabled={switchingId != null}
                       onClick={() => {
-                        /* TODO: POST /auth/switch-enterprise → 新 JWT → 更新 store */
+                        void (async () => {
+                          setSwitchingId(ent.id);
+                          try {
+                            await switchEnterprise(ent.id);
+                            await fetchEnterprises();
+                            await queryClient.invalidateQueries();
+                            toast.success("已切换企业");
+                          } catch (err) {
+                            const message =
+                              err instanceof ApiError
+                                ? err.message
+                                : err instanceof Error
+                                  ? err.message
+                                  : "切换失败";
+                            toast.error(message);
+                          } finally {
+                            setSwitchingId(null);
+                          }
+                        })();
                       }}
                     >
-                      切换
+                      {switchingId === ent.id ? "切换中…" : "切换"}
                     </Button>
                   )}
                 </li>

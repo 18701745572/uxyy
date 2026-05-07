@@ -273,6 +273,33 @@ export class AuthService {
   }
 
   // ========== 获取当前用户信息 ==========
+
+  /** 当前用户所属企业列表（与前端 EnterpriseDto 对齐） */
+  async listEnterprises(userId: number) {
+    const rows = await this.db
+      .select({
+        id: schema.enterprises.id,
+        name: schema.enterprises.name,
+        industry: schema.enterprises.industry,
+        role: schema.userEnterprises.role,
+        isDefault: schema.userEnterprises.isDefault,
+      })
+      .from(schema.userEnterprises)
+      .innerJoin(
+        schema.enterprises,
+        eq(schema.userEnterprises.enterpriseId, schema.enterprises.id),
+      )
+      .where(eq(schema.userEnterprises.userId, userId));
+
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      industry: r.industry ?? null,
+      role: r.role,
+      isDefault: Boolean(r.isDefault),
+    }));
+  }
+
   async getProfile(userId: number) {
     const [user] = await this.db
       .select({
@@ -291,20 +318,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    // 获取用户的企业列表
-    const enterprises = await this.db
-      .select({
-        id: schema.enterprises.id,
-        name: schema.enterprises.name,
-        role: schema.userEnterprises.role,
-        isDefault: schema.userEnterprises.isDefault,
-      })
-      .from(schema.userEnterprises)
-      .innerJoin(
-        schema.enterprises,
-        eq(schema.userEnterprises.enterpriseId, schema.enterprises.id),
-      )
-      .where(eq(schema.userEnterprises.userId, userId));
+    const enterprises = await this.listEnterprises(userId);
 
     return {
       ...user,
@@ -319,8 +333,10 @@ export class AuthService {
       .select()
       .from(schema.userEnterprises)
       .where(
-        eq(schema.userEnterprises.userId, userId) &&
+        and(
+          eq(schema.userEnterprises.userId, userId),
           eq(schema.userEnterprises.enterpriseId, enterpriseId),
+        ),
       )
       .limit(1);
 
@@ -339,8 +355,10 @@ export class AuthService {
       .update(schema.userEnterprises)
       .set({ isDefault: true })
       .where(
-        eq(schema.userEnterprises.userId, userId) &&
+        and(
+          eq(schema.userEnterprises.userId, userId),
           eq(schema.userEnterprises.enterpriseId, enterpriseId),
+        ),
       );
 
     // 生成新的 Token

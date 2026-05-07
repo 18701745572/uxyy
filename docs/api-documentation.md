@@ -1,8 +1,9 @@
 # 优效营 API 文档
 
-**版本**: v1.0  
-**基础URL**: `http://localhost:3001/api/v1`  
-**最后更新**: 2026-05-06
+**版本**: v1.1  
+**基础URL**: `http://localhost:3000/api/v1`  
+**Swagger UI**: `http://localhost:3000/docs`  
+**最后更新**: 2026-05-07
 
 ---
 
@@ -13,6 +14,7 @@
 3. [财务 (Finance)](#3-财务-finance)
 4. [客户关系 (CRM)](#4-客户关系-crm)
 5. [智能服务 (AI)](#5-智能服务-ai)
+6. [附录](#附录)
 
 ---
 
@@ -118,7 +120,81 @@ POST /auth/login
 }
 ```
 
-### 1.3 刷新 Token
+### 1.3 获取当前用户信息
+
+```http
+GET /auth/profile
+```
+
+**响应**:
+```json
+{
+  "id": 1,
+  "phone": "13800138000",
+  "nickname": "张三",
+  "avatar": null,
+  "status": "active",
+  "createdAt": "2026-05-01T00:00:00Z",
+  "enterprises": [
+    {
+      "id": 1,
+      "name": "某某商贸有限公司",
+      "role": "boss",
+      "isDefault": true
+    }
+  ]
+}
+```
+
+### 1.4 获取企业列表
+
+```http
+GET /auth/enterprises
+```
+
+**响应**:
+```json
+[
+  {
+    "id": 1,
+    "name": "某某商贸有限公司",
+    "industry": "retail",
+    "role": "boss",
+    "isDefault": true
+  },
+  {
+    "id": 2,
+    "name": "某某科技有限公司",
+    "industry": "tech",
+    "role": "sales",
+    "isDefault": false
+  }
+]
+```
+
+### 1.5 切换默认企业
+
+```http
+PUT /auth/switch-enterprise/:id
+```
+
+**路径参数**:
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | number | 要切换到的企业 ID |
+
+**响应**:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "Bearer"
+}
+```
+
+**说明**: 切换成功后，需使用新的 `access_token` 发起后续请求。
+
+### 1.6 刷新 Token
 
 ```http
 POST /auth/refresh
@@ -131,7 +207,18 @@ POST /auth/refresh
 }
 ```
 
-### 1.4 修改密码
+**响应**:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "Bearer"
+}
+```
+
+**说明**: 前端在收到 401 响应时应自动调用此接口刷新 token，无需用户感知。
+
+### 1.7 修改密码
 
 ```http
 POST /auth/reset-password

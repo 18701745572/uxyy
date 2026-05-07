@@ -8,6 +8,8 @@ import { DatabaseModule } from './modules/database/database.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { OaModule } from './modules/oa/oa.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { InventoryModule } from './modules/inventory/inventory.module';
     FinanceModule,
     HealthModule,
     AiModule,
+    OaModule,
+    CommonModule,
   ],
 })
 export class AppModule {}

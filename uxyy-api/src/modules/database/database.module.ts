@@ -5,12 +5,15 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from './database.constants';
+import { BackupService } from './services/backup.service';
+import { BackupController } from './controllers/backup.controller';
 
 export type AppDrizzleDb = NodePgDatabase<typeof schema>;
 
 @Global()
 @Module({
   imports: [ConfigModule],
+  controllers: [BackupController],
   providers: [
     {
       provide: DRIZZLE_DB,
@@ -21,7 +24,8 @@ export type AppDrizzleDb = NodePgDatabase<typeof schema>;
       },
       inject: [ConfigService],
     },
+    BackupService,
   ],
-  exports: [DRIZZLE_DB],
+  exports: [DRIZZLE_DB, BackupService],
 })
 export class DatabaseModule {}

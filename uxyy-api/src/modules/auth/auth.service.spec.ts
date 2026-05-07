@@ -327,6 +327,49 @@ describe('AuthService', () => {
     });
   });
 
+  describe('listEnterprises', () => {
+    it('should return mapped enterprises for user', async () => {
+      db.__queue([
+        {
+          id: 1,
+          name: 'Co A',
+          industry: 'retail',
+          role: 'boss',
+          isDefault: true,
+        },
+      ]);
+
+      const result = await service.listEnterprises(1);
+
+      expect(result).toEqual([
+        {
+          id: 1,
+          name: 'Co A',
+          industry: 'retail',
+          role: 'boss',
+          isDefault: true,
+        },
+      ]);
+    });
+
+    it('should normalize null industry and falsy isDefault', async () => {
+      db.__queue([
+        {
+          id: 1,
+          name: 'Co A',
+          industry: null,
+          role: 'boss',
+          isDefault: null,
+        },
+      ]);
+
+      const result = await service.listEnterprises(1);
+
+      expect(result[0].industry).toBeNull();
+      expect(result[0].isDefault).toBe(false);
+    });
+  });
+
   // ── switchEnterprise ──
 
   describe('switchEnterprise', () => {

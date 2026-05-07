@@ -9,6 +9,7 @@ const navItems = [
   { href: "/dashboard/crm", label: "客户管理", icon: "👥" },
   { href: "/dashboard/inventory", label: "进销存", icon: "📦" },
   { href: "/dashboard/finance", label: "财务", icon: "💰" },
+  { href: "/dashboard/oa", label: "OA 办公", icon: "📋" },
   { href: "/dashboard/ai", label: "AI 智能", icon: "🤖" },
 ];
 

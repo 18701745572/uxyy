@@ -32,6 +32,34 @@ export const productCategories = pgTable(
   (t) => [index('product_categories_enterprise_idx').on(t.enterpriseId)],
 );
 
+// ==================== 商品会员价格表 ====================
+export const productMemberPrices = pgTable(
+  'product_member_prices',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    levelId: integer('level_id')
+      .references(() => memberLevels.id)
+      .notNull(),
+    price: decimal('price', { precision: 12, scale: 2 }).notNull(),
+    discountRate: decimal('discount_rate', { precision: 5, scale: 2 }).default('100'), // 折扣率
+    isEnabled: boolean('is_enabled').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('product_member_prices_enterprise_idx').on(t.enterpriseId),
+    index('product_member_prices_product_idx').on(t.productId),
+    index('product_member_prices_level_idx').on(t.levelId),
+    uniqueIndex('product_member_prices_product_level_uk').on(t.productId, t.levelId),
+  ],
+);
+
 // ==================== 商品管理 ====================
 export const products = pgTable(
   'products',
@@ -296,6 +324,103 @@ export const stocktakingItems = pgTable(
   (t) => [
     index('stocktaking_items_order_idx').on(t.orderId),
     index('stocktaking_items_product_idx').on(t.productId),
+  ],
+);
+
+// ==================== 回款记录 ====================
+export const paymentRecords = pgTable(
+  'payment_records',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    customerId: integer('customer_id')
+      .references(() => customers.id)
+      .notNull(),
+    orderId: integer('order_id')
+      .references(() => salesOrders.id),
+    orderNo: varchar('order_no', { length: 50 }),
+    amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+    paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // cash, bank, alipay, wechat
+    paymentDate: timestamp('payment_date').defaultNow().notNull(),
+    referenceNo: varchar('reference_no', { length: 50 }), // 银行流水号/支付单号
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('payment_records_enterprise_idx').on(t.enterpriseId),
+    index('payment_records_customer_idx').on(t.customerId),
+    index('payment_records_order_idx').on(t.orderId),
+    index('payment_records_date_idx').on(t.paymentDate),
+  ],
+);
+
+// ==================== 批次管理 ====================
+export const productBatches = pgTable(
+  'product_batches',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    batchNo: varchar('batch_no', { length: 50 }).notNull(), // 批次号
+    productionDate: timestamp('production_date'), // 生产日期
+    expiryDate: timestamp('expiry_date'), // 有效期至
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(), // 当前库存数量
+    initialQuantity: decimal('initial_quantity', { precision: 12, scale: 2 }).notNull(), // 初始入库数量
+    costPrice: decimal('cost_price', { precision: 12, scale: 2 }), // 成本价
+    supplierId: integer('supplier_id').references(() => suppliers.id), // 供应商
+    warehouseId: integer('warehouse_id').default(1), // 仓库
+    sourceType: varchar('source_type', { length: 20 }), // 来源：purchase, transfer
+    sourceId: integer('source_id'), // 来源ID
+    status: varchar('status', { length: 20 }).default('active').notNull(), // active, locked, expired
+    remark: text('remark'),
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('product_batches_enterprise_idx').on(t.enterpriseId),
+    index('product_batches_product_idx').on(t.productId),
+    index('product_batches_batch_no_idx').on(t.batchNo),
+    index('product_batches_expiry_idx').on(t.expiryDate),
+    index('product_batches_status_idx').on(t.status),
+  ],
+);
+
+// ==================== 批次流水 ====================
+export const batchLogs = pgTable(
+  'batch_logs',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    batchId: integer('batch_id')
+      .references(() => productBatches.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // in, out
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    beforeQty: decimal('before_qty', { precision: 12, scale: 2 }).notNull(),
+    afterQty: decimal('after_qty', { precision: 12, scale: 2 }).notNull(),
+    sourceType: varchar('source_type', { length: 20 }), // sales_order, purchase_order, stocktaking
+    sourceId: integer('source_id'),
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('batch_logs_batch_idx').on(t.batchId),
+    index('batch_logs_product_idx').on(t.productId),
+    index('batch_logs_created_idx').on(t.createdAt),
   ],
 );
 
