@@ -1,9 +1,30 @@
 # 优效营 API 文档
 
-**版本**: v1.1  
-**基础URL**: `http://localhost:3000/api/v1`  
-**Swagger UI**: `http://localhost:3000/docs`  
-**最后更新**: 2026-05-07
+**版本**: v1.0.2
+**基础URL**: `http://localhost:3000/api/v1`
+**Swagger UI**: `http://localhost:3000/docs`
+**最后更新**: 2026-05-08
+
+## 更新说明
+
+### v1.0.2 新增功能
+
+- **进销存模块**: 回款记录、批次管理、库存盘点、采购建议
+- **CRM模块**: AI智能跟进建议、客户洞察
+- **AI智能层**: 增强的商机成单预测与客户流失预警
+
+### v1.0.1 新增功能
+
+- **CRM模块**: 会员等级管理、会员积分、AI智能话术推荐
+- **进销存模块**: 多仓库管理、商品会员价设置
+- **财务模块**: AI智能纠错、凭证错误检测与自动修复、税务申报数据准备
+- **OA模块**: 考勤管理、打卡、补卡申请
+- **AI智能层**: 商机成单预测、客户流失预警
+- **数据导出**: PDF导出（销售单、报价单、对账单）
+
+### v1.0.2（规划中）新增功能
+
+- **财务模块**: 一键报税（需对接税务服务商）
 
 ---
 
@@ -13,8 +34,10 @@
 2. [进销存 (Inventory)](#2-进销存-inventory)
 3. [财务 (Finance)](#3-财务-finance)
 4. [客户关系 (CRM)](#4-客户关系-crm)
-5. [智能服务 (AI)](#5-智能服务-ai)
-6. [附录](#附录)
+5. [办公自动化 (OA)](#5-办公自动化-oa)
+6. [智能服务 (AI)](#6-智能服务-ai)
+7. [数据导出 (Export)](#7-数据导出-export)
+8. [附录](#附录)
 
 ---
 
@@ -411,6 +434,472 @@ GET /inventory/alerts
 }
 ```
 
+### 2.5 多仓库管理
+
+#### 获取仓库列表
+
+```http
+GET /inventory/warehouses
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "name": "主仓库",
+      "code": "WH001",
+      "address": "上海市浦东新区",
+      "manager": "张三",
+      "isDefault": true,
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "name": "分仓库",
+      "code": "WH002",
+      "address": "杭州市西湖区",
+      "manager": "李四",
+      "isDefault": false,
+      "status": "active"
+    }
+  ]
+}
+```
+
+#### 创建仓库
+
+```http
+POST /inventory/warehouses
+```
+
+**请求体**:
+```json
+{
+  "name": "新仓库",
+  "code": "WH003",
+  "address": "南京市鼓楼区",
+  "manager": "王五",
+  "phone": "13800138000",
+  "isDefault": false
+}
+```
+
+#### 获取仓库库存汇总
+
+```http
+GET /inventory/warehouses/:id/inventory
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "warehouseId": 1,
+    "warehouseName": "主仓库",
+    "totalProducts": 150,
+    "totalValue": 500000.00,
+    "lowStockCount": 5,
+    "inventoryList": [
+      {
+        "productId": 1,
+        "productName": "iPhone 15",
+        "quantity": 50,
+        "value": 299950.00
+      }
+    ]
+  }
+}
+```
+
+#### 设置默认仓库
+
+```http
+PUT /inventory/warehouses/:id/default
+```
+
+### 2.6 会员价管理
+
+#### 获取商品会员价列表
+
+```http
+GET /inventory/member-prices?productId=1
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "productId": 1,
+      "productName": "iPhone 15",
+      "levelId": 1,
+      "levelName": "普通会员",
+      "memberPrice": 5699.00,
+      "discount": 95
+    },
+    {
+      "id": 2,
+      "productId": 1,
+      "levelName": "银卡会员",
+      "memberPrice": 5399.00,
+      "discount": 90
+    }
+  ]
+}
+```
+
+#### 设置商品会员价
+
+```http
+POST /inventory/member-prices
+```
+
+**请求体**:
+```json
+{
+  "productId": 1,
+  "levelId": 2,
+  "memberPrice": 5399.00,
+  "discount": 90
+}
+```
+
+#### 批量设置会员价
+
+```http
+POST /inventory/member-prices/batch
+```
+
+**请求体**:
+```json
+{
+  "productIds": [1, 2, 3],
+  "levelId": 2,
+  "discount": 90
+}
+```
+
+#### 获取客户专属价格
+
+```http
+GET /inventory/member-prices/customer/:customerId
+```
+
+### 2.7 回款记录
+
+#### 获取回款记录列表
+
+```http
+GET /inventory/payment-records?page=1&pageSize=20&customerId=1&startDate=2026-05-01&endDate=2026-05-31
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "customerId": 1,
+        "customerName": "张三",
+        "orderId": 1,
+        "orderNo": "SO202605010001",
+        "amount": "5000.00",
+        "paymentMethod": "bank",
+        "paymentDate": "2026-05-01T10:00:00Z",
+        "referenceNo": " bank's流水号",
+        "remark": "货款"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### 创建回款记录
+
+```http
+POST /inventory/payment-records
+```
+
+**请求体**:
+```json
+{
+  "customerId": 1,
+  "orderId": 1,
+  "amount": "5000.00",
+  "paymentMethod": "bank",
+  "referenceNo": " bank's流水号",
+  "remark": "货款"
+}
+```
+
+**`paymentMethod`** 可选值：`cash`（现金）、`bank`（银行转账）、`alipay`（支付宝）、`wechat`（微信）
+
+#### 获取客户回款统计
+
+```http
+GET /inventory/payment-records/stats/customer/:customerId
+```
+
+#### 获取订单回款统计
+
+```http
+GET /inventory/payment-records/stats/order/:orderId
+```
+
+### 2.8 批次管理
+
+#### 获取批次列表
+
+```http
+GET /inventory/batches?productId=1&status=active&expiryWarning=true&page=1&pageSize=20
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "productId": 1,
+        "productName": "iPhone 15",
+        "batchNo": "BATCH202605001",
+        "productionDate": "2026-05-01T00:00:00Z",
+        "expiryDate": "2026-08-01T00:00:00Z",
+        "quantity": "100",
+        "initialQuantity": "100",
+        "costPrice": "4500.00",
+        "supplierId": 1,
+        "supplierName": "某某供应商",
+        "warehouseId": 1,
+        "warehouseName": "主仓库",
+        "status": "active"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### 创建批次
+
+```http
+POST /inventory/batches
+```
+
+**请求体**:
+```json
+{
+  "productId": 1,
+  "batchNo": "BATCH202605001",
+  "productionDate": "2026-05-01",
+  "expiryDate": "2026-08-01",
+  "quantity": "100",
+  "costPrice": "4500.00",
+  "supplierId": 1,
+  "warehouseId": 1
+}
+```
+
+#### 更新批次
+
+```http
+PUT /inventory/batches/:id
+```
+
+#### 批次出库
+
+```http
+POST /inventory/batches/:id/outbound
+```
+
+**请求体**:
+```json
+{
+  "quantity": "10",
+  "sourceType": "sales_order",
+  "sourceId": 1
+}
+```
+
+#### 获取临期批次列表
+
+```http
+GET /inventory/batches/expiring/list?days=30
+```
+
+#### 获取商品批次库存
+
+```http
+GET /inventory/batches/product/:productId/stock
+```
+
+### 2.9 库存盘点
+
+#### 获取盘点单列表
+
+```http
+GET /inventory/stocktaking?page=1&pageSize=20&status=draft
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "warehouseId": 1,
+        "warehouseName": "主仓库",
+        "status": "draft",
+        "remark": "月度盘点",
+        "createdBy": 1,
+        "createdByName": "张三",
+        "confirmedBy": null,
+        "confirmedAt": null,
+        "createdAt": "2026-05-01T10:00:00Z"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### 获取盘点单详情
+
+```http
+GET /inventory/stocktaking/:id
+```
+
+#### 创建盘点单
+
+```http
+POST /inventory/stocktaking
+```
+
+**请求体**:
+```json
+{
+  "warehouseId": 1,
+  "remark": "月度盘点",
+  "items": [
+    {
+      "productId": 1,
+      "bookQty": "100"
+    },
+    {
+      "productId": 2,
+      "bookQty": "50"
+    }
+  ]
+}
+```
+
+#### 更新盘点明细（实盘数量）
+
+```http
+PATCH /inventory/stocktaking/:orderId/items/:itemId
+```
+
+**请求体**:
+```json
+{
+  "actualQty": "98",
+  "remark": "破损2件"
+}
+```
+
+#### 确认盘点（差异自动调库）
+
+```http
+PUT /inventory/stocktaking/:id/confirm
+```
+
+### 2.10 采购建议
+
+#### 获取智能采购建议
+
+```http
+GET /inventory/purchase-suggestions
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "suggestions": [
+      {
+        "productId": 1,
+        "productName": "iPhone 15",
+        "currentStock": 5,
+        "minStock": 10,
+        "suggestedQty": 20,
+        "reason": "库存低于最小库存预警线"
+      }
+    ],
+    "generatedAt": "2026-05-08T10:00:00Z"
+  }
+}
+```
+
+#### 获取库存预警
+
+```http
+GET /inventory/purchase-suggestions/stock-alerts
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "lowStock": [
+      {
+        "productId": 1,
+        "productName": "iPhone 15",
+        "currentStock": 5,
+        "minStock": 10,
+        "warehouseName": "主仓库"
+      }
+    ],
+    "outOfStock": [],
+    "expiringSoon": [
+      {
+        "productId": 2,
+        "productName": "食品A",
+        "currentStock": 20,
+        "expiryDate": "2026-05-15",
+        "warehouseName": "主仓库"
+      }
+    ]
+  }
+}
+```
+
+#### 生成采购订单建议
+
+```http
+GET /inventory/purchase-suggestions/order-suggestion?supplierId=1
+```
+
 ---
 
 ## 3. 财务 (Finance)
@@ -620,7 +1109,246 @@ GET /finance/reports/ar-ap
 
 返回 `receivables`、`payables` 列表及 `totalReceivables`、`totalPayables`。
 
-### 3.4 会计科目（account-subjects）
+### 3.4 AI智能纠错
+
+#### 检测单个凭证错误
+
+```http
+GET /finance/ai-error-correction/check/:voucherId
+```
+
+**响应**:
+```json
+{
+  "voucherId": 1,
+  "hasErrors": true,
+  "errors": [
+    {
+      "type": "amount_mismatch",
+      "severity": "error",
+      "message": "借贷金额不平衡",
+      "details": "借方金额 10000.00 ≠ 贷方金额 9000.00"
+    }
+  ],
+  "suggestions": [
+    {
+      "type": "auto_fix",
+      "description": "自动调整贷方金额为 10000.00",
+      "action": "修改贷方金额"
+    }
+  ]
+}
+```
+
+#### 批量检测凭证
+
+```http
+GET /finance/ai-error-correction/batch-check?startDate=2026-05-01&endDate=2026-05-31
+```
+
+#### 获取纠错建议
+
+```http
+GET /finance/ai-error-correction/suggestions/:voucherId
+```
+
+#### 自动修复借贷不平衡
+
+```http
+POST /finance/ai-error-correction/auto-fix/:voucherId
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "message": "已自动修复借贷不平衡",
+  "voucher": {
+    "id": 1,
+    "voucherNo": "V202605060001",
+    "amount": "10000.00"
+  }
+}
+```
+
+#### 获取财务健康度报告
+
+```http
+GET /finance/ai-error-correction/health-report?month=2026-05
+```
+
+**响应**:
+```json
+{
+  "month": "2026-05",
+  "totalVouchers": 100,
+  "errorVouchers": 5,
+  "errorRate": 5,
+  "healthScore": 95,
+  "commonErrors": [
+    {
+      "type": "amount_mismatch",
+      "count": 3,
+      "percentage": 60
+    }
+  ],
+  "trend": "improving",
+  "suggestions": [
+    "建议加强凭证审核流程",
+    "定期检查借贷平衡"
+  ]
+}
+```
+
+### 3.5 税务申报（V1.5阶段）
+
+#### 获取税务申报汇总
+
+```http
+GET /finance/tax-report/summary?period=2026-05
+```
+
+**响应**:
+```json
+{
+  "enterpriseId": 1,
+  "period": "2026-05",
+  "taxTypes": [
+    {
+      "type": "增值税",
+      "code": "10100",
+      "amount": 8500.00
+    },
+    {
+      "type": "企业所得税",
+      "code": "10200",
+      "amount": 3500.00
+    }
+  ],
+  "totalTaxableIncome": 100000.00,
+  "totalTaxPayable": 12000.00,
+  "generatedAt": "2026-05-08T10:00:00Z"
+}
+```
+
+#### 获取增值税申报数据
+
+```http
+GET /finance/tax-report/vat?period=2026-05
+```
+
+**响应**:
+```json
+{
+  "period": "2026-05",
+  "salesAmount": 50000.00,
+  "salesTax": 6500.00,
+  "purchaseAmount": 30000.00,
+  "purchaseTax": 3900.00,
+  "inputTax": 3900.00,
+  "outputTax": 6500.00,
+  "netVAT": 2600.00,
+  "smallScaleRate": 0.03,
+  "details": {
+    "taxableSales": 50000.00,
+    "taxExemptSales": 0,
+    "zeroRateSales": 0
+  }
+}
+```
+
+#### 获取企业所得税申报数据
+
+```http
+GET /finance/tax-report/income-tax?period=2026-05
+```
+
+**响应**:
+```json
+{
+  "period": "2026-05",
+  "revenue": 80000.00,
+  "costs": 45000.00,
+  "expenses": 15000.00,
+  "profitBeforeTax": 20000.00,
+  "deductibleExpenses": 3000.00,
+  "taxableIncome": 17000.00,
+  "incomeTaxRate": 0.05,
+  "incomeTaxPayable": 850.00
+}
+```
+
+#### 获取税务申报操作指南
+
+```http
+GET /finance/tax-report/guides
+```
+
+**响应**:
+```json
+[
+  {
+    "taxType": "增值税",
+    "taxTypeCode": "10100",
+    "filingPeriod": "月报/季报",
+    "deadline": "每月15日（节假日顺延）",
+    "applicableEnterprises": "所有增值税纳税人",
+    "requiredDocuments": [
+      "增值税纳税申报表",
+      "发票汇总表",
+      "进项税额抵扣清单"
+    ],
+    "steps": [
+      "登录电子税务局",
+      "选择「增值税及附加税费申报」",
+      "核对销项税额数据",
+      "核对进项税额数据",
+      "确认应纳税额",
+      "提交申报"
+    ],
+    "notes": [
+      "小规模纳税人季度销售额≤30万免征增值税",
+      "一般纳税人进项发票需在勾选平台认证",
+      "注意检查发票品目与税率是否匹配"
+    ]
+  }
+]
+```
+
+#### 获取可申报税款所属期
+
+```http
+GET /finance/tax-report/periods
+```
+
+**响应**:
+```json
+{
+  "periods": ["2026-05", "2026-04", "2026-03"],
+  "current": "2026-05",
+  "quarterly": ["2026Q1", "2026Q2", "2026Q3", "2026Q4"]
+}
+```
+
+#### 导出税务申报Excel
+
+```http
+GET /finance/tax-report/export/excel?period=2026-05&taxType=增值税
+```
+
+**响应**: 下载Excel文件
+
+#### 导出税务申报PDF（含操作指南）
+
+```http
+GET /finance/tax-report/export/pdf?period=2026-05
+```
+
+**响应**: 下载HTML/PDF文件（包含完整申报数据和操作指南）
+
+---
+
+### 3.6 会计科目（account-subjects）
 
 #### 列表
 
@@ -792,9 +1520,404 @@ GET /crm/opportunities/funnel
 }
 ```
 
+### 4.4 会员管理
+
+#### 获取会员等级列表
+
+```http
+GET /crm/members/levels
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "name": "普通会员",
+      "level": 1,
+      "discount": 95,
+      "minPoints": 0,
+      "maxPoints": 999
+    },
+    {
+      "id": 2,
+      "name": "银卡会员",
+      "level": 2,
+      "discount": 90,
+      "minPoints": 1000,
+      "maxPoints": 4999
+    }
+  ]
+}
+```
+
+#### 创建会员等级
+
+```http
+POST /crm/members/levels
+```
+
+**请求体**:
+```json
+{
+  "name": "金卡会员",
+  "level": 3,
+  "discount": 85,
+  "minPoints": 5000,
+  "maxPoints": 19999,
+  "benefits": ["专属客服", "生日礼品"]
+}
+```
+
+#### 获取会员列表
+
+```http
+GET /crm/members?levelId=1&keyword=张三
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "customerId": 1,
+      "customerName": "张三",
+      "levelId": 2,
+      "levelName": "银卡会员",
+      "points": 1500,
+      "totalPoints": 3000,
+      "joinDate": "2026-01-01"
+    }
+  ]
+}
+```
+
+#### 为客户开通会员
+
+```http
+POST /crm/members
+```
+
+**请求体**:
+```json
+{
+  "customerId": 1,
+  "levelId": 2,
+  "initialPoints": 100
+}
+```
+
+#### 积分操作
+
+```http
+POST /crm/members/customer/:customerId/points
+```
+
+**请求体**:
+```json
+{
+  "operation": "add",
+  "points": 100,
+  "reason": "消费奖励"
+}
+```
+
+**说明**: `operation` 可选 `add`（增加）、`deduct`（扣减）。
+
+### 4.5 AI智能话术
+
+#### 根据场景生成话术
+
+```http
+GET /crm/ai-scripts/generate/:customerId?scene=first_contact
+```
+
+**场景类型**:
+- `first_contact` - 首次接触
+- `follow_up` - 跟进回访
+- `quotation` - 报价沟通
+- `negotiation` - 谈判协商
+- `closing` - 促成成交
+- `after_sales` - 售后服务
+- `holiday_greeting` - 节日问候
+- `birthday_greeting` - 生日祝福
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "customerId": 1,
+    "customerName": "张三",
+    "scene": "first_contact",
+    "script": "张总您好，我是优效营的小李...",
+    "keyPoints": ["自我介绍", "了解需求", "预约拜访"],
+    "followUpTips": ["记录客户反馈", "24小时内发送资料"]
+  }
+}
+```
+
+#### 智能推荐话术
+
+```http
+GET /crm/ai-scripts/recommend/:customerId
+```
+
+根据客户状态自动推荐最合适的话术场景。
+
+#### 获取话术模板库
+
+```http
+GET /crm/ai-scripts/templates?category=sales
+```
+
+### 4.6 AI智能跟进
+
+#### 获取客户跟进建议
+
+```http
+GET /crm/ai-followup/suggestions/:customerId
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "customerId": 1,
+    "customerName": "张三",
+    "suggestions": [
+      {
+        "type": "电话回访",
+        "priority": "high",
+        "reason": "超过30天未跟进",
+        "suggestedContent": "张总您好，想了解一下之前项目的进展..."
+      }
+    ],
+    "nextFollowUpDate": "2026-05-10",
+    "generatedAt": "2026-05-08T10:00:00Z"
+  }
+}
+```
+
+#### 获取客户洞察报告
+
+```http
+GET /crm/ai-followup/insight/:customerId
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "customerId": 1,
+    "customerName": "张三",
+    "overview": {
+      "totalOrders": 15,
+      "totalAmount": "150000.00",
+      "avgOrderAmount": "10000.00",
+      "lastOrderDate": "2026-04-01",
+      "favoriteProducts": ["iPhone 15", "MacBook Pro"]
+    },
+    "behaviorAnalysis": {
+      "purchaseFrequency": "monthly",
+      "preferredPaymentMethod": "bank",
+      "priceSensitivity": "medium"
+    },
+    "riskIndicators": {
+      "churnRisk": "medium",
+      "daysSinceLastContact": 35
+    },
+    "recommendations": [
+      "建议发送新品推荐",
+      "可考虑专属折扣激活"
+    ]
+  }
+}
+```
+
+#### 获取需要跟进的客户列表
+
+```http
+GET /crm/ai-followup/need-followup?days=30&limit=20
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "customerId": 1,
+      "customerName": "张三",
+      "lastFollowUpDate": "2026-04-01",
+      "daysSinceLastFollowUp": 35,
+      "suggestedAction": "电话回访",
+      "priority": "high"
+    },
+    {
+      "customerId": 2,
+      "customerName": "李四",
+      "lastFollowUpDate": "2026-03-15",
+      "daysSinceLastFollowUp": 52,
+      "suggestedAction": "上门拜访",
+      "priority": "urgent"
+    }
+  ]
+}
+```
+
+#### 生成跟进话术
+
+```http
+GET /crm/ai-followup/script/:customerId?context=电话回访
+```
+
+**响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "customerId": 1,
+    "customerName": "张三",
+    "script": "张总您好，我是优效营的小李。距离上次联系已经有一段时间了，想了解一下您之前关注的产品是否有新的需求...",
+    "keyPoints": [
+      "礼貌问候",
+      "提及之前沟通内容",
+      "了解当前需求",
+      "预约下次联系"
+    ],
+    "opening": "张总您好，我是优效营的小李。",
+    "closing": "好的，那先这样，有需要随时联系我，再见！"
+  }
+}
+```
+
 ---
 
-## 5. 智能服务 (AI)
+## 5. 办公自动化 (OA)
+
+### 5.1 考勤管理
+
+#### 打卡
+
+```http
+POST /oa/attendance/check-in
+```
+
+**请求体**:
+```json
+{
+  "type": "in",
+  "location": "上海市浦东新区"
+}
+```
+
+**说明**: `type` 为 `in` 表示上班打卡，`out` 表示下班打卡。
+
+#### 获取个人考勤记录
+
+```http
+GET /oa/attendance/personal?startDate=2026-05-01&endDate=2026-05-31
+```
+
+**响应**:
+```json
+{
+  "records": [
+    {
+      "id": 1,
+      "date": "2026-05-01",
+      "checkInTime": "09:00:00",
+      "checkOutTime": "18:00:00",
+      "status": "normal",
+      "location": "上海市浦东新区"
+    }
+  ],
+  "statistics": {
+    "totalDays": 22,
+    "normalDays": 20,
+    "lateDays": 1,
+    "earlyLeaveDays": 1,
+    "absentDays": 0
+  }
+}
+```
+
+#### 获取部门考勤统计
+
+```http
+GET /oa/attendance/department/:departmentId?month=2026-05
+```
+
+#### 获取企业考勤概览
+
+```http
+GET /oa/attendance/overview?date=2026-05-01
+```
+
+#### 补卡申请
+
+```http
+POST /oa/attendance/make-up
+```
+
+**请求体**:
+```json
+{
+  "date": "2026-05-01",
+  "type": "in",
+  "reason": "忘记打卡"
+}
+```
+
+#### 审批补卡申请
+
+```http
+PUT /oa/attendance/make-up/:requestId/approve
+```
+
+**请求体**:
+```json
+{
+  "approved": true,
+  "remark": "同意补卡"
+}
+```
+
+### 5.2 审批流程
+
+#### 获取待审批列表
+
+```http
+GET /oa/approval-flows/pending
+```
+
+#### 提交审批
+
+```http
+POST /oa/approval-flows/:id/submit
+```
+
+**请求体**:
+```json
+{
+  "data": {
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-03",
+    "reason": "事假"
+  }
+}
+```
+
+---
+
+## 6. 智能服务 (AI)
 
 > **说明**：本模块控制器直返 JSON（无统一 `{ code, data }` 包装）；需登录且 JWT 中包含企业上下文。**OCR（发票影像）**：优先使用 **本文第 3.1 节** 的 `POST /finance/invoices/ocr`（multipart）；亦可通过本节 **异步任务** `taskType: ocr_invoice` 投递。
 
@@ -864,13 +1987,136 @@ POST /ai/tasks/:id/voucher
 
 `created === false` 表示该任务此前已入账，本次返回已有凭证（**幂等**）。
 
-### 5.4 智能建议（同步便捷接口）
+### 6.4 智能建议（同步便捷接口）
 
 ```http
 GET /ai/suggestions?type=finance
 ```
 
 **查询参数 `type`**：`inventory` | `finance` | `customer`。服务端会先创建一条异步任务记录，再 **同步调用 LLM** 返回 `{ "task": { … }, "suggestions": [ "字符串", … ] }`（条目数可能因模型输出而异）。
+
+### 6.5 AI预测服务
+
+#### 商机成单预测
+
+```http
+GET /ai/predictions/opportunity/:opportunityId
+```
+
+**响应**:
+```json
+{
+  "opportunityId": 1,
+  "customerName": "张三",
+  "opportunityName": "企业软件项目",
+  "currentStage": "proposal",
+  "estimatedAmount": "500000.00",
+  "winProbability": 75,
+  "expectedCloseDate": "2026-06-30",
+  "predictionFactors": [
+    {
+      "name": "跟进频率",
+      "impact": "positive",
+      "weight": 0.3,
+      "description": "近7天有3次跟进记录"
+    }
+  ],
+  "recommendedActions": [
+    "建议本周内发送正式报价单",
+    "邀请客户参观案例客户"
+  ],
+  "riskLevel": "medium"
+}
+```
+
+#### 批量预测商机
+
+```http
+GET /ai/predictions/opportunities?stage=proposal
+```
+
+#### 获取销售漏斗预测
+
+```http
+GET /ai/predictions/sales-funnel
+```
+
+#### 客户流失预警
+
+```http
+GET /ai/predictions/churn/:customerId
+```
+
+**响应**:
+```json
+{
+  "customerId": 1,
+  "customerName": "张三",
+  "churnRisk": "high",
+  "churnProbability": 85,
+  "riskFactors": [
+    {
+      "factor": "长时间未下单",
+      "impact": "high",
+      "description": "超过90天未产生新订单"
+    }
+  ],
+  "recommendedActions": [
+    "立即电话回访了解客户需求",
+    "提供专属优惠活动"
+  ],
+  "lastOrderDate": "2026-02-01",
+  "totalOrders": 10,
+  "totalAmount": "50000.00"
+}
+```
+
+#### 批量预测客户流失
+
+```http
+GET /ai/predictions/churn?riskLevel=high
+```
+
+#### 获取流失风险统计
+
+```http
+GET /ai/predictions/churn-stats
+```
+
+---
+
+## 7. 数据导出 (Export)
+
+### 7.1 PDF导出
+
+#### 导出销售订单PDF
+
+```http
+GET /export/pdf/sales-order/:orderId
+```
+
+**响应**: 返回HTML文件（可直接打印或转换为PDF）
+
+#### 导出报价单PDF
+
+```http
+GET /export/pdf/quotation/:quotationId
+```
+
+#### 导出对账单PDF
+
+```http
+GET /export/pdf/statement/:customerId?startDate=2026-05-01&endDate=2026-05-31
+```
+
+### 7.2 Excel/CSV导出
+
+```http
+GET /export/excel/customers
+GET /export/excel/products
+GET /export/excel/orders
+GET /export/csv/inventory
+```
 
 ---
 

@@ -2,6 +2,27 @@
 
 优效营（[uxyy.cn](https://uxyy.cn)）小微企业一体化经营系统。
 
+## 项目状态
+
+[![版本](https://img.shields.io/badge/version-v1.0.1-blue.svg)](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md)
+[![完成率](https://img.shields.io/badge/completion-96--98%25-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+
+**当前版本**: v1.0.1 (2026-05-07)
+
+**项目完成率**: 96-98%
+
+### v1.0.1 新增功能
+
+- ✅ **CRM模块**: 会员等级管理、会员积分、AI智能话术推荐、商机成单预测、客户流失预警
+- ✅ **进销存模块**: 多仓库管理、商品会员价设置、智能采购建议
+- ✅ **财务模块**: AI智能纠错、凭证错误检测与自动修复、财务健康度报告
+- ✅ **OA模块**: 考勤管理、打卡、补卡申请、部门考勤统计
+- ✅ **AI智能层**: 商机成单预测、客户流失预警、AI智能话术
+- ✅ **数据导出**: PDF导出（销售单、报价单、对账单）
+
+[查看完整更新日志](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md#版本更新记录)
+
 ## 工程默认值（并行开发最全栈）
 
 - **Monorepo**：[`pnpm`](https://pnpm.io/) workspaces + [**Turborepo**](https://turbo.build/)（根目录编排 `lint` / `typecheck` / `test` / `build`）。

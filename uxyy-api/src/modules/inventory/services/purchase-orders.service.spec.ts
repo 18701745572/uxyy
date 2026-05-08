@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { DRIZZLE_DB } from '../../database/database.constants';
 
@@ -96,7 +97,14 @@ describe('PurchaseOrdersService', () => {
     tx = mocks.tx;
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PurchaseOrdersService, { provide: DRIZZLE_DB, useValue: db }],
+      providers: [
+        PurchaseOrdersService,
+        { provide: DRIZZLE_DB, useValue: db },
+        {
+          provide: AutoAccountingService,
+          useValue: { autoAccountPurchaseOrder: jest.fn() },
+        },
+      ],
     }).compile();
 
     service = module.get<PurchaseOrdersService>(PurchaseOrdersService);

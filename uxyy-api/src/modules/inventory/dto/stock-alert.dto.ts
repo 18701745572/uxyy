@@ -12,6 +12,10 @@ import { Type } from 'class-transformer';
 export enum StockAlertType {
   LOW = 'low',
   HIGH = 'high',
+  /** 效期仍在窗口内但已过期前临界 / 临期（与 expiry_expired 区分见 severity） */
+  EXPIRY_WARN = 'expiry_warn',
+  /** 已过期且仍有结存 */
+  EXPIRY_EXPIRED = 'expiry_expired',
 }
 
 export enum StockAlertStatus {
@@ -35,7 +39,7 @@ export class StockAlertListQueryDto {
   @Min(1)
   pageSize?: number;
 
-  @ApiPropertyOptional({ description: '预警类型: low-低于下限, high-高于上限' })
+  @ApiPropertyOptional({ description: '预警类型（含效期类）' })
   @IsOptional()
   @IsEnum(StockAlertType)
   type?: StockAlertType;
@@ -61,7 +65,8 @@ export class CreateStockAlertDto {
   productId: number;
 
   @ApiProperty({
-    description: '预警类型: low-低于下限, high-高于上限',
+    description:
+      '预警类型: low / high / expiry_warn（临期）/ expiry_expired（已过期有结存）',
     enum: StockAlertType,
   })
   @IsEnum(StockAlertType)
@@ -114,7 +119,7 @@ export class StockAlertResponseDto {
   @ApiProperty({ description: '商品编码' })
   productCode: string;
 
-  @ApiProperty({ description: '预警类型: low-低于下限, high-高于上限' })
+  @ApiProperty({ description: '预警类型' })
   type: string;
 
   @ApiProperty({ description: '当前库存' })
@@ -164,4 +169,10 @@ export class StockAlertStatsDto {
 
   @ApiProperty({ description: '高于上限预警数量' })
   highCount: number;
+
+  @ApiProperty({ description: '临期（未过期）效期预警记录数' })
+  expiryWarnCount: number;
+
+  @ApiProperty({ description: '已过期仍有结存的效期预警记录数' })
+  expiryExpiredCount: number;
 }

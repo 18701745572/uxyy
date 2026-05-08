@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { StocktakingDto, StocktakingStatus, StocktakingItemDto } from "@uxyy/shared";
 import {
@@ -10,9 +11,13 @@ import {
   updateStocktakingItem,
   confirmStocktaking,
 } from "@/lib/api/stocktaking";
+import { fetchWarehouses } from "@/lib/api/warehouses";
+import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
+const selectCls =
+  "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
 
 const statusMap: Record<StocktakingStatus, string> = {
   draft: "草稿",
@@ -24,8 +29,13 @@ const statusColorMap: Record<StocktakingStatus, string> = {
   confirmed: "text-green-600",
 };
 
+type ScopeMode = "all" | "subset";
+
 interface StocktakingFormData {
-  warehouseId?: number;
+  warehouseId: number;
+  scope: ScopeMode;
+  /** 仅当 scope === 'subset' 时提交 */
+  productIds: number[];
   remark?: string;
 }
 
@@ -36,14 +46,82 @@ function StocktakingForm({
 }) {
   const [formData, setFormData] = useState<StocktakingFormData>({
     warehouseId: 1,
+    scope: "all",
+    productIds: [],
     remark: "",
   });
   const [error, setError] = useState("");
 
   const qc = useQueryClient();
 
+  const warehousesQ = useQuery({
+    queryKey: ["inventory", "warehouses", "stocktaking-form"],
+    queryFn: () => fetchWarehouses(),
+  });
+
+  const productsQ = useQuery({
+    queryKey: ["inventory", "products", "stocktaking-form"],
+    queryFn: () => fetchAllProducts(),
+    enabled: formData.scope === "subset",
+  });
+
+  /** 初次加载仓库列表后，预选默认仓库或第一个仓库 */
+  const warehouseInitRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      warehouseInitRef.current ||
+      !warehousesQ.data?.length ||
+      warehousesQ.isLoading
+    )
+      return;
+    const preferred =
+      warehousesQ.data.find((w) => w.isDefault) ?? warehousesQ.data[0];
+    if (!preferred) return;
+    warehouseInitRef.current = true;
+    setFormData((prev) =>
+      prev.warehouseId === 1 ? { ...prev, warehouseId: preferred.id } : prev,
+    );
+  }, [warehousesQ.data, warehousesQ.isLoading]);
+
+  const warehouses = warehousesQ.data ?? [];
+  const products = productsQ.data ?? [];
+
+  const toggleProduct = (productId: number) => {
+    setFormData((prev) => {
+      const set = new Set(prev.productIds);
+      if (set.has(productId)) set.delete(productId);
+      else set.add(productId);
+      return { ...prev, productIds: Array.from(set).sort((a, b) => a - b) };
+    });
+  };
+
+  const selectSubsetAllProducts = () => {
+    setFormData((prev) => ({
+      ...prev,
+      productIds: products.map((p) => p.id),
+    }));
+  };
+
+  const clearSubset = () => {
+    setFormData((prev) => ({ ...prev, productIds: [] }));
+  };
+
   const mutation = useMutation({
-    mutationFn: () => createStocktaking(formData),
+    mutationFn: () => {
+      const remark = formData.remark?.trim();
+      const body: Parameters<typeof createStocktaking>[0] = {
+        warehouseId:
+          Number.isFinite(formData.warehouseId) && formData.warehouseId > 0
+            ? formData.warehouseId
+            : 1,
+        ...(remark ? { remark } : {}),
+      };
+      if (formData.scope === "subset") {
+        body.productIds = [...formData.productIds];
+      }
+      return createStocktaking(body);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory", "stocktaking"] });
       onDone();
@@ -54,20 +132,179 @@ function StocktakingForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    if (formData.scope === "subset" && formData.productIds.length === 0) {
+      setError("请选择至少一个要盘点的商品，或改为「盘点全部有库存的商品」");
+      return;
+    }
     mutation.mutate();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <Input
-        label="仓库ID"
-        type="number"
-        value={formData.warehouseId}
-        onChange={(e) =>
-          setFormData((prev) => ({ ...prev, warehouseId: Number(e.target.value) }))
-        }
-        placeholder="1"
-      />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-zinc-700">仓库 *</label>
+        {warehousesQ.isLoading ? (
+          <p className="text-sm text-zinc-500">加载仓库…</p>
+        ) : warehousesQ.isError ? (
+          <p className="text-sm text-red-700 bg-red-50 rounded-md px-3 py-2">
+            仓库列表加载失败：
+            {warehousesQ.error instanceof Error
+              ? warehousesQ.error.message
+              : String(warehousesQ.error)}
+            。请检查登录态与 API 地址后重试。
+          </p>
+        ) : warehouses.length === 0 ? (
+          <>
+            <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
+              当前企业在数据库中<strong>尚无仓库主数据</strong>（
+              <code className="text-xs">warehouses</code> 表为空），接口{" "}
+              <code className="text-xs">GET /inventory/warehouses</code>{" "}
+              因此返回空列表。库存里写的{" "}
+              <code className="text-xs">warehouseId=1</code> 只是数字，不等于已有仓库档案。
+              请到「
+              <Link
+                href="/dashboard/inventory/warehouses"
+                className="underline font-medium text-amber-900"
+              >
+                进销存 → 仓库管理
+              </Link>
+              」查看；本地可执行后端{" "}
+              <code className="text-xs">pnpm db:seed</code>{" "}
+              自动创建「主仓库」，或用 API 新建仓库后再建盘点单。
+            </p>
+            <input
+              className={selectCls}
+              type="number"
+              min={1}
+              value={formData.warehouseId}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  warehouseId: Number(e.target.value),
+                }))
+              }
+            />
+          </>
+        ) : (
+          <select
+            className={selectCls}
+            value={String(formData.warehouseId)}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                warehouseId: Number(e.target.value),
+              }))
+            }
+            required
+          >
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+                {w.isDefault ? "（默认）" : ""} (#{w.id})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3 bg-zinc-50/80">
+        <span className="text-sm font-medium text-zinc-700">盘点范围</span>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="scope"
+            checked={formData.scope === "all"}
+            onChange={() =>
+              setFormData((prev) => ({ ...prev, scope: "all" }))
+            }
+          />
+          <span>
+            <strong className="font-medium text-zinc-800">盘点全部</strong>
+            ：包含<strong>当前所选仓库</strong>里<strong>有一条及以上库存记录</strong>的商品（不传{" "}
+            <code className="text-xs bg-zinc-200/80 px-1 rounded">
+              productIds
+            </code>
+            ，与后端默认行为一致）
+          </span>
+        </label>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="scope"
+            checked={formData.scope === "subset"}
+            onChange={() =>
+              setFormData((prev) => ({ ...prev, scope: "subset" }))
+            }
+          />
+          <span>
+            <strong className="font-medium text-zinc-800">仅盘点所选商品</strong>
+            ：提交{" "}
+            <code className="text-xs bg-zinc-200/80 px-1 rounded">
+              productIds
+            </code>
+          </span>
+        </label>
+      </div>
+
+      {formData.scope === "subset" && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium text-zinc-700">
+              勾选商品（{formData.productIds.length}）
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={products.length === 0}
+                onClick={selectSubsetAllProducts}
+              >
+                全选
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-zinc-600"
+                disabled={formData.productIds.length === 0}
+                onClick={clearSubset}
+              >
+                清空
+              </Button>
+            </div>
+          </div>
+          {productsQ.isLoading ? (
+            <p className="text-sm text-zinc-500">加载商品…</p>
+          ) : products.length === 0 ? (
+            <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
+              暂无商品，请先在「商品管理」中建档。
+            </p>
+          ) : (
+            <div className="max-h-52 overflow-y-auto rounded-md border border-zinc-200 bg-white px-3 py-2 space-y-1.5 text-sm">
+              {products.map((p) => (
+                <label
+                  key={p.id}
+                  className="flex items-center gap-2 cursor-pointer py-0.5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.productIds.includes(p.id)}
+                    onChange={() => toggleProduct(p.id)}
+                  />
+                  <span className="text-zinc-800">
+                    {p.name}{" "}
+                    <span className="text-zinc-500 text-xs">
+                      ({p.code}) #{p.id}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-zinc-700">备注</label>
@@ -298,7 +535,12 @@ export function StocktakingPanel() {
   if (creating) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建盘点单</h2>
+        <div className="mb-4 space-y-1">
+          <h2 className="font-medium text-zinc-900">新建盘点单</h2>
+          <p className="text-xs text-zinc-500">
+            请选择仓库与盘点范围（全盘不传 productIds；抽盘勾选商品）
+          </p>
+        </div>
         <StocktakingForm onDone={() => setCreating(false)} />
       </Card>
     );

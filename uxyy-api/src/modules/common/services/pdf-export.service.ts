@@ -1,4 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type {
+  ArApResponseDto,
+  BalanceSheetResponseDto,
+  CashFlowResponseDto,
+  IncomeStatementResponseDto,
+} from '../../finance/dto/report.dto';
 
 export interface PdfExportOptions {
   title: string;
@@ -747,5 +753,162 @@ export class PdfExportService {
   </div>
 </body>
 </html>`;
+  }
+
+  private financeReportShell(title: string, subtitle: string, bodyInner: string): string {
+    const now = new Date().toLocaleString('zh-CN');
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'SimSun','Microsoft YaHei',sans-serif; font-size: 12px; color: #333; padding: 24px; }
+    h1 { font-size: 18px; text-align: center; margin-bottom: 8px; color: #1890ff; }
+    .sub { text-align: center; color: #666; margin-bottom: 16px; }
+    .meta { text-align: right; font-size: 10px; color: #999; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #d9d9d9; padding: 8px; text-align: left; }
+    th { background: #f0f5ff; color: #1890ff; font-weight: bold; }
+    .num { text-align: right; font-family: Consolas,monospace; }
+    h2 { font-size: 14px; margin: 16px 0 8px; color: #333; }
+    .foot { margin-top: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div class="sub">${subtitle}</div>
+  <div class="meta">导出时间：${now}</div>
+  ${bodyInner}
+</body>
+</html>`;
+  }
+
+  /** 资产负债表 PDF（实为可打印 HTML） */
+  generateBalanceSheetHtml(r: BalanceSheetResponseDto): string {
+    const block = (
+      h: string,
+      rows: { code: string; name: string; amount: string }[],
+      total: string,
+      totalLabel: string,
+    ) => `
+      <h2>${h}</h2>
+      <table>
+        <thead><tr><th>科目编码</th><th>科目名称</th><th class="num">期末余额</th></tr></thead>
+        <tbody>
+          ${rows.map((x) => `<tr><td>${x.code}</td><td>${x.name}</td><td class="num">${x.amount}</td></tr>`).join('')}
+          <tr><td colspan="2"><strong>${totalLabel}</strong></td><td class="num"><strong>${total}</strong></td></tr>
+        </tbody>
+      </table>`;
+    const inner =
+      block('资产', r.assets, r.totalAssets, '资产合计') +
+      block('负债', r.liabilities, r.totalLiabilities, '负债合计') +
+      block('所有者权益', r.equity, r.totalEquity, '权益合计');
+    return this.financeReportShell('资产负债表', `截止日期：${r.period}`, inner);
+  }
+
+  generateIncomeStatementHtml(r: IncomeStatementResponseDto): string {
+    const rows: string[] = [];
+    const pushRows = (
+      caption: string,
+      items: { code: string; name: string; amount: string }[],
+      sub: string,
+      subLabel: string,
+    ) => {
+      rows.push(
+        `<tr><td colspan="4"><strong>${caption}</strong></td></tr>`,
+      );
+      for (const x of items) {
+        rows.push(
+          `<tr><td></td><td>${x.code}</td><td>${x.name}</td><td class="num">${x.amount}</td></tr>`,
+        );
+      }
+      rows.push(
+        `<tr><td colspan="3" class="num"><strong>${subLabel}</strong></td><td class="num"><strong>${sub}</strong></td></tr>`,
+      );
+    };
+    pushRows('营业收入', r.revenue, r.totalRevenue, '营业收入小计');
+    pushRows('营业成本', r.costs, r.totalCosts, '营业成本小计');
+    pushRows('期间费用', r.expenses, r.totalExpenses, '期间费用小计');
+    rows.push(
+      `<tr><td colspan="3"><strong>净利润</strong></td><td class="num"><strong>${r.netProfit}</strong></td></tr>`,
+    );
+    const inner = `
+      <p>会计期间：<strong>${r.period}</strong></p>
+      <table>
+        <thead><tr><th width="12%">报表段落</th><th width="12%">科目编码</th><th width="40%">科目名称</th><th width="16%">本期金额</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>`;
+    return this.financeReportShell('利润表', `期间：${r.period}`, inner);
+  }
+
+  generateCashFlowHtml(r: CashFlowResponseDto): string {
+    const rows: string[] = [];
+    const pushLines = (
+      caption: string,
+      lines: { code: string; name: string; amount: string }[],
+      net: string,
+      netLabel: string,
+    ) => {
+      rows.push(`<tr><td colspan="4"><strong>${caption}</strong></td></tr>`);
+      for (const x of lines) {
+        rows.push(
+          `<tr><td></td><td>${x.code}</td><td>${x.name}</td><td class="num">${x.amount}</td></tr>`,
+        );
+      }
+      rows.push(
+        `<tr><td colspan="3" class="num"><strong>${netLabel}</strong></td><td class="num"><strong>${net}</strong></td></tr>`,
+      );
+    };
+    pushLines('经营活动', r.operatingActivities, r.netOperatingCashFlow, '经营活动现金流量净额');
+    pushLines('投资活动', r.investingActivities, r.netInvestingCashFlow, '投资活动现金流量净额');
+    pushLines('筹资活动', r.financingActivities, r.netFinancingCashFlow, '筹资活动现金流量净额');
+    rows.push(
+      `<tr><td colspan="3">现金及等价物净增加额</td><td class="num">${r.netCashFlow}</td></tr>`,
+      `<tr><td colspan="3">期初现金及等价物余额</td><td class="num">${r.beginningCash}</td></tr>`,
+      `<tr><td colspan="3">期末现金及等价物余额</td><td class="num">${r.endingCash}</td></tr>`,
+    );
+    const inner = `
+      <p>会计期间：<strong>${r.period}</strong></p>
+      <table>
+        <thead><tr><th width="14%">报表段落</th><th width="12%">代码</th><th width="42%">项目</th><th width="16%">金额</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>`;
+    return this.financeReportShell('现金流量表', `期间：${r.period}`, inner);
+  }
+
+  generateArApHtml(r: ArApResponseDto): string {
+    const tbl = (
+      title: string,
+      rows: ArApResponseDto['receivables'],
+      total: string,
+    ) => `
+      <h2>${title}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>发票ID</th><th>往来单位</th><th>发票号码</th>
+            <th class="num">价税合计</th><th class="num">已收/已付</th><th class="num">余额</th>
+            <th>开票日期</th><th class="num">逾期天数</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (x) =>
+                `<tr><td>${x.id}</td><td>${x.name}</td><td>${x.invoiceNo}</td>
+                <td class="num">${x.amount}</td><td class="num">${x.paidAmount}</td><td class="num">${x.balance}</td>
+                <td>${x.issueDate ?? ''}</td><td class="num">${x.daysOverdue}</td></tr>`,
+            )
+            .join('')}
+          <tr>
+            <td colspan="7" class="foot"><strong>${title}余额合计</strong></td>
+            <td class="num foot"><strong>${total}</strong></td>
+          </tr>
+        </tbody>
+      </table>`;
+    const inner = tbl('应收账款', r.receivables, r.totalReceivables) + tbl('应付账款', r.payables, r.totalPayables);
+    return this.financeReportShell('应收应付明细', '已验证发票及回款勾稽（应付已付以凭证/后续模块为准）', inner);
   }
 }

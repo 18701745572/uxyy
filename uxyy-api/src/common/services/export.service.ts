@@ -46,6 +46,42 @@ export class ExportService {
   }
 
   /**
+   * 多工作表 Excel（用于资产负债表、应收应付等多段报表）
+   */
+  exportExcelWorkbook(
+    sheets: {
+      name: string;
+      data: Record<string, unknown>[];
+      columns: ExportColumn[];
+    }[],
+  ): Buffer {
+    const wb = XLSX.utils.book_new();
+    for (const sh of sheets) {
+      const formattedData = sh.data.map((row) => {
+        const formatted: Record<string, unknown> = {};
+        for (const col of sh.columns) {
+          const value = row[col.key];
+          formatted[col.header] = col.formatter ? col.formatter(value) : value;
+        }
+        return formatted;
+      });
+      const safeName = sh.name.replace(/[\\/*?:\[\]]/g, '_').slice(0, 31);
+      const ws = XLSX.utils.json_to_sheet(
+        formattedData.length
+          ? formattedData
+          : [
+              Object.fromEntries(
+                sh.columns.map((c) => [c.header, '']),
+              ),
+            ],
+      );
+      ws['!cols'] = sh.columns.map((c) => ({ wch: c.width || 15 }));
+      XLSX.utils.book_append_sheet(wb, ws, safeName || 'Sheet1');
+    }
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  /**
    * 导出 CSV 文件
    */
   exportToCsv<T extends Record<string, unknown>>(

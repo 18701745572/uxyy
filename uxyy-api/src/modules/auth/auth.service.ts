@@ -16,6 +16,11 @@ import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
 import { resolveJwtRefreshSecret } from './jwt-access-secret';
+import {
+  isBossRole,
+  normalizeEnterpriseRole,
+  UxyyRole,
+} from './role-permissions';
 
 function jwtExpiresIn(value: string): NonNullable<JwtSignOptions['expiresIn']> {
   return value as NonNullable<JwtSignOptions['expiresIn']>;
@@ -150,7 +155,7 @@ export class AuthService {
       await this.db.insert(schema.userEnterprises).values({
         userId: user.id,
         enterpriseId: enterprise.id,
-        role: 'owner',
+        role: UxyyRole.BOSS,
         isDefault: true,
       });
     }
@@ -159,7 +164,7 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(user.id),
       enterpriseId,
-      role: enterpriseId != null ? 'owner' : undefined,
+      role: enterpriseId != null ? UxyyRole.BOSS : undefined,
     });
 
     const refreshSecret = resolveJwtRefreshSecret(this.config);
@@ -222,6 +227,7 @@ export class AuthService {
       const accessToken = await this.jwt.signAsync({
         sub: String(user.id),
         enterpriseId,
+        role: membership?.role,
       });
 
       const expiresInRaw =
@@ -661,7 +667,14 @@ export class AuthService {
       throw new BadRequestException('审批流程步骤异常');
     }
 
-    if (currentStepDef.role !== userRole) {
+    const userCanonical = normalizeEnterpriseRole(userRole);
+    const stepCanonical = normalizeEnterpriseRole(currentStepDef.role);
+    const stepMatches =
+      userCanonical != null &&
+      stepCanonical != null &&
+      userCanonical === stepCanonical;
+    const bossOverride = isBossRole(userRole);
+    if (!stepMatches && !bossOverride) {
       throw new ForbiddenException(
         '当前审批步骤需要角色: ' + currentStepDef.role,
       );

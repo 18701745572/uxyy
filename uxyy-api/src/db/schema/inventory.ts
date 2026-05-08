@@ -1,4 +1,5 @@
 import {
+  boolean,
   decimal,
   index,
   integer,
@@ -13,7 +14,7 @@ import {
 import { relations } from 'drizzle-orm';
 
 import { enterprises, users } from './auth';
-import { customers } from './crm';
+import { customers, memberLevels } from './crm';
 import { orderStatusEnum } from './enums';
 
 // ==================== 商品分类 ====================
@@ -570,6 +571,47 @@ export const stocktakingItemsRelations = relations(
   }),
 );
 
+// ==================== 仓库管理 ====================
+export const warehouses = pgTable(
+  'warehouses',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    code: varchar('code', { length: 50 }),
+    address: text('address'),
+    managerId: integer('manager_id').references(() => users.id),
+    phone: varchar('phone', { length: 20 }),
+    isDefault: boolean('is_default').default(false),
+    status: varchar('status', { length: 20 }).default('active'),
+    remark: text('remark'),
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('warehouses_enterprise_idx').on(t.enterpriseId),
+    index('warehouses_status_idx').on(t.status),
+  ],
+);
+
+export const warehousesRelations = relations(warehouses, ({ one }) => ({
+  enterprise: one(enterprises, {
+    fields: [warehouses.enterpriseId],
+    references: [enterprises.id],
+  }),
+  manager: one(users, {
+    fields: [warehouses.managerId],
+    references: [users.id],
+  }),
+  createdByUser: one(users, {
+    fields: [warehouses.createdBy],
+    references: [users.id],
+  }),
+}));
+
 // ==================== 库存预警 ====================
 export const stockAlerts = pgTable(
   'stock_alerts',
@@ -581,7 +623,7 @@ export const stockAlerts = pgTable(
     productId: integer('product_id')
       .references(() => products.id)
       .notNull(),
-    type: varchar('type', { length: 20 }).notNull(), // low: 低于下限, high: 高于上限
+    type: varchar('type', { length: 20 }).notNull(), // low, high, expiry_warn, expiry_expired
     currentStock: decimal('current_stock', {
       precision: 12,
       scale: 2,

@@ -17,6 +17,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { requireJwtUserId } from '../../../common/utils/jwt-request-context';
 import { SalesOrdersService } from '../services/sales-orders.service';
 import {
   ApproveOrderDto,
@@ -33,15 +34,6 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
   if (!u || typeof u !== 'object') return undefined;
   const raw = (u as { enterpriseId?: unknown }).enterpriseId;
   return typeof raw === 'number' && !Number.isNaN(raw) ? raw : undefined;
-}
-
-function userIdFromRequest(req: Express.Request): number {
-  const u = req.user;
-  if (u && typeof u === 'object') {
-    const raw = (u as { id?: unknown }).id;
-    if (typeof raw === 'number') return raw;
-  }
-  return 0;
 }
 
 @ApiTags('inventory')
@@ -78,7 +70,7 @@ export class SalesOrdersController {
     return this.service.create(
       enterpriseIdFromRequest(req),
       body,
-      userIdFromRequest(req),
+      requireJwtUserId(req),
     );
   }
 
@@ -136,7 +128,7 @@ export class SalesOrdersController {
       id,
       enterpriseIdFromRequest(req),
       body,
-      userIdFromRequest(req),
+      requireJwtUserId(req),
     );
   }
 
@@ -150,7 +142,7 @@ export class SalesOrdersController {
     return this.service.cancel(
       id,
       enterpriseIdFromRequest(req),
-      userIdFromRequest(req),
+      requireJwtUserId(req),
     );
   }
 }

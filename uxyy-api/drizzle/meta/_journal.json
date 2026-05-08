@@ -78,6 +78,20 @@
       "when": 1778164484187,
       "tag": "0010_lively_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778200000000,
+      "tag": "0016_operation_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778300000000,
+      "tag": "0017_add_warehouses_table",
+      "breakpoints": true
     }
   ]
 }

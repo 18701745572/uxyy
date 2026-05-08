@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { eq, and, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -25,6 +25,13 @@ export interface UpdateWarehouseDto {
   status?: string;
 }
 
+function requireEnterpriseId(enterpriseId: number | undefined): number {
+  if (enterpriseId == null || Number.isNaN(Number(enterpriseId))) {
+    throw new ForbiddenException('当前会话未绑定企业，无法操作仓库');
+  }
+  return enterpriseId;
+}
+
 @Injectable()
 export class WarehouseService {
   constructor(
@@ -34,14 +41,15 @@ export class WarehouseService {
   /**
    * 创建仓库
    */
-  async create(enterpriseId: number, dto: CreateWarehouseDto, userId: number) {
+  async create(enterpriseId: number | undefined, dto: CreateWarehouseDto, userId: number) {
+    const eid = requireEnterpriseId(enterpriseId);
     // 检查是否已存在同名仓库
     const [existing] = await this.db
       .select()
       .from(schema.warehouses)
       .where(
         and(
-          eq(schema.warehouses.enterpriseId, enterpriseId),
+          eq(schema.warehouses.enterpriseId, eid),
           eq(schema.warehouses.name, dto.name),
         ),
       );
@@ -57,7 +65,7 @@ export class WarehouseService {
         .set({ isDefault: false })
         .where(
           and(
-            eq(schema.warehouses.enterpriseId, enterpriseId),
+            eq(schema.warehouses.enterpriseId, eid),
             eq(schema.warehouses.isDefault, true),
           ),
         );
@@ -66,7 +74,7 @@ export class WarehouseService {
     const [warehouse] = await this.db
       .insert(schema.warehouses)
       .values({
-        enterpriseId,
+        enterpriseId: eid,
         ...dto,
         createdBy: userId,
       })
@@ -78,8 +86,15 @@ export class WarehouseService {
   /**
    * 获取仓库列表
    */
-  async findAll(enterpriseId: number, status?: string) {
-    let query = this.db
+  async findAll(enterpriseId: number | undefined, status?: string) {
+    const eid = requireEnterpriseId(enterpriseId);
+    const conditions = [eq(schema.warehouses.enterpriseId, eid)];
+
+    if (status) {
+      conditions.push(eq(schema.warehouses.status, status));
+    }
+
+    const warehouses = await this.db
       .select({
         warehouse: schema.warehouses,
         manager: schema.users,
@@ -89,13 +104,8 @@ export class WarehouseService {
         schema.users,
         eq(schema.warehouses.managerId, schema.users.id),
       )
-      .where(eq(schema.warehouses.enterpriseId, enterpriseId));
-
-    if (status) {
-      query = query.where(eq(schema.warehouses.status, status));
-    }
-
-    const warehouses = await query.orderBy(schema.warehouses.createdAt);
+      .where(and(...conditions))
+      .orderBy(schema.warehouses.createdAt);
 
     // 获取每个仓库的库存统计
     const result = [];
@@ -108,14 +118,14 @@ export class WarehouseService {
         .from(schema.inventory)
         .where(
           and(
-            eq(schema.inventory.enterpriseId, enterpriseId),
+            eq(schema.inventory.enterpriseId, eid),
             eq(schema.inventory.warehouseId, warehouse.id),
           ),
         );
 
       result.push({
         ...warehouse,
-        managerName: manager?.name || manager?.username,
+        managerName: manager?.nickname || manager?.phone,
         productCount: stats?.productCount || 0,
         totalQuantity: stats?.totalQuantity || '0',
       });
@@ -127,7 +137,8 @@ export class WarehouseService {
   /**
    * 获取仓库详情
    */
-  async findOne(id: number, enterpriseId: number) {
+  async findOne(id: number, enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
     const [warehouse] = await this.db
       .select({
         warehouse: schema.warehouses,
@@ -141,7 +152,7 @@ export class WarehouseService {
       .where(
         and(
           eq(schema.warehouses.id, id),
-          eq(schema.warehouses.enterpriseId, enterpriseId),
+          eq(schema.warehouses.enterpriseId, eid),
         ),
       );
 
@@ -158,7 +169,7 @@ export class WarehouseService {
       .from(schema.inventory)
       .where(
         and(
-          eq(schema.inventory.enterpriseId, enterpriseId),
+          eq(schema.inventory.enterpriseId, eid),
           eq(schema.inventory.warehouseId, id),
         ),
       );
@@ -176,14 +187,14 @@ export class WarehouseService {
       )
       .where(
         and(
-          eq(schema.inventory.enterpriseId, enterpriseId),
+          eq(schema.inventory.enterpriseId, eid),
           eq(schema.inventory.warehouseId, id),
         ),
       );
 
     return {
       ...warehouse.warehouse,
-      managerName: warehouse.manager?.name || warehouse.manager?.username,
+      managerName: warehouse.manager?.nickname || warehouse.manager?.phone,
       productCount: stats?.productCount || 0,
       totalQuantity: stats?.totalQuantity || '0',
       inventory: inventory.map(({ inventory, product }) => ({
@@ -197,14 +208,15 @@ export class WarehouseService {
   /**
    * 更新仓库
    */
-  async update(id: number, enterpriseId: number, dto: UpdateWarehouseDto) {
+  async update(id: number, enterpriseId: number | undefined, dto: UpdateWarehouseDto) {
+    const eid = requireEnterpriseId(enterpriseId);
     const [existing] = await this.db
       .select()
       .from(schema.warehouses)
       .where(
         and(
           eq(schema.warehouses.id, id),
-          eq(schema.warehouses.enterpriseId, enterpriseId),
+          eq(schema.warehouses.enterpriseId, eid),
         ),
       );
 
@@ -219,7 +231,7 @@ export class WarehouseService {
         .set({ isDefault: false })
         .where(
           and(
-            eq(schema.warehouses.enterpriseId, enterpriseId),
+            eq(schema.warehouses.enterpriseId, eid),
             eq(schema.warehouses.isDefault, true),
             sql`${schema.warehouses.id} != ${id}`,
           ),
@@ -232,7 +244,12 @@ export class WarehouseService {
         ...dto,
         updatedAt: new Date(),
       })
-      .where(eq(schema.warehouses.id, id))
+      .where(
+        and(
+          eq(schema.warehouses.id, id),
+          eq(schema.warehouses.enterpriseId, eid),
+        ),
+      )
       .returning();
 
     return updated;
@@ -241,7 +258,8 @@ export class WarehouseService {
   /**
    * 删除仓库
    */
-  async remove(id: number, enterpriseId: number) {
+  async remove(id: number, enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
     // 检查是否有库存
     const [inventory] = await this.db
       .select()
@@ -249,7 +267,7 @@ export class WarehouseService {
       .where(
         and(
           eq(schema.inventory.warehouseId, id),
-          eq(schema.inventory.enterpriseId, enterpriseId),
+          eq(schema.inventory.enterpriseId, eid),
           sql`${schema.inventory.quantity} > 0`,
         ),
       )
@@ -264,7 +282,7 @@ export class WarehouseService {
       .where(
         and(
           eq(schema.warehouses.id, id),
-          eq(schema.warehouses.enterpriseId, enterpriseId),
+          eq(schema.warehouses.enterpriseId, eid),
         ),
       )
       .returning();
@@ -275,13 +293,14 @@ export class WarehouseService {
   /**
    * 获取默认仓库
    */
-  async getDefaultWarehouse(enterpriseId: number) {
+  async getDefaultWarehouse(enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
     const [warehouse] = await this.db
       .select()
       .from(schema.warehouses)
       .where(
         and(
-          eq(schema.warehouses.enterpriseId, enterpriseId),
+          eq(schema.warehouses.enterpriseId, eid),
           eq(schema.warehouses.isDefault, true),
           eq(schema.warehouses.status, 'active'),
         ),
@@ -293,7 +312,11 @@ export class WarehouseService {
   /**
    * 获取仓库库存汇总
    */
-  async getWarehouseInventorySummary(enterpriseId: number, warehouseId: number) {
+  async getWarehouseInventorySummary(
+    enterpriseId: number | undefined,
+    warehouseId: number,
+  ) {
+    const eid = requireEnterpriseId(enterpriseId);
     const summary = await this.db
       .select({
         productId: schema.inventory.productId,
@@ -310,7 +333,7 @@ export class WarehouseService {
       )
       .where(
         and(
-          eq(schema.inventory.enterpriseId, enterpriseId),
+          eq(schema.inventory.enterpriseId, eid),
           eq(schema.inventory.warehouseId, warehouseId),
         ),
       );

@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -22,6 +23,9 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { Permission } from '../auth/role-permissions';
 import { FinanceService } from './finance.service';
 import {
   CreateAccountSubjectDto,
@@ -63,6 +67,7 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
 
 @ApiTags('finance')
 @Controller('finance')
+@UseGuards(PermissionsGuard)
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 
@@ -79,6 +84,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('invoices/ocr')
+  @Permissions(Permission.FIN_WRITE)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -105,6 +111,7 @@ export class FinanceController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: '未登录或未绑定企业上下文' })
   @Get('invoices')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '发票分页列表' })
   async listInvoices(
     @Req() req: Express.Request,
@@ -122,6 +129,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('invoices')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '录入发票（手动）' })
   async createInvoice(
     @Req() req: Express.Request,
@@ -132,6 +140,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('invoices/:id')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '发票详情' })
   async getInvoice(
     @Req() req: Express.Request,
@@ -142,6 +151,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Patch('invoices/:id')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '修改发票（仅未验证状态）' })
   async patchInvoice(
     @Req() req: Express.Request,
@@ -153,6 +163,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('invoices/:id/verify')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '验证发票 → status=verified' })
   async verifyInvoice(
     @Req() req: Express.Request,
@@ -163,6 +174,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('invoices/:id/enter')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({
     summary: '发票入账 → status=entered + 自动生成凭证',
     description:
@@ -179,6 +191,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('account-subjects')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '会计科目列表（当前企业）' })
   async listAccountSubjects(
     @Req() req: Express.Request,
@@ -188,6 +201,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('account-subjects')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '新增会计科目' })
   async createAccountSubject(
     @Req() req: Express.Request,
@@ -201,6 +215,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('account-subjects/:id')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '会计科目详情' })
   async getAccountSubject(
     @Req() req: Express.Request,
@@ -211,6 +226,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Patch('account-subjects/:id')
+  @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '修改会计科目' })
   async patchAccountSubject(
     @Req() req: Express.Request,
@@ -228,6 +244,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('vouchers')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '凭证分页列表' })
   async listVouchers(
     @Req() req: Express.Request,
@@ -245,6 +262,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Post('vouchers')
+  @Permissions(Permission.FIN_VOUCHER)
   @ApiOperation({
     summary: '手动创建凭证',
     description: '借方和贷方科目不能相同；金额以字符串传入避免浮点误差',
@@ -258,6 +276,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('vouchers/:id')
+  @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '凭证详情' })
   async getVoucher(
     @Req() req: Express.Request,
@@ -270,6 +289,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('reports/dashboard')
+  @Permissions(Permission.FIN_REPORT)
   @ApiOperation({ summary: '经营概览报表' })
   async getDashboard(
     @Req() req: Express.Request,
@@ -284,6 +304,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('reports/balance-sheet')
+  @Permissions(Permission.FIN_REPORT)
   @ApiOperation({ summary: '资产负债表' })
   async getBalanceSheet(
     @Req() req: Express.Request,
@@ -297,6 +318,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('reports/income-statement')
+  @Permissions(Permission.FIN_REPORT)
   @ApiOperation({ summary: '利润表' })
   async getIncomeStatement(
     @Req() req: Express.Request,
@@ -310,6 +332,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('reports/cash-flow')
+  @Permissions(Permission.FIN_REPORT)
   @ApiOperation({ summary: '现金流量表' })
   async getCashFlow(
     @Req() req: Express.Request,
@@ -320,6 +343,7 @@ export class FinanceController {
 
   @ApiBearerAuth()
   @Get('reports/ar-ap')
+  @Permissions(Permission.FIN_REPORT)
   @ApiOperation({ summary: '应收应付汇总' })
   async getArAp(@Req() req: Express.Request): Promise<ArApResponseDto> {
     return this.finance.getArAp(enterpriseIdFromRequest(req));

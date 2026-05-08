@@ -3,6 +3,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UxyyRole } from './role-permissions';
 
 function mockAuth(): Partial<AuthService> {
   return {
@@ -93,6 +94,40 @@ describe('AuthController', () => {
       const dto = { phone: '138', oldPassword: 'old', newPassword: 'new' };
       await controller.resetPassword(dto);
       expect(auth.resetPassword).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  // ── permissions ──
+
+  describe('GET /auth/permissions', () => {
+    it('should return catalog, valid role codes and presets for boss', () => {
+      const res = controller.authPermissions(
+        mockReq({ user: { userId: 1, enterpriseId: 10, role: UxyyRole.BOSS } }),
+      );
+      expect(res.roleRaw).toBe('boss');
+      expect(res.canonicalRole).toBe('boss');
+      expect(res.permissions.length).toBeGreaterThan(0);
+      expect(res.permissionCatalog.length).toBeGreaterThan(0);
+      expect(res.validRoleCodes).toEqual(
+        expect.arrayContaining(Object.values(UxyyRole)),
+      );
+      expect(res.presets.length).toBe(Object.values(UxyyRole).length);
+    });
+
+    it('should normalize historical owner to boss', () => {
+      const res = controller.authPermissions(
+        mockReq({ user: { userId: 1, enterpriseId: 10, role: 'owner' } }),
+      );
+      expect(res.roleRaw).toBe('owner');
+      expect(res.canonicalRole).toBe('boss');
+    });
+
+    it('should throw ForbiddenException when role is missing', () => {
+      expect(() =>
+        controller.authPermissions(
+          mockReq({ user: { userId: 1, enterpriseId: 10 } }),
+        ),
+      ).toThrow(ForbiddenException);
     });
   });
 

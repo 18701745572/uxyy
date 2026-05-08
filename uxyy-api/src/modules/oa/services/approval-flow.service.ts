@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
@@ -10,6 +15,44 @@ import type {
   ApprovalActionDto,
 } from '../dtos/approval-flow.dto';
 
+function cleanThreshold(t?: { gte?: number; lte?: number }) {
+  if (!t) return undefined;
+  const out: { gte?: number; lte?: number } = {};
+  if (typeof t.gte === 'number' && Number.isFinite(t.gte)) out.gte = t.gte;
+  if (typeof t.lte === 'number' && Number.isFinite(t.lte)) out.lte = t.lte;
+  return Object.keys(out).length ? out : undefined;
+}
+
+function cleanCondition(c?: ApprovalStep['condition']): ApprovalStep['condition'] | undefined {
+  if (!c) return undefined;
+  const amount = cleanThreshold(c.amount);
+  const days = cleanThreshold(c.days);
+  if (!amount && !days) return undefined;
+  return {
+    ...(amount ? { amount } : {}),
+    ...(days ? { days } : {}),
+  };
+}
+
+function normalizeSteps(raw: ApprovalStep[]): ApprovalStep[] {
+  if (!raw?.length) {
+    throw new BadRequestException('审批流程至少包含一个步骤');
+  }
+  const sorted = [...raw].sort((a, b) => a.step - b.step);
+  return sorted.map((s, i) => {
+    const step: ApprovalStep = {
+      role: s.role,
+      step: i + 1,
+    };
+    if (typeof s.userId === 'number' && Number.isInteger(s.userId) && s.userId > 0) {
+      step.userId = s.userId;
+    }
+    const cond = cleanCondition(s.condition);
+    if (cond) step.condition = cond;
+    return step;
+  });
+}
+
 @Injectable()
 export class ApprovalFlowService {
   constructor(
@@ -17,13 +60,14 @@ export class ApprovalFlowService {
   ) {}
 
   async createFlow(enterpriseId: number, dto: CreateApprovalFlowDto) {
+    const steps = normalizeSteps(dto.steps as ApprovalStep[]);
     const [flow] = await this.db
       .insert(schema.approvalFlows)
       .values({
         enterpriseId,
         name: dto.name,
         type: dto.type,
-        steps: dto.steps as ApprovalStep[],
+        steps,
       })
       .returning();
     return flow;
@@ -62,11 +106,14 @@ export class ApprovalFlowService {
 
   async updateFlow(id: number, enterpriseId: number, dto: UpdateApprovalFlowDto) {
     await this.findFlowById(id, enterpriseId);
+    const stepsPatch = dto.steps
+      ? normalizeSteps(dto.steps as ApprovalStep[])
+      : undefined;
     const [flow] = await this.db
       .update(schema.approvalFlows)
       .set({
         ...(dto.name && { name: dto.name }),
-        ...(dto.steps && { steps: dto.steps as ApprovalStep[] }),
+        ...(stepsPatch && { steps: stepsPatch }),
         ...(dto.status && { status: dto.status }),
       })
       .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)))

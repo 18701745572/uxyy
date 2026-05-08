@@ -61,21 +61,30 @@ export class OpportunityPredictionService {
     const factors: PredictionFactor[] = [];
     let baseProbability = 20; // 基础概率20%
 
-    // 1. 阶段因子
+    // 1. 阶段因子 (使用 status 字段作为 stage)
     const stageWeights: Record<string, number> = {
-      '初步接触': 10,
-      '需求确认': 25,
-      '方案报价': 45,
-      '谈判阶段': 70,
-      '赢单': 100,
-      '输单': 0,
+      'potential': 10,
+      'intention': 25,
+      'quotation': 45,
+      'deal': 70,
+      'after_sales': 100,
+      'lost': 0,
     };
-    const stageWeight = stageWeights[opportunity.opportunity.stage] || 20;
+    const stageNames: Record<string, string> = {
+      'potential': '初步接触',
+      'intention': '需求确认',
+      'quotation': '方案报价',
+      'deal': '谈判阶段',
+      'after_sales': '赢单',
+      'lost': '输单',
+    };
+    const stage = opportunity.opportunity.status || 'potential';
+    const stageWeight = stageWeights[stage] || 20;
     factors.push({
       name: '销售阶段',
       impact: stageWeight > 50 ? 'positive' : 'neutral',
       weight: 0.3,
-      description: `当前处于${opportunity.opportunity.stage}阶段，该阶段平均成单率${stageWeight}%`,
+      description: `当前处于${stageNames[stage] || stage}阶段，该阶段平均成单率${stageWeight}%`,
     });
 
     // 2. 跟进频率因子
@@ -160,10 +169,10 @@ export class OpportunityPredictionService {
       });
     }
 
-    // 4. 预计成交时间因子
-    if (opportunity.opportunity.expectedCloseDate) {
+    // 4. 预计成交时间因子 (使用 expectedCloseAt 字段)
+    if (opportunity.opportunity.expectedCloseAt) {
       const daysToClose = Math.floor(
-        (new Date(opportunity.opportunity.expectedCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        (new Date(opportunity.opportunity.expectedCloseAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       );
 
       if (daysToClose < 0) {
@@ -200,13 +209,13 @@ export class OpportunityPredictionService {
       }
     }
 
-    // 5. 报价因子
-    if (opportunity.opportunity.quotationSent) {
+    // 5. 报价因子 (根据状态判断)
+    if (opportunity.opportunity.status === 'quotation' || opportunity.opportunity.status === 'deal' || opportunity.opportunity.status === 'after_sales') {
       factors.push({
         name: '报价状态',
         impact: 'positive',
         weight: 0.1,
-        description: '已发送报价，客户正在评估',
+        description: '已进入报价或后续阶段，客户正在评估',
       });
       baseProbability += 10;
     }
@@ -226,10 +235,10 @@ export class OpportunityPredictionService {
       opportunityId,
       customerName: opportunity.customer?.name || '未知客户',
       opportunityName: opportunity.opportunity.name,
-      currentStage: opportunity.opportunity.stage,
+      currentStage: opportunity.opportunity.status || 'potential',
       estimatedAmount: opportunity.opportunity.estimatedAmount || '0',
       winProbability,
-      expectedCloseDate: opportunity.opportunity.expectedCloseDate?.toISOString().split('T')[0] || '',
+      expectedCloseDate: opportunity.opportunity.expectedCloseAt?.toISOString().split('T')[0] || '',
       predictionFactors: factors,
       recommendedActions,
       riskLevel,
@@ -240,21 +249,19 @@ export class OpportunityPredictionService {
    * 批量预测商机
    */
   async batchPredictOpportunities(enterpriseId: number, stage?: string) {
-    let query = this.db
-      .select({ id: schema.opportunities.id })
-      .from(schema.opportunities)
-      .where(
-        and(
-          eq(schema.opportunities.enterpriseId, enterpriseId),
-          sql`${schema.opportunities.stage} NOT IN ('赢单', '输单')`,
-        ),
-      );
+    const conditions = [
+      eq(schema.opportunities.enterpriseId, enterpriseId),
+      sql`${schema.opportunities.status} NOT IN ('after_sales', 'lost')`,
+    ];
 
     if (stage) {
-      query = query.where(eq(schema.opportunities.stage, stage));
+      conditions.push(eq(schema.opportunities.status, stage));
     }
 
-    const opportunities = await query;
+    const opportunities = await this.db
+      .select({ id: schema.opportunities.id })
+      .from(schema.opportunities)
+      .where(and(...conditions));
     const predictions: OpportunityPrediction[] = [];
 
     for (const { id } of opportunities) {

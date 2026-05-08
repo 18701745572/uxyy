@@ -17,7 +17,7 @@ import { WarehouseService, type CreateWarehouseDto, type UpdateWarehouseDto } fr
 
 interface UserContext {
   userId: number;
-  enterpriseId: number;
+  enterpriseId?: number;
   role?: string;
 }
 

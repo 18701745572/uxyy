@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -17,6 +18,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { requireJwtUserId } from '../../../common/utils/jwt-request-context';
 import { PurchaseOrdersService } from '../services/purchase-orders.service';
 import {
   ApprovePurchaseOrderDto,
@@ -33,15 +35,6 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
   if (!u || typeof u !== 'object') return undefined;
   const raw = (u as { enterpriseId?: unknown }).enterpriseId;
   return typeof raw === 'number' && !Number.isNaN(raw) ? raw : undefined;
-}
-
-function userIdFromRequest(req: Express.Request): number {
-  const u = req.user;
-  if (u && typeof u === 'object') {
-    const raw = (u as { id?: unknown }).id;
-    if (typeof raw === 'number') return raw;
-  }
-  return 0;
 }
 
 @ApiTags('inventory')
@@ -78,8 +71,18 @@ export class PurchaseOrdersController {
     return this.service.create(
       enterpriseIdFromRequest(req),
       body,
-      userIdFromRequest(req),
+      requireJwtUserId(req),
     );
+  }
+
+  @ApiBearerAuth()
+  @Delete(':id')
+  @ApiOperation({ summary: '删除草稿采购单' })
+  async remove(
+    @Req() req: Express.Request,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.service.remove(id, enterpriseIdFromRequest(req));
   }
 
   @ApiBearerAuth()
@@ -136,7 +139,7 @@ export class PurchaseOrdersController {
       id,
       enterpriseIdFromRequest(req),
       body,
-      userIdFromRequest(req),
+      requireJwtUserId(req),
     );
   }
 

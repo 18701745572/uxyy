@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -128,8 +128,29 @@ export class PurchaseOrdersService {
       .limit(params.pageSize)
       .offset(offset);
 
+    const orderIds = rows.map((r) => r.id);
+    const itemRows =
+      orderIds.length > 0
+        ? await this.db
+            .select()
+            .from(schema.purchaseOrderItems)
+            .where(inArray(schema.purchaseOrderItems.orderId, orderIds))
+        : [];
+
+    const itemsByOrder = new Map<
+      number,
+      Array<typeof schema.purchaseOrderItems.$inferSelect>
+    >();
+    for (const ir of itemRows) {
+      const arr = itemsByOrder.get(ir.orderId) ?? [];
+      arr.push(ir);
+      itemsByOrder.set(ir.orderId, arr);
+    }
+
     return {
-      items: rows.map((r) => mapOrderRow(r)),
+      items: rows.map((r) =>
+        mapOrderRow(r, (itemsByOrder.get(r.id) ?? []).map(mapItemRow)),
+      ),
       total,
       page: params.page,
       pageSize: params.pageSize,
@@ -246,7 +267,13 @@ export class PurchaseOrdersService {
       .returning();
 
     if (!updated) throw new NotFoundException('采购单不存在');
-    return mapOrderRow(updated);
+
+    const items = await this.db
+      .select()
+      .from(schema.purchaseOrderItems)
+      .where(eq(schema.purchaseOrderItems.orderId, id));
+
+    return mapOrderRow(updated, items.map(mapItemRow));
   }
 
   async submit(id: number, enterpriseId: number | undefined) {
@@ -453,5 +480,30 @@ export class PurchaseOrdersService {
 
       return { ok: true, orderId: id };
     });
+  }
+
+  async remove(id: number, enterpriseId: number | undefined) {
+    const eid = requireEnterpriseId(enterpriseId);
+    const order = await this.findOne(id, enterpriseId);
+
+    if (order.status !== 'draft') {
+      throw new BadRequestException('仅草稿状态的采购单可删除');
+    }
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .delete(schema.purchaseOrderItems)
+        .where(eq(schema.purchaseOrderItems.orderId, id));
+      await tx
+        .delete(schema.purchaseOrders)
+        .where(
+          and(
+            eq(schema.purchaseOrders.id, id),
+            eq(schema.purchaseOrders.enterpriseId, eid),
+          ),
+        );
+    });
+
+    return { ok: true, id };
   }
 }

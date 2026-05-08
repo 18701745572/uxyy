@@ -10,6 +10,7 @@ import {
   type OpportunityResponseDto,
   type OpportunityStatus,
   type CreateOpportunityDto,
+  type UpdateOpportunityDto,
 } from "@/lib/api/crm";
 import {
   fetchCustomersAllPages,
@@ -43,7 +44,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Search, Plus, Edit, Trash2, FileText } from "lucide-react";
 
 const statusLabels: Record<OpportunityStatus, string> = {
   potential: "潜在",
@@ -62,6 +64,74 @@ const statusColors: Record<OpportunityStatus, string> = {
   after_sales: "bg-purple-100 text-purple-800",
   lost: "bg-red-100 text-red-800",
 };
+
+const NO_CUSTOMER_VALUE = "__none__";
+
+function buildCreateOpportunityBody(
+  form: CreateOpportunityDto,
+): CreateOpportunityDto {
+  const body: CreateOpportunityDto = {
+    customerId: form.customerId,
+    name: form.name.trim(),
+    status: form.status,
+    probability: form.probability ?? 0,
+  };
+  const desc = form.description?.trim();
+  if (desc) body.description = desc;
+  const remark = form.remark?.trim();
+  if (remark) body.remark = remark;
+  if (form.estimatedAmount != null) body.estimatedAmount = form.estimatedAmount;
+  if (form.actualAmount != null) body.actualAmount = form.actualAmount;
+  const exp = form.expectedCloseAt?.trim();
+  if (exp) body.expectedCloseAt = exp;
+  const act = form.actualCloseAt?.trim();
+  if (act) body.actualCloseAt = act;
+  if (form.assignedTo != null && form.assignedTo > 0) {
+    body.assignedTo = form.assignedTo;
+  }
+  return body;
+}
+
+function buildUpdateOpportunityBody(
+  form: CreateOpportunityDto,
+  initial: OpportunityResponseDto,
+): UpdateOpportunityDto {
+  const body: UpdateOpportunityDto = {
+    name: form.name.trim(),
+    status: form.status,
+    probability: form.probability ?? 0,
+  };
+
+  const desc = form.description?.trim();
+  if (desc) body.description = desc;
+  else if (initial.description?.trim()) body.description = null;
+
+  const remark = form.remark?.trim();
+  if (remark) body.remark = remark;
+  else if (initial.remark?.trim()) body.remark = "";
+
+  if (form.estimatedAmount != null) body.estimatedAmount = form.estimatedAmount;
+  else if (initial.estimatedAmount != null) body.estimatedAmount = null;
+
+  if (form.actualAmount != null) body.actualAmount = form.actualAmount;
+  else if (initial.actualAmount != null) body.actualAmount = null;
+
+  const exp = form.expectedCloseAt?.trim();
+  if (exp) body.expectedCloseAt = exp;
+  else if (initial.expectedCloseAt) body.expectedCloseAt = null;
+
+  const act = form.actualCloseAt?.trim();
+  if (act) body.actualCloseAt = act;
+  else if (initial.actualCloseAt) body.actualCloseAt = null;
+
+  if (form.assignedTo != null && form.assignedTo > 0) {
+    body.assignedTo = form.assignedTo;
+  } else if (initial.assignedTo != null && initial.assignedTo > 0) {
+    body.assignedTo = null;
+  }
+
+  return body;
+}
 
 export default function OpportunitiesPage() {
   return (
@@ -105,7 +175,7 @@ function OpportunitiesPanel() {
   });
 
   const updateM = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateOpportunityDto }) =>
+    mutationFn: ({ id, data }: { id: number; data: UpdateOpportunityDto }) =>
       updateOpportunity(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["crm", "opportunities"] });
@@ -169,8 +239,9 @@ function OpportunitiesPanel() {
               <DialogTitle>新增商机</DialogTitle>
             </DialogHeader>
             <OpportunityForm
+              mode="create"
               customers={customersQ.data?.items || []}
-              onSubmit={(data) => createM.mutate(data)}
+              onCreateSubmit={(data) => createM.mutate(data)}
               isSubmitting={createM.isPending}
             />
           </DialogContent>
@@ -208,7 +279,14 @@ function OpportunitiesPanel() {
             ) : (
               q.data?.items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/dashboard/crm/opportunities/${item.id}`}
+                      className="text-zinc-900 hover:underline"
+                    >
+                      {item.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{item.customerName || "-"}</TableCell>
                   <TableCell>
                     <Badge className={statusColors[item.status]}>
@@ -231,6 +309,15 @@ function OpportunitiesPanel() {
                   <TableCell>{item.assignedTo || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link
+                          href={`/dashboard/crm/opportunities/${item.id}`}
+                          title="详情"
+                          aria-label="商机详情"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Link>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -289,9 +376,11 @@ function OpportunitiesPanel() {
           </DialogHeader>
           {editing && (
             <OpportunityForm
+              key={editing.id}
+              mode="edit"
               customers={customersQ.data?.items || []}
               initialData={editing}
-              onSubmit={(data) =>
+              onUpdateSubmit={(data) =>
                 updateM.mutate({ id: editing.id, data })
               }
               isSubmitting={updateM.isPending}
@@ -304,14 +393,18 @@ function OpportunitiesPanel() {
 }
 
 function OpportunityForm({
+  mode,
   customers,
   initialData,
-  onSubmit,
+  onCreateSubmit,
+  onUpdateSubmit,
   isSubmitting,
 }: {
+  mode: "create" | "edit";
   customers: CustomerResponseDto[];
   initialData?: OpportunityResponseDto;
-  onSubmit: (data: CreateOpportunityDto) => void;
+  onCreateSubmit?: (data: CreateOpportunityDto) => void;
+  onUpdateSubmit?: (data: UpdateOpportunityDto) => void;
   isSubmitting: boolean;
 }) {
   const [form, setForm] = useState<CreateOpportunityDto>({
@@ -324,13 +417,30 @@ function OpportunityForm({
     expectedCloseAt: initialData?.expectedCloseAt?.slice(0, 10),
     actualCloseAt: initialData?.actualCloseAt?.slice(0, 10),
     assignedTo: initialData?.assignedTo,
-    probability: initialData?.probability || 0,
+    probability: initialData?.probability ?? 0,
     remark: initialData?.remark || "",
   });
 
+  const customerSelectValue =
+    form.customerId > 0 ? String(form.customerId) : NO_CUSTOMER_VALUE;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    if (form.customerId <= 0) {
+      window.alert("请选择关联客户");
+      return;
+    }
+    const name = form.name.trim();
+    if (!name) {
+      window.alert("请填写商机名称");
+      return;
+    }
+    const next = { ...form, name };
+    if (mode === "create") {
+      onCreateSubmit?.(buildCreateOpportunityBody(next));
+    } else if (initialData) {
+      onUpdateSubmit?.(buildUpdateOpportunityBody(next, initialData));
+    }
   };
 
   return (
@@ -338,13 +448,20 @@ function OpportunityForm({
       <div>
         <Label>关联客户 *</Label>
         <Select
-          value={String(form.customerId)}
-          onValueChange={(v) => setForm({ ...form, customerId: Number(v) })}
+          disabled={mode === "edit"}
+          value={customerSelectValue}
+          onValueChange={(v) =>
+            setForm({
+              ...form,
+              customerId: v === NO_CUSTOMER_VALUE ? 0 : Number(v),
+            })
+          }
         >
           <SelectTrigger>
             <SelectValue placeholder="选择客户" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={NO_CUSTOMER_VALUE}>请选择客户</SelectItem>
             {customers.map((c) => (
               <SelectItem key={c.id} value={String(c.id)}>
                 {c.name}
@@ -352,6 +469,11 @@ function OpportunityForm({
             ))}
           </SelectContent>
         </Select>
+        {mode === "edit" && (
+          <p className="text-xs text-zinc-500 mt-1">
+            编辑时不可更换关联客户；需调整请新建商机或后续扩展接口。
+          </p>
+        )}
       </div>
       <div>
         <Label>商机名称 *</Label>
@@ -457,6 +579,25 @@ function OpportunityForm({
             setForm({ ...form, probability: Number(e.target.value) })
           }
         />
+      </div>
+      <div>
+        <Label>负责人（用户 ID，可选）</Label>
+        <Input
+          type="number"
+          min={1}
+          value={form.assignedTo != null ? form.assignedTo : ""}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setForm({
+              ...form,
+              assignedTo: raw ? Number(raw) : undefined,
+            });
+          }}
+          placeholder="与「用户资料」中的用户 ID 一致，留空表示不指定"
+        />
+        <p className="text-xs text-zinc-500 mt-1">
+          与 CRM 客户「归属销售 ID」相同，为企业成员用户的数字 ID。
+        </p>
       </div>
       <div>
         <Label>备注</Label>

@@ -140,7 +140,16 @@ export class MemberService {
   // ==================== 客户会员管理 ====================
 
   async findAllMembers(enterpriseId: number, options?: { levelId?: number; keyword?: string }) {
-    let query = this.db
+    const conditions = [
+      eq(schema.customerMembers.enterpriseId, enterpriseId),
+      eq(schema.customerMembers.isDeleted, false),
+    ];
+
+    if (options?.levelId) {
+      conditions.push(eq(schema.customerMembers.levelId, options.levelId));
+    }
+
+    return this.db
       .select({
         member: schema.customerMembers,
         customer: schema.customers,
@@ -149,18 +158,8 @@ export class MemberService {
       .from(schema.customerMembers)
       .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
       .leftJoin(schema.memberLevels, eq(schema.customerMembers.levelId, schema.memberLevels.id))
-      .where(
-        and(
-          eq(schema.customerMembers.enterpriseId, enterpriseId),
-          eq(schema.customerMembers.isDeleted, false),
-        ),
-      );
-
-    if (options?.levelId) {
-      query = query.where(eq(schema.customerMembers.levelId, options.levelId));
-    }
-
-    return query.orderBy(desc(schema.customerMembers.totalConsumption));
+      .where(and(...conditions))
+      .orderBy(desc(schema.customerMembers.totalConsumption));
   }
 
   async findMemberByCustomerId(customerId: number, enterpriseId: number) {
@@ -322,24 +321,25 @@ export class MemberService {
   }
 
   async getPointsRecords(customerId: number, enterpriseId: number, options?: { type?: string; limit?: number }) {
-    let query = this.db
-      .select()
-      .from(schema.pointsRecords)
-      .where(
-        and(
-          eq(schema.pointsRecords.customerId, customerId),
-          eq(schema.pointsRecords.enterpriseId, enterpriseId),
-        ),
-      );
+    const conditions = [
+      eq(schema.pointsRecords.customerId, customerId),
+      eq(schema.pointsRecords.enterpriseId, enterpriseId),
+    ];
 
     if (options?.type) {
-      query = query.where(eq(schema.pointsRecords.type, options.type));
+      conditions.push(eq(schema.pointsRecords.type, options.type));
     }
 
-    query = query.orderBy(desc(schema.pointsRecords.createdAt));
+    // 构建查询 - 注意：Drizzle ORM 链式调用顺序很重要
+    const query = this.db
+      .select()
+      .from(schema.pointsRecords)
+      .where(and(...conditions))
+      .orderBy(desc(schema.pointsRecords.createdAt));
 
+    // 应用 limit（如果提供）
     if (options?.limit) {
-      query = query.limit(options.limit);
+      return query.limit(options.limit);
     }
 
     return query;

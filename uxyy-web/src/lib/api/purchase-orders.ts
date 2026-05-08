@@ -7,6 +7,7 @@ import type {
 } from "@uxyy/shared";
 import { apiFetch } from "./client";
 
+/** 后端列表字段为 `items`，此处统一为 shared 约定的 `list` */
 export async function fetchPurchaseOrders(
   query: PurchaseOrderQueryDto,
 ): Promise<PurchaseOrderListResponseDto> {
@@ -19,9 +20,20 @@ export async function fetchPurchaseOrders(
   if (query.endDate) params.set("endDate", query.endDate);
 
   const qs = params.toString();
-  return apiFetch<PurchaseOrderListResponseDto>(
-    `/inventory/purchase-orders${qs ? `?${qs}` : ""}`,
-  );
+  const raw = await apiFetch<{
+    list?: PurchaseOrderResponseDto[];
+    items?: PurchaseOrderResponseDto[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(`/inventory/purchase-orders${qs ? `?${qs}` : ""}`);
+
+  return {
+    list: raw.list ?? raw.items ?? [],
+    total: raw.total,
+    page: raw.page,
+    pageSize: raw.pageSize,
+  };
 }
 
 export async function createPurchaseOrder(
@@ -65,7 +77,7 @@ export async function approvePurchaseOrder(
   comment?: string,
 ): Promise<PurchaseOrderResponseDto> {
   return apiFetch<PurchaseOrderResponseDto>(`/inventory/purchase-orders/${id}/approve`, {
-    method: "POST",
+    method: "PUT",
     body: JSON.stringify({ action, comment }),
   });
 }
@@ -75,7 +87,7 @@ export async function inboundPurchaseOrder(
   items: { itemId: number; inboundQty: number }[],
 ): Promise<PurchaseOrderResponseDto> {
   return apiFetch<PurchaseOrderResponseDto>(`/inventory/purchase-orders/${id}/inbound`, {
-    method: "POST",
+    method: "PUT",
     body: JSON.stringify({ items }),
   });
 }

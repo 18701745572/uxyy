@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
@@ -188,19 +188,19 @@ export class AiErrorCorrectionService {
    * 批量检测企业凭证
    */
   async batchDetectErrors(enterpriseId: number, startDate?: Date, endDate?: Date) {
-    let query = this.db
-      .select()
-      .from(schema.vouchers)
-      .where(eq(schema.vouchers.enterpriseId, enterpriseId));
+    const conditions = [eq(schema.vouchers.enterpriseId, enterpriseId)];
 
     if (startDate) {
-      query = query.where(gte(schema.vouchers.voucherDate, startDate));
+      conditions.push(gte(schema.vouchers.voucherDate, startDate));
     }
     if (endDate) {
-      query = query.where(lte(schema.vouchers.voucherDate, endDate));
+      conditions.push(lte(schema.vouchers.voucherDate, endDate));
     }
 
-    const vouchers = await query;
+    const vouchers = await this.db
+      .select()
+      .from(schema.vouchers)
+      .where(and(...conditions));
     const results = [];
 
     for (const voucher of vouchers) {
@@ -250,8 +250,8 @@ export class AiErrorCorrectionService {
     }
 
     return suggestions.sort((a, b) => {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
+      const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     });
   }
 

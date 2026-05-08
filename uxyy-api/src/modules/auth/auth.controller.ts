@@ -20,6 +20,13 @@ import type {
   RefreshTokenDto,
   ResetPasswordDto,
 } from './auth.service';
+import {
+  getPermissionsForRole,
+  KNOWN_ENTERPRISE_ROLE_CODES,
+  normalizeEnterpriseRole,
+  Permission,
+  PRESET_ENTERPRISE_ROLES,
+} from './role-permissions';
 
 interface UserCtx {
   userId: number;
@@ -95,6 +102,27 @@ export class AuthController {
   @ApiOperation({ summary: '重置密码' })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.auth.resetPassword(dto);
+  }
+
+  @ApiBearerAuth()
+  @Get('permissions')
+  @ApiOperation({
+    summary:
+      '当前成员在企业内的权限码与预设角色说明（供前端菜单/按钮与 PRD 五种角色对齐）',
+  })
+  authPermissions(@Req() req: Request) {
+    const ctx = userFromRequest(req);
+    if (!ctx?.role) {
+      throw new ForbiddenException('无角色信息');
+    }
+    return {
+      roleRaw: ctx.role,
+      canonicalRole: normalizeEnterpriseRole(ctx.role) ?? null,
+      permissions: getPermissionsForRole(ctx.role),
+      permissionCatalog: Object.values(Permission),
+      validRoleCodes: [...KNOWN_ENTERPRISE_ROLE_CODES],
+      presets: PRESET_ENTERPRISE_ROLES,
+    };
   }
 
   @ApiBearerAuth()

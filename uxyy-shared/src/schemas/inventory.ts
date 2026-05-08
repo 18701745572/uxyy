@@ -246,6 +246,9 @@ export const updateStocktakingItemSchema = z.object({
 });
 export type UpdateStocktakingItemDto = z.infer<typeof updateStocktakingItemSchema>;
 
+export const salesOrderDeliveryTypeSchema = z.enum(['self', 'delivery']);
+export type SalesOrderDeliveryType = z.infer<typeof salesOrderDeliveryTypeSchema>;
+
 export const salesOrderSchema = z.object({
   id: z.number(),
   orderNo: z.string(),
@@ -253,6 +256,7 @@ export const salesOrderSchema = z.object({
   customerName: z.string().optional(),
   totalAmount: z.number(),
   status: orderStatusSchema,
+  deliveryType: salesOrderDeliveryTypeSchema.optional(),
   remark: z.string().optional(),
   items: z.array(salesOrderItemSchema),
   createdAt: z.string(),
@@ -284,12 +288,14 @@ export const createSalesOrderItemSchema = z.object({
 
 export const createSalesOrderSchema = z.object({
   customerId: z.number(),
+  deliveryType: salesOrderDeliveryTypeSchema.optional(),
   remark: z.string().optional(),
   items: z.array(createSalesOrderItemSchema),
 });
 export type CreateSalesOrderDto = z.infer<typeof createSalesOrderSchema>;
 
 export const updateSalesOrderSchema = z.object({
+  deliveryType: salesOrderDeliveryTypeSchema.optional(),
   remark: z.string().optional(),
 });
 export type UpdateSalesOrderDto = z.infer<typeof updateSalesOrderSchema>;

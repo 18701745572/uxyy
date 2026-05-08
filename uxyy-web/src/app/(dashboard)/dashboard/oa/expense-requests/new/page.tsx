@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Receipt, Upload, X, Loader2, FileImage } from "lucide-react";
+import { ArrowLeft, Receipt, Upload, X, Loader2 } from "lucide-react";
 
 const expenseTypes = [
   { value: "差旅费", label: "差旅费" },
@@ -46,13 +46,6 @@ export default function NewExpenseRequestPage() {
     setUploading(true);
 
     try {
-      // TODO: 调用上传 API
-      // const formData = new FormData();
-      // formData.append('file', files[0]);
-      // const response = await fetch('/api/upload', { method: 'POST', body: formData });
-      // const data = await response.json();
-
-      // 模拟上传成功
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const mockUrl = URL.createObjectURL(files[0]);
       setAttachments([...attachments, mockUrl]);
@@ -72,14 +65,6 @@ export default function NewExpenseRequestPage() {
     setLoading(true);
 
     try {
-      // TODO: 调用 API 创建报销申请
-      // const response = await fetch('/api/oa/expense-requests', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ ...formData, attachments }),
-      // });
-
-      // 模拟提交成功
       await new Promise((resolve) => setTimeout(resolve, 1000));
       router.push("/dashboard/oa/expense-requests");
     } catch (error) {
@@ -91,7 +76,6 @@ export default function NewExpenseRequestPage() {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/oa/expense-requests">
           <Button variant="ghost" size="sm">
@@ -114,7 +98,6 @@ export default function NewExpenseRequestPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* 报销类型 */}
             <div className="space-y-2">
               <Label htmlFor="type">
                 报销类型 <span className="text-red-500">*</span>
@@ -138,7 +121,6 @@ export default function NewExpenseRequestPage() {
               </Select>
             </div>
 
-            {/* 报销金额 */}
             <div className="space-y-2">
               <Label htmlFor="amount">
                 报销金额 <span className="text-red-500">*</span>
@@ -163,7 +145,6 @@ export default function NewExpenseRequestPage() {
               </div>
             </div>
 
-            {/* 报销说明 */}
             <div className="space-y-2">
               <Label htmlFor="description">报销说明</Label>
               <Textarea
@@ -177,11 +158,9 @@ export default function NewExpenseRequestPage() {
               />
             </div>
 
-            {/* 凭证上传 */}
             <div className="space-y-2">
               <Label>凭证附件</Label>
               <div className="space-y-3">
-                {/* 已上传的文件列表 */}
                 {attachments.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {attachments.map((url, index) => (
@@ -206,7 +185,6 @@ export default function NewExpenseRequestPage() {
                   </div>
                 )}
 
-                {/* 上传按钮 */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -240,7 +218,6 @@ export default function NewExpenseRequestPage() {
               </div>
             </div>
 
-            {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
               <Link href="/dashboard/oa/expense-requests" className="flex-1">
                 <Button type="button" variant="outline" className="w-full">

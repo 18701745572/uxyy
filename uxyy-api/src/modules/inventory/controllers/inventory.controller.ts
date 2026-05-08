@@ -15,15 +15,18 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { jwtUserIdFromRequest } from '../../../common/utils/jwt-request-context';
 import { Public } from '../../../common/decorators/public.decorator';
 import { InventoryService } from '../services/inventory.service';
 import {
   AdjustInventoryDto,
+  ExpiryAlertListQueryDto,
+  ExpiryAlertListResponseDto,
+  InventoryAlertsOverviewDto,
   InventoryListQueryDto,
   InventoryListResponseDto,
   InventoryLogListResponseDto,
   InventoryLogQueryDto,
-  StockAlertResponseDto,
 } from '../dto/inventory.dto';
 import {
   CreateStockAlertDto,
@@ -36,15 +39,6 @@ function enterpriseIdFromRequest(req: Express.Request): number | undefined {
   if (!u || typeof u !== 'object') return undefined;
   const raw = (u as { enterpriseId?: unknown }).enterpriseId;
   return typeof raw === 'number' && !Number.isNaN(raw) ? raw : undefined;
-}
-
-function userIdFromRequest(req: Express.Request): number | undefined {
-  const u = req.user;
-  if (u && typeof u === 'object') {
-    const raw = (u as { id?: unknown }).id;
-    if (typeof raw === 'number') return raw;
-  }
-  return undefined;
 }
 
 @ApiTags('inventory')
@@ -62,7 +56,10 @@ export class InventoryController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: '未登录或未绑定企业上下文' })
   @Get()
-  @ApiOperation({ summary: '库存看板（分页，支持分类/低库存筛选）' })
+  @ApiOperation({
+    summary:
+      '库存看板（分页；支持分类/keyword、低库存 lowStock、临期 expiringSoon+expiryWarningDays）',
+  })
   async list(
     @Req() req: Express.Request,
     @Query() query: InventoryListQueryDto,
@@ -74,6 +71,8 @@ export class InventoryController {
       categoryId: query.categoryId,
       keyword: query.keyword,
       lowStock: query.lowStock,
+      expiringSoon: query.expiringSoon,
+      expiryWarningDays: query.expiryWarningDays,
     });
   }
 
@@ -84,7 +83,7 @@ export class InventoryController {
     return this.service.adjust(
       enterpriseIdFromRequest(req),
       body,
-      userIdFromRequest(req),
+      jwtUserIdFromRequest(req),
     );
   }
 
@@ -109,9 +108,46 @@ export class InventoryController {
 
   @ApiBearerAuth()
   @Get('alerts')
-  @ApiOperation({ summary: '库存预警列表（低于下限的商品）' })
-  async alerts(@Req() req: Express.Request): Promise<StockAlertResponseDto> {
-    return this.service.getAlerts(enterpriseIdFromRequest(req));
+  @ApiOperation({
+    summary:
+      '库存预警：低库存 + 效期（inventory.expiryDate，可选含批次）；?expiryWarningDays=30&includeBatchExpiry=false',
+  })
+  async alerts(
+    @Req() req: Express.Request,
+    @Query('expiryWarningDays') expiryWarningDaysRaw?: string,
+    @Query('includeBatchExpiry') includeBatchExpiryRaw?: string,
+  ): Promise<InventoryAlertsOverviewDto> {
+    const expiryWarningDays =
+      expiryWarningDaysRaw !== undefined && expiryWarningDaysRaw !== ''
+        ? Number(expiryWarningDaysRaw)
+        : undefined;
+    const includeBatchExpiry = includeBatchExpiryRaw !== 'false';
+    return this.service.getAlerts(enterpriseIdFromRequest(req), {
+      expiryWarningDays:
+        expiryWarningDays !== undefined && Number.isFinite(expiryWarningDays)
+          ? expiryWarningDays
+          : undefined,
+      includeBatchExpiry,
+    });
+  }
+
+  @ApiBearerAuth()
+  @Get('expiry-alerts')
+  @ApiOperation({
+    summary: '效期预警分页列表（结存>0 且效期在窗口内或已过期）',
+  })
+  async expiryAlerts(
+    @Req() req: Express.Request,
+    @Query() query: ExpiryAlertListQueryDto,
+  ): Promise<ExpiryAlertListResponseDto> {
+    return this.service.findExpiryAlertsPage({
+      enterpriseId: enterpriseIdFromRequest(req),
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+      warningDays: query.warningDays,
+      includeBatches: query.includeBatches !== false,
+      severity: query.severity,
+    });
   }
 
   // ==================== 库存预警管理 ====================

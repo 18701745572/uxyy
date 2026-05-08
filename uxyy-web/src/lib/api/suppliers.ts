@@ -20,6 +20,20 @@ export async function fetchSuppliers(
   );
 }
 
+/** 分页拉取全部供应商（单页最大 100，与后端 PaginationQueryDto 一致） */
+export async function fetchAllSuppliers(): Promise<SupplierResponseDto[]> {
+  const pageSize = 100;
+  const out: SupplierResponseDto[] = [];
+  let page = 1;
+  const maxPages = 100;
+  for (; page <= maxPages; page += 1) {
+    const res = await fetchSuppliers({ page, pageSize });
+    out.push(...res.items);
+    if (out.length >= res.total || res.items.length < pageSize) break;
+  }
+  return out;
+}
+
 export async function createSupplier(
   data: CreateSupplierDto,
 ): Promise<SupplierResponseDto> {

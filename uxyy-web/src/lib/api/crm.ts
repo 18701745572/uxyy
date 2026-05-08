@@ -51,13 +51,15 @@ export interface CreateOpportunityDto {
 
 export interface UpdateOpportunityDto {
   name?: string;
-  description?: string;
+  description?: string | null;
   status?: OpportunityStatus;
-  estimatedAmount?: number;
-  actualAmount?: number;
-  expectedCloseAt?: string;
-  actualCloseAt?: string;
-  assignedTo?: number;
+  estimatedAmount?: number | null;
+  actualAmount?: number | null;
+  /** 传 null 表示清空日期（与 PATCH 语义一致） */
+  expectedCloseAt?: string | null;
+  actualCloseAt?: string | null;
+  /** 传 null 表示清空负责人 */
+  assignedTo?: number | null;
   probability?: number;
   remark?: string;
 }
@@ -139,8 +141,8 @@ export interface CreateFollowUpDto {
 export interface UpdateFollowUpDto {
   content?: string;
   type?: FollowUpType;
-  attachmentUrls?: string[];
-  nextFollowUpAt?: string;
+  attachmentUrls?: string[] | null;
+  nextFollowUpAt?: string | null;
 }
 
 export interface FollowUpListQueryDto {
@@ -195,6 +197,29 @@ export async function deleteOpportunity(id: number): Promise<{ ok: boolean; id: 
   return apiFetch<{ ok: boolean; id: number }>(`/crm/opportunities/${id}`, {
     method: "DELETE",
   });
+}
+
+/** @see AiScriptService.generateScript */
+export interface GeneratedScriptDto {
+  type: string;
+  title: string;
+  content: string;
+  tips: string[];
+  alternatives: string[];
+}
+
+/**
+ * 按场景为客户生成话术（基于模板 + 客户 / 跟进 / 商机上下文填充占位符）
+ * GET /crm/ai-scripts/generate/:customerId?scene=...
+ */
+export async function generateAiScript(
+  customerId: number,
+  scene: string,
+): Promise<GeneratedScriptDto[]> {
+  const params = new URLSearchParams({ scene });
+  return apiFetch<GeneratedScriptDto[]>(
+    `/crm/ai-scripts/generate/${customerId}?${params.toString()}`,
+  );
 }
 
 // 客户分类管理

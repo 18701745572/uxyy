@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Inject,
   Param,
   ParseIntPipe,
   Query,
@@ -8,14 +9,24 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../../auth/permissions.guard';
+import { Permission } from '../../auth/role-permissions';
 import { PdfExportService } from '../services/pdf-export.service';
-import { Inject } from '@nestjs/common';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
 import { eq, and } from 'drizzle-orm';
+import { FinanceService } from '../../finance/finance.service';
 
 interface UserContext {
   userId: number;
@@ -23,11 +34,19 @@ interface UserContext {
   role?: string;
 }
 
+function enterpriseIdFromRequest(req: Request & { user: UserContext }): number | undefined {
+  const u = req.user;
+  if (!u || typeof u !== 'object') return undefined;
+  const raw = u.enterpriseId;
+  return typeof raw === 'number' && !Number.isNaN(raw) ? raw : undefined;
+}
+
 @Controller('export/pdf')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PdfExportController {
   constructor(
     private readonly pdfExportService: PdfExportService,
+    private readonly financeService: FinanceService,
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
   ) {}
 
@@ -35,6 +54,7 @@ export class PdfExportController {
    * 导出销售订单PDF
    */
   @Get('sales-order/:orderId')
+  @Permissions(Permission.INV_SALES_ORDER)
   async exportSalesOrder(
     @Param('orderId', ParseIntPipe) orderId: number,
     @Req() req: Request & { user: UserContext },
@@ -98,6 +118,7 @@ export class PdfExportController {
    * 导出报价单PDF
    */
   @Get('quotation/:quotationId')
+  @Permissions(Permission.CRM_READ)
   async exportQuotation(
     @Param('quotationId', ParseIntPipe) quotationId: number,
     @Req() req: Request & { user: UserContext },
@@ -139,7 +160,7 @@ export class PdfExportController {
     const quotationData = {
       ...quotation.quotation,
       customerName: quotation.customer?.name,
-      contactName: quotation.customer?.contactName,
+      contactName: quotation.customer?.contactPerson,
       items: items.map(({ item, product }) => ({
         ...item,
         productName: product?.name,
@@ -159,6 +180,7 @@ export class PdfExportController {
    * 导出客户对账单PDF
    */
   @Get('statement/:customerId')
+  @Permissions(Permission.FIN_READ)
   async exportStatement(
     @Param('customerId', ParseIntPipe) customerId: number,
     @Query('period') period: string,
@@ -211,6 +233,7 @@ export class PdfExportController {
    * 导出通用报表PDF
    */
   @Get('report')
+  @Permissions(Permission.INV_READ, Permission.CRM_READ)
   async exportReport(
     @Query('title') title: string,
     @Query('type') type: string,
@@ -261,6 +284,135 @@ export class PdfExportController {
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${title || '报表'}.html"`);
+    res.send(html);
+  }
+
+  // ==================== 财务报表（可打印 HTML，数据同 FinanceService 报表接口） ====================
+
+  @ApiTags('财务报表导出')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '导出资产负债表（可打印 HTML）',
+    description:
+      '数据与 **GET /finance/reports/balance-sheet** 一致。响应为 `text/html`，浏览器打开后可用「打印 → 另存为 PDF」。\n\n' +
+      '权限：`finance:report`。',
+  })
+  @ApiProduces('text/html; charset=utf-8')
+  @ApiQuery({
+    name: 'asOfDate',
+    required: false,
+    example: '2026-05-08',
+    description: '截止日期 YYYY-MM-DD',
+  })
+  @Get('finance/balance-sheet')
+  @Permissions(Permission.FIN_REPORT)
+  async exportFinanceBalanceSheetPdf(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('asOfDate') asOfDate?: string,
+  ) {
+    const report = await this.financeService.getBalanceSheet(
+      enterpriseIdFromRequest(req),
+      asOfDate,
+    );
+    const html = this.pdfExportService.generateBalanceSheetHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="资产负债表-${report.period}.html"`,
+    );
+    res.send(html);
+  }
+
+  @ApiTags('财务报表导出')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '导出利润表（可打印 HTML）',
+    description:
+      '数据与 **GET /finance/reports/income-statement** 一致。HTML 可打印为 PDF。权限：`finance:report`。',
+  })
+  @ApiProduces('text/html; charset=utf-8')
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    example: '2026-05',
+    description: '会计期间 YYYY-MM',
+  })
+  @Get('finance/income-statement')
+  @Permissions(Permission.FIN_REPORT)
+  async exportFinanceIncomeStatementPdf(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('period') period?: string,
+  ) {
+    const report = await this.financeService.getIncomeStatement(
+      enterpriseIdFromRequest(req),
+      period,
+    );
+    const html = this.pdfExportService.generateIncomeStatementHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="利润表-${report.period}.html"`,
+    );
+    res.send(html);
+  }
+
+  @ApiTags('财务报表导出')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '导出现金流量表（可打印 HTML）',
+    description:
+      '数据与 **GET /finance/reports/cash-flow** 一致。HTML 可打印为 PDF。权限：`finance:report`。',
+  })
+  @ApiProduces('text/html; charset=utf-8')
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    example: '2026-05',
+    description: '会计期间 YYYY-MM',
+  })
+  @Get('finance/cash-flow')
+  @Permissions(Permission.FIN_REPORT)
+  async exportFinanceCashFlowPdf(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('period') period?: string,
+  ) {
+    const report = await this.financeService.getCashFlow(
+      enterpriseIdFromRequest(req),
+      period,
+    );
+    const html = this.pdfExportService.generateCashFlowHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="现金流量表-${report.period}.html"`,
+    );
+    res.send(html);
+  }
+
+  @ApiTags('财务报表导出')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '导出应收应付明细（可打印 HTML）',
+    description:
+      '数据与 **GET /finance/reports/ar-ap** 一致，含应收/应付明细表与合计。HTML 可打印为 PDF。权限：`finance:report`。',
+  })
+  @ApiProduces('text/html; charset=utf-8')
+  @Get('finance/ar-ap')
+  @Permissions(Permission.FIN_REPORT)
+  async exportFinanceArApPdf(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+  ) {
+    const report = await this.financeService.getArAp(enterpriseIdFromRequest(req));
+    const html = this.pdfExportService.generateArApHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="应收应付.html"',
+    );
     res.send(html);
   }
 }

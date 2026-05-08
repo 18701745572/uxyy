@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
@@ -109,8 +109,8 @@ export class AttendanceService {
       const earlyMinutes = isEarlyLeave ? workEndTime - checkOutTime : 0;
 
       // 计算工作时长
-      const checkInDate = new Date(existing.checkIn);
-      const workHours = (now.getTime() - checkInDate.getTime()) / (1000 * 60 * 60);
+      const checkInDate = existing.checkIn ? new Date(existing.checkIn) : null;
+      const workHours = checkInDate ? (now.getTime() - checkInDate.getTime()) / (1000 * 60 * 60) : 0;
 
       // 更新状态
       let status = existing.status;
@@ -137,19 +137,20 @@ export class AttendanceService {
    * 获取个人考勤记录
    */
   async getPersonalAttendance(userId: number, startDate?: string, endDate?: string) {
-    let query = this.db
-      .select()
-      .from(schema.attendanceRecords)
-      .where(eq(schema.attendanceRecords.userId, userId));
+    const conditions = [eq(schema.attendanceRecords.userId, userId)];
 
     if (startDate) {
-      query = query.where(gte(schema.attendanceRecords.date, new Date(startDate)));
+      conditions.push(gte(schema.attendanceRecords.date, new Date(startDate)));
     }
     if (endDate) {
-      query = query.where(lte(schema.attendanceRecords.date, new Date(endDate)));
+      conditions.push(lte(schema.attendanceRecords.date, new Date(endDate)));
     }
 
-    const records = await query.orderBy(schema.attendanceRecords.date);
+    const records = await this.db
+      .select()
+      .from(schema.attendanceRecords)
+      .where(and(...conditions))
+      .orderBy(schema.attendanceRecords.date);
 
     // 统计
     const stats = this.calculateStats(records);
@@ -160,7 +161,7 @@ export class AttendanceService {
   /**
    * 获取部门考勤统计
    */
-  async getDepartmentAttendance(enterpriseId: number, departmentId: number, month: string) {
+  async getDepartmentAttendance(enterpriseId: number, departmentId: string, month: string) {
     const startDate = new Date(`${month}-01`);
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
@@ -172,7 +173,7 @@ export class AttendanceService {
       .where(
         and(
           eq(schema.employeeProfiles.enterpriseId, enterpriseId),
-          eq(schema.employeeProfiles.departmentId, departmentId),
+          eq(schema.employeeProfiles.department, departmentId),
         ),
       );
 
@@ -204,7 +205,7 @@ export class AttendanceService {
       const user = records.find(r => r.record.userId === userId)?.user;
 
       userStats[userId] = {
-        name: user?.name || user?.username || `员工${userId}`,
+        name: user?.nickname || user?.phone || `员工${userId}`,
         stats: this.calculateStats(userRecords),
       };
     }
@@ -259,7 +260,7 @@ export class AttendanceService {
       checkInRate: employeeCount?.count ? ((checkedIn / employeeCount.count) * 100).toFixed(2) : '0',
       details: todayRecords.map(({ record, user }) => ({
         userId: record.userId,
-        userName: user?.name || user?.username,
+        userName: user?.nickname || user?.phone,
         checkIn: record.checkIn,
         checkOut: record.checkOut,
         status: record.status,

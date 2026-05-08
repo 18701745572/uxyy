@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { CrmController } from './crm.controller';
 import { CrmService } from './crm.service';
 import { QuotationController } from './controllers/quotation.controller';
@@ -11,6 +12,7 @@ import { AiScriptController } from './controllers/ai-script.controller';
 import { AiScriptService } from './services/ai-script.service';
 
 @Module({
+  imports: [AuthModule],
   controllers: [
     CrmController,
     QuotationController,

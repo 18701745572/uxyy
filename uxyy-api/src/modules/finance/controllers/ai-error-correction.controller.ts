@@ -1,15 +1,18 @@
 import {
   Controller,
   Get,
-  Post,
   Param,
   ParseIntPipe,
+  Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../../auth/permissions.guard';
+import { Permission } from '../../auth/role-permissions';
 import { AiErrorCorrectionService } from '../services/ai-error-correction.service';
 
 interface UserContext {
@@ -19,7 +22,7 @@ interface UserContext {
 }
 
 @Controller('finance/ai-error-correction')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AiErrorCorrectionController {
   constructor(private readonly aiErrorCorrectionService: AiErrorCorrectionService) {}
 
@@ -27,6 +30,7 @@ export class AiErrorCorrectionController {
    * 检测单个凭证错误
    */
   @Get('check/:voucherId')
+  @Permissions(Permission.FIN_VOUCHER)
   checkVoucher(
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
@@ -38,6 +42,7 @@ export class AiErrorCorrectionController {
    * 批量检测凭证
    */
   @Get('batch-check')
+  @Permissions(Permission.FIN_VOUCHER)
   batchCheck(
     @Req() req: Request & { user: UserContext },
     @Query('startDate') startDate?: string,
@@ -54,6 +59,7 @@ export class AiErrorCorrectionController {
    * 获取纠错建议
    */
   @Get('suggestions/:voucherId')
+  @Permissions(Permission.FIN_VOUCHER)
   getSuggestions(
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
@@ -65,6 +71,7 @@ export class AiErrorCorrectionController {
    * 自动修复借贷不平衡
    */
   @Post('auto-fix/:voucherId')
+  @Permissions(Permission.FIN_VOUCHER)
   autoFix(
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
@@ -76,6 +83,7 @@ export class AiErrorCorrectionController {
    * 获取财务健康度报告
    */
   @Get('health-report')
+  @Permissions(Permission.FIN_REPORT)
   getHealthReport(
     @Req() req: Request & { user: UserContext },
     @Query('month') month?: string,

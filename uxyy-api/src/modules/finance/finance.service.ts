@@ -5,7 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  like,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
@@ -57,6 +68,105 @@ function sumMatchingSubjectName(
   return sum;
 }
 
+function isInvestingAccountName(name: string): boolean {
+  return /固定资产|无形资产|长期股权投资/.test(name);
+}
+
+function isFinancingAccountName(name: string): boolean {
+  return /实收资本|资本公积|短期借款|长期借款/.test(name);
+}
+
+const CASH_ACCOUNT_NAMES = ['库存现金', '银行存款'] as const;
+
+function isCashAccountName(name: string): boolean {
+  return CASH_ACCOUNT_NAMES.some((n) => name === n || name.startsWith(`${n}-`));
+}
+
+/** 现金类科目在 asOf 日止的累计余额（借−贷） */
+async function cashBalanceAtDate(
+  db: AppDrizzleDb,
+  eid: number,
+  endDate: Date,
+): Promise<number> {
+  const { debit, credit } = await voucherDebitCreditMaps(db, eid, {
+    endDate,
+  });
+  let sum = 0;
+  for (const n of CASH_ACCOUNT_NAMES) {
+    sum += sumMatchingSubjectName(n, debit) - sumMatchingSubjectName(n, credit);
+  }
+  return sum;
+}
+
+/** 与利润表一致：累计收入 − 成本 − 费用（截至 endDate） */
+async function cumulativeNetProfitUpTo(
+  db: AppDrizzleDb,
+  eid: number,
+  endDate: Date,
+): Promise<number> {
+  const { debit, credit } = await voucherDebitCreditMaps(db, eid, {
+    endDate,
+  });
+  const subjectRows = await db
+    .select({
+      code: schema.accountSubjects.code,
+      name: schema.accountSubjects.name,
+      category: schema.accountSubjects.category,
+    })
+    .from(schema.accountSubjects)
+    .where(
+      and(
+        eq(schema.accountSubjects.enterpriseId, eid),
+        eq(schema.accountSubjects.isActive, true),
+      ),
+    );
+
+  let revenue = 0;
+  let costs = 0;
+  let expenses = 0;
+  for (const s of subjectRows) {
+    if (s.category === 'income') {
+      revenue +=
+        sumMatchingSubjectName(s.name, credit) -
+        sumMatchingSubjectName(s.name, debit);
+    } else if (s.category === 'expense') {
+      const isCost = s.code === '6401' || s.name === '主营业务成本';
+      const net =
+        sumMatchingSubjectName(s.name, debit) -
+        sumMatchingSubjectName(s.name, credit);
+      if (isCost) costs += net;
+      else expenses += net;
+    }
+  }
+  return revenue - costs - expenses;
+}
+
+/** 解析会计期间 YYYY-MM，非法时回退当月 */
+function parseYearMonth(period?: string): {
+  reportPeriod: string;
+  year: number;
+  month: number;
+  startDate: Date;
+  endDate: Date;
+} {
+  let reportPeriod = period?.trim() ?? '';
+  if (!/^\d{4}-\d{2}$/.test(reportPeriod)) {
+    reportPeriod = new Date().toISOString().slice(0, 7);
+  }
+  const [y, m] = reportPeriod.split('-').map(Number);
+  const year = Number.isFinite(y) ? y : new Date().getFullYear();
+  const month = Number.isFinite(m) && m >= 1 && m <= 12 ? m : new Date().getMonth() + 1;
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  return {
+    reportPeriod: `${year}-${String(month).padStart(2, '0')}`,
+    year,
+    month,
+    startDate,
+    endDate,
+  };
+}
+
 async function voucherDebitCreditMaps(
   db: AppDrizzleDb,
   eid: number,
@@ -98,6 +208,25 @@ async function voucherDebitCreditMaps(
     credit.set(r.account, parseAmountSafe(r.total));
   }
   return { debit, credit };
+}
+
+async function resolveAccountSubjectName(
+  db: AppDrizzleDb,
+  eid: number,
+  code: string,
+  fallback: string,
+): Promise<string> {
+  const [row] = await db
+    .select({ name: schema.accountSubjects.name })
+    .from(schema.accountSubjects)
+    .where(
+      and(
+        eq(schema.accountSubjects.enterpriseId, eid),
+        eq(schema.accountSubjects.code, code),
+      ),
+    )
+    .limit(1);
+  return row?.name ?? fallback;
 }
 
 // ==================== 发票映射 ====================
@@ -609,7 +738,7 @@ export class FinanceService {
     return mapInvoiceRow(updated);
   }
 
-  /** 入账 → status=entered + 自动生成凭证 */
+  /** 入账 → status=entered + 按科目表名称自动生成 1～2 条单行凭证（价税分离时两条） */
   async enterInvoice(id: number, enterpriseId: number | undefined) {
     const existing = await this.findOneInvoice(id, enterpriseId);
     const eid = requireEnterpriseId(enterpriseId);
@@ -618,63 +747,150 @@ export class FinanceService {
       throw new BadRequestException('仅已验证状态的发票可入账');
     }
 
-    // 更新状态
-    const [updated] = await this.db
-      .update(schema.invoices)
-      .set({ status: 'entered' })
-      .where(
-        and(eq(schema.invoices.id, id), eq(schema.invoices.enterpriseId, eid)),
-      )
-      .returning();
-
-    if (!updated) throw new NotFoundException('发票不存在');
-
-    // 自动生成凭证：根据发票类型匹配会计科目
-    const voucherNo = generateVoucherNo();
-    let debitAccount: string;
-    let creditAccount: string;
-    // 对用户而言：销售发票（公司作为卖方）→ 应收账款/银行存款 + 主营业务收入
-    // 采购发票（公司作为买方）→ 库存商品/管理费用 + 应付账款/银行存款
-    if (
-      updated.type === 'special' ||
-      updated.type === 'normal' ||
-      updated.type === 'electronic'
-    ) {
-      if (updated.sourceType === 'purchase_order') {
-        debitAccount = '库存商品';
-        creditAccount = '银行存款';
-      } else {
-        debitAccount = '银行存款';
-        creditAccount = '主营业务收入';
-      }
-    } else {
-      debitAccount = '银行存款';
-      creditAccount = '主营业务收入';
+    const dup = await this.findVoucherBySource(eid, 'invoice', id);
+    if (dup) {
+      const inv = await this.findOneInvoice(id, enterpriseId);
+      return {
+        invoice: inv,
+        voucher: dup,
+        vouchers: [dup],
+        voucherNo: dup.voucherNo,
+      };
     }
 
-    const summary = `发票入账：${updated.invoiceNo}${updated.buyerName ? ` 购方：${updated.buyerName}` : ''}${updated.sellerName ? ` 销方：${updated.sellerName}` : ''}`;
+    const uid =
+      existing.createdBy != null && Number.isFinite(Number(existing.createdBy))
+        ? Number(existing.createdBy)
+        : 1;
 
-    const [voucher] = await this.db
-      .insert(schema.voucherEntries)
-      .values({
-        enterpriseId: eid,
+    return this.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(schema.invoices)
+        .set({ status: 'entered' })
+        .where(
+          and(
+            eq(schema.invoices.id, id),
+            eq(schema.invoices.enterpriseId, eid),
+          ),
+        )
+        .returning();
+
+      if (!updated) throw new NotFoundException('发票不存在');
+
+      const voucherNo = generateVoucherNo();
+      const entryDate = new Date();
+      const taxAmt = parseAmountSafe(decimalToAmount(updated.taxAmount));
+      const amtNet = parseAmountSafe(decimalToAmount(updated.amount));
+      const totalAmt = parseAmountSafe(decimalToAmount(updated.totalAmount));
+      const netExclTax = amtNet > 0 ? amtNet : Math.max(0, totalAmt - taxAmt);
+
+      const isPurchase = updated.sourceType === 'purchase_order';
+
+      const ar = await resolveAccountSubjectName(tx, eid, '1122', '应收账款');
+      const ap = await resolveAccountSubjectName(tx, eid, '2202', '应付账款');
+      const revenue = await resolveAccountSubjectName(tx, eid, '6001', '主营业务收入');
+      const inventory = await resolveAccountSubjectName(tx, eid, '1405', '库存商品');
+      const taxAcc = await resolveAccountSubjectName(tx, eid, '2221', '应交税费');
+
+      const baseSummary = `发票入账：${updated.invoiceNo}${updated.buyerName ? ` 购方：${updated.buyerName}` : ''}${updated.sellerName ? ` 销方：${updated.sellerName}` : ''}`;
+
+      const rows: (typeof schema.voucherEntries.$inferInsert)[] = [];
+
+      if (isPurchase) {
+        if (taxAmt > 0.001 && netExclTax > 0.001) {
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: inventory,
+            creditAccount: ap,
+            amount: netExclTax.toFixed(2),
+            summary: `${baseSummary} · 价款`,
+            createdBy: uid,
+          });
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: taxAcc,
+            creditAccount: ap,
+            amount: taxAmt.toFixed(2),
+            summary: `${baseSummary} · 进项税额`,
+            createdBy: uid,
+          });
+        } else {
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: inventory,
+            creditAccount: ap,
+            amount: totalAmt.toFixed(2),
+            summary: baseSummary,
+            createdBy: uid,
+          });
+        }
+      } else {
+        if (taxAmt > 0.001 && netExclTax > 0.001) {
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: ar,
+            creditAccount: revenue,
+            amount: netExclTax.toFixed(2),
+            summary: `${baseSummary} · 价款`,
+            createdBy: uid,
+          });
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: ar,
+            creditAccount: taxAcc,
+            amount: taxAmt.toFixed(2),
+            summary: `${baseSummary} · 销项税额`,
+            createdBy: uid,
+          });
+        } else {
+          rows.push({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: 'invoice',
+            sourceId: updated.id,
+            entryDate,
+            debitAccount: ar,
+            creditAccount: revenue,
+            amount: totalAmt.toFixed(2),
+            summary: baseSummary,
+            createdBy: uid,
+          });
+        }
+      }
+
+      const inserted: (typeof schema.voucherEntries.$inferSelect)[] = [];
+      for (const r of rows) {
+        const [v] = await tx.insert(schema.voucherEntries).values(r).returning();
+        if (v) inserted.push(v);
+      }
+
+      return {
+        invoice: mapInvoiceRow(updated),
+        voucher: inserted[0] ? mapVoucherRow(inserted[0]) : null,
+        vouchers: inserted.map(mapVoucherRow),
         voucherNo,
-        sourceType: 'invoice',
-        sourceId: updated.id,
-        entryDate: new Date(),
-        debitAccount,
-        creditAccount,
-        amount: updated.totalAmount,
-        summary,
-        createdBy: 0, // 系统自动生成
-      })
-      .returning();
-
-    return {
-      invoice: mapInvoiceRow(updated),
-      voucher: voucher ? mapVoucherRow(voucher) : null,
-      voucherNo,
-    };
+      };
+    });
   }
 
   // ==================== 凭证 ====================
@@ -1062,7 +1278,26 @@ export class FinanceService {
 
     const assets = itemFor('asset');
     const liabilities = itemFor('liability');
-    const equity = itemFor('equity');
+    let equity = itemFor('equity');
+
+    const cum = await cumulativeNetProfitUpTo(this.db, eid, endRaw);
+    const hasRetainSubject = subjectRows.some(
+      (s) =>
+        s.category === 'equity' &&
+        (/未分配利润|本年利润/.test(s.name) ||
+          s.code === '4103' ||
+          s.code === '4104'),
+    );
+    if (!hasRetainSubject && Math.abs(cum) >= 0.01) {
+      equity = [
+        ...equity,
+        {
+          code: '4104',
+          name: '未分配利润（损益累计）',
+          amount: cum.toFixed(2),
+        },
+      ];
+    }
 
     const sumAmounts = (items: { amount: string }[]) =>
       items.reduce((sum, i) => sum + parseAmountSafe(i.amount), 0).toFixed(2);
@@ -1082,10 +1317,7 @@ export class FinanceService {
 
   async getIncomeStatement(enterpriseId: number | undefined, period?: string) {
     const eid = requireEnterpriseId(enterpriseId);
-    const reportPeriod = period ?? new Date().toISOString().slice(0, 7);
-    const [year, month] = reportPeriod.split('-').map(Number);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
+    const { reportPeriod, startDate, endDate } = parseYearMonth(period);
 
     const { debit, credit } = await voucherDebitCreditMaps(this.db, eid, {
       startDate,
@@ -1121,7 +1353,9 @@ export class FinanceService {
     const revenueLines: { code: string; name: string; amount: string }[] = [];
     for (const s of subjectRows) {
       if (s.category !== 'income') continue;
-      const amt = sumMatchingSubjectName(s.name, credit);
+      const amt =
+        sumMatchingSubjectName(s.name, credit) -
+        sumMatchingSubjectName(s.name, debit);
       if (amt !== 0) {
         revenueLines.push({
           code: s.code,
@@ -1137,7 +1371,9 @@ export class FinanceService {
     const costLines: { code: string; name: string; amount: string }[] = [];
     for (const s of subjectRows) {
       if (!isPrincipalCost(s)) continue;
-      const amt = sumMatchingSubjectName(s.name, debit);
+      const amt =
+        sumMatchingSubjectName(s.name, debit) -
+        sumMatchingSubjectName(s.name, credit);
       if (amt !== 0) {
         costLines.push({
           code: s.code,
@@ -1153,7 +1389,9 @@ export class FinanceService {
     const expenseLines: { code: string; name: string; amount: string }[] = [];
     for (const s of subjectRows) {
       if (s.category !== 'expense' || isPrincipalCost(s)) continue;
-      const amt = sumMatchingSubjectName(s.name, debit);
+      const amt =
+        sumMatchingSubjectName(s.name, debit) -
+        sumMatchingSubjectName(s.name, credit);
       if (amt !== 0) {
         expenseLines.push({
           code: s.code,
@@ -1188,71 +1426,145 @@ export class FinanceService {
 
   async getCashFlow(enterpriseId: number | undefined, period?: string) {
     const eid = requireEnterpriseId(enterpriseId);
-    const reportPeriod = period ?? new Date().toISOString().slice(0, 7);
-    const [year, month] = reportPeriod.split('-').map(Number);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
+    const { reportPeriod, startDate, endDate } = parseYearMonth(period);
 
-    const cashAcc = ['银行存款', '库存现金'] as const;
+    const prevEnd = new Date(startDate.getTime() - 1);
+    const beginningVal = await cashBalanceAtDate(this.db, eid, prevEnd);
+    const endingVal = await cashBalanceAtDate(this.db, eid, endDate);
 
-    const [inflowRow] = await this.db
-      .select({
-        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
-      })
-      .from(schema.voucherEntries)
-      .where(
-        and(
-          eq(schema.voucherEntries.enterpriseId, eid),
-          gte(schema.voucherEntries.entryDate, startDate),
-          lte(schema.voucherEntries.entryDate, endDate),
-          inArray(schema.voucherEntries.debitAccount, [...cashAcc]),
-        ),
-      );
-
-    const [outflowRow] = await this.db
-      .select({
-        total: sql<string>`COALESCE(SUM(CAST(${schema.voucherEntries.amount} AS DECIMAL)), 0)::text`,
-      })
-      .from(schema.voucherEntries)
-      .where(
-        and(
-          eq(schema.voucherEntries.enterpriseId, eid),
-          gte(schema.voucherEntries.entryDate, startDate),
-          lte(schema.voucherEntries.entryDate, endDate),
-          inArray(schema.voucherEntries.creditAccount, [...cashAcc]),
-        ),
-      );
-
-    const operatingInflow = parseAmountSafe(inflowRow?.total ?? '0').toFixed(2);
-    const operatingOutflow = parseAmountSafe(outflowRow?.total ?? '0').toFixed(
-      2,
+    const debitCash = or(
+      eq(schema.voucherEntries.debitAccount, '库存现金'),
+      eq(schema.voucherEntries.debitAccount, '银行存款'),
+      like(schema.voucherEntries.debitAccount, '库存现金%'),
+      like(schema.voucherEntries.debitAccount, '银行存款%'),
     );
-    const netOperatingCashFlow = (
-      parseFloat(operatingInflow) - parseFloat(operatingOutflow)
+    const creditCash = or(
+      eq(schema.voucherEntries.creditAccount, '库存现金'),
+      eq(schema.voucherEntries.creditAccount, '银行存款'),
+      like(schema.voucherEntries.creditAccount, '库存现金%'),
+      like(schema.voucherEntries.creditAccount, '银行存款%'),
+    );
+    const touchesCash = or(debitCash, creditCash);
+
+    const cfRows = await this.db
+      .select({
+        debitAccount: schema.voucherEntries.debitAccount,
+        creditAccount: schema.voucherEntries.creditAccount,
+        amount: schema.voucherEntries.amount,
+      })
+      .from(schema.voucherEntries)
+      .where(
+        and(
+          eq(schema.voucherEntries.enterpriseId, eid),
+          gte(schema.voucherEntries.entryDate, startDate),
+          lte(schema.voucherEntries.entryDate, endDate),
+          touchesCash,
+        ),
+      );
+
+    let opIn = 0;
+    let opOut = 0;
+    let invIn = 0;
+    let invOut = 0;
+    let finIn = 0;
+    let finOut = 0;
+
+    for (const r of cfRows) {
+      const a = parseAmountSafe(decimalToAmount(r.amount));
+      if (isCashAccountName(r.debitAccount)) {
+        const c = r.creditAccount;
+        if (isInvestingAccountName(c)) invIn += a;
+        else if (isFinancingAccountName(c)) finIn += a;
+        else opIn += a;
+      }
+      if (isCashAccountName(r.creditAccount)) {
+        const d = r.debitAccount;
+        if (isInvestingAccountName(d)) invOut += a;
+        else if (isFinancingAccountName(d)) finOut += a;
+        else opOut += a;
+      }
+    }
+
+    const netOperatingCashFlow = (opIn - opOut).toFixed(2);
+    const netInvestingCashFlow = (invIn - invOut).toFixed(2);
+    const netFinancingCashFlow = (finIn - finOut).toFixed(2);
+    const netFromClassification = (
+      parseFloat(netOperatingCashFlow) +
+      parseFloat(netInvestingCashFlow) +
+      parseFloat(netFinancingCashFlow)
     ).toFixed(2);
+    const netFromBalance = (endingVal - beginningVal).toFixed(2);
+    const netCashFlow =
+      Math.abs(
+        parseFloat(netFromClassification) - parseFloat(netFromBalance),
+      ) < 0.02
+        ? netFromClassification
+        : netFromBalance;
+
+    const operatingActivities: {
+      code: string;
+      name: string;
+      amount: string;
+    }[] = [
+      {
+        code: 'CFO-IN',
+        name: '经营活动现金流入',
+        amount: opIn.toFixed(2),
+      },
+      {
+        code: 'CFO-OUT',
+        name: '经营活动现金流出',
+        amount: (-opOut).toFixed(2),
+      },
+    ];
+
+    const investingActivities: {
+      code: string;
+      name: string;
+      amount: string;
+    }[] = [];
+    if (invIn > 0)
+      investingActivities.push({
+        code: 'CFI-IN',
+        name: '投资活动现金流入',
+        amount: invIn.toFixed(2),
+      });
+    if (invOut > 0)
+      investingActivities.push({
+        code: 'CFI-OUT',
+        name: '投资活动现金流出',
+        amount: (-invOut).toFixed(2),
+      });
+
+    const financingActivities: {
+      code: string;
+      name: string;
+      amount: string;
+    }[] = [];
+    if (finIn > 0)
+      financingActivities.push({
+        code: 'CFF-IN',
+        name: '筹资活动现金流入',
+        amount: finIn.toFixed(2),
+      });
+    if (finOut > 0)
+      financingActivities.push({
+        code: 'CFF-OUT',
+        name: '筹资活动现金流出',
+        amount: (-finOut).toFixed(2),
+      });
 
     return {
       period: reportPeriod,
-      operatingActivities: [
-        {
-          code: 'CFO-IN',
-          name: '经营活动现金流入（借：现金/银行存款）',
-          amount: operatingInflow,
-        },
-        {
-          code: 'CFO-OUT',
-          name: '经营活动现金流出（贷：现金/银行存款）',
-          amount: '-' + operatingOutflow,
-        },
-      ],
+      operatingActivities,
       netOperatingCashFlow,
-      investingActivities: [],
-      netInvestingCashFlow: '0.00',
-      financingActivities: [],
-      netFinancingCashFlow: '0.00',
-      netCashFlow: netOperatingCashFlow,
-      beginningCash: '0.00',
-      endingCash: netOperatingCashFlow,
+      investingActivities,
+      netInvestingCashFlow,
+      financingActivities,
+      netFinancingCashFlow,
+      netCashFlow,
+      beginningCash: beginningVal.toFixed(2),
+      endingCash: endingVal.toFixed(2),
     };
   }
 
@@ -1261,68 +1573,110 @@ export class FinanceService {
   async getArAp(enterpriseId: number | undefined) {
     const eid = requireEnterpriseId(enterpriseId);
 
-    // 应收账款：已验证但未入账的非采购发票
-    const receivableInvoices = await this.db
-      .select()
-      .from(schema.invoices)
-      .where(
-        and(
-          eq(schema.invoices.enterpriseId, eid),
-          eq(schema.invoices.status, 'verified'),
-        ),
-      )
-      .orderBy(asc(schema.invoices.issueDate));
+    const AR_ORDER_SOURCE = new Set(['sales_order', 'sales_order_cash']);
+
+    const [paymentByOrderRows, allInvoices] = await Promise.all([
+      this.db
+        .select({
+          orderId: schema.paymentRecords.orderId,
+          total: sql<string>`COALESCE(SUM(CAST(${schema.paymentRecords.amount} AS DECIMAL)), 0)::text`,
+        })
+        .from(schema.paymentRecords)
+        .where(eq(schema.paymentRecords.enterpriseId, eid))
+        .groupBy(schema.paymentRecords.orderId),
+      this.db
+        .select()
+        .from(schema.invoices)
+        .where(
+          and(
+            eq(schema.invoices.enterpriseId, eid),
+            eq(schema.invoices.status, 'verified'),
+          ),
+        )
+        .orderBy(asc(schema.invoices.issueDate)),
+    ]);
+
+    const paidByOrder = new Map<number, number>();
+    for (const row of paymentByOrderRows) {
+      if (row.orderId != null) {
+        paidByOrder.set(row.orderId, parseAmountSafe(row.total));
+      }
+    }
+
+    const isPayableInvoice = (inv: (typeof allInvoices)[0]) =>
+      inv.sourceType === 'purchase_order' ||
+      inv.sourceType === 'invoice_purchase';
+
+    const receivableInvoices = allInvoices.filter((inv) => !isPayableInvoice(inv));
+
+    const invoicesByOrderId = new Map<number, typeof allInvoices>();
+    for (const inv of receivableInvoices) {
+      if (
+        inv.sourceId != null &&
+        inv.sourceType != null &&
+        AR_ORDER_SOURCE.has(inv.sourceType)
+      ) {
+        const list = invoicesByOrderId.get(inv.sourceId) ?? [];
+        list.push(inv);
+        invoicesByOrderId.set(inv.sourceId, list);
+      }
+    }
+
+    const paidByInvoiceId = new Map<number, number>();
+    for (const [orderId, list] of invoicesByOrderId) {
+      const sorted = [...list].sort((a, b) => {
+        const ta = a.issueDate?.getTime() ?? a.createdAt.getTime();
+        const tb = b.issueDate?.getTime() ?? b.createdAt.getTime();
+        return ta - tb;
+      });
+      let pool = paidByOrder.get(orderId) ?? 0;
+      for (const inv of sorted) {
+        const total = parseAmountSafe(decimalToAmount(inv.totalAmount));
+        const take = Math.min(Math.max(total, 0), Math.max(pool, 0));
+        paidByInvoiceId.set(inv.id, take);
+        pool -= take;
+      }
+    }
 
     const now = new Date();
-    const receivables = receivableInvoices
-      .filter((inv) => inv.sourceType !== 'purchase_order')
-      .map((inv) => {
-        const issueDate = inv.issueDate ?? inv.createdAt;
-        const daysOverdue = Math.max(
-          0,
-          Math.floor(
-            (now.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        );
-        return {
-          id: inv.id,
-          name: inv.buyerName ?? '未知',
-          invoiceNo: inv.invoiceNo,
-          amount: decimalToAmount(inv.totalAmount),
-          paidAmount: '0.00',
-          balance: decimalToAmount(inv.totalAmount),
-          issueDate: dateToIso(inv.issueDate),
-          daysOverdue,
-        };
-      });
+    const mapArApRow = (
+      inv: (typeof allInvoices)[0],
+      name: string,
+      paid: number,
+    ) => {
+      const issueDate = inv.issueDate ?? inv.createdAt;
+      const daysOverdue = Math.max(
+        0,
+        Math.floor(
+          (now.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      );
+      const amountNum = parseAmountSafe(decimalToAmount(inv.totalAmount));
+      const paidClamped = Math.min(Math.max(paid, 0), amountNum);
+      const balanceNum = Math.max(amountNum - paidClamped, 0);
+      return {
+        id: inv.id,
+        name,
+        invoiceNo: inv.invoiceNo,
+        amount: amountNum.toFixed(2),
+        paidAmount: paidClamped.toFixed(2),
+        balance: balanceNum.toFixed(2),
+        issueDate: dateToIso(inv.issueDate),
+        daysOverdue,
+      };
+    };
 
-    // 应付账款：已验证的采购类发票
-    const payables = receivableInvoices
-      .filter((inv) => inv.sourceType === 'purchase_order')
-      .map((inv) => {
-        const issueDate = inv.issueDate ?? inv.createdAt;
-        const daysOverdue = Math.max(
-          0,
-          Math.floor(
-            (now.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        );
-        return {
-          id: inv.id,
-          name: inv.sellerName ?? '未知',
-          invoiceNo: inv.invoiceNo,
-          amount: decimalToAmount(inv.totalAmount),
-          paidAmount: '0.00',
-          balance: decimalToAmount(inv.totalAmount),
-          issueDate: dateToIso(inv.issueDate),
-          daysOverdue,
-        };
-      });
+    const receivables = receivableInvoices.map((inv) => {
+      const paid = paidByInvoiceId.get(inv.id) ?? 0;
+      return mapArApRow(inv, inv.buyerName ?? '未知', paid);
+    });
+
+    const payables = allInvoices.filter(isPayableInvoice).map((inv) =>
+      mapArApRow(inv, inv.sellerName ?? '未知', 0),
+    );
 
     const sumBalance = (items: { balance: string }[]) =>
-      items
-        .reduce((sum, i) => sum + parseFloat(i.balance || '0'), 0)
-        .toFixed(2);
+      items.reduce((sum, i) => sum + parseAmountSafe(i.balance), 0).toFixed(2);
 
     return {
       receivables,

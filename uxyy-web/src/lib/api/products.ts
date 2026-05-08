@@ -17,9 +17,34 @@ export async function fetchProducts(
   if (query.keyword) params.set("keyword", query.keyword);
 
   const qs = params.toString();
-  return apiFetch<ProductListResponseDto>(
-    `/inventory/products${qs ? `?${qs}` : ""}`,
-  );
+  const raw = await apiFetch<{
+    list?: ProductResponseDto[];
+    items?: ProductResponseDto[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(`/inventory/products${qs ? `?${qs}` : ""}`);
+
+  return {
+    list: raw.list ?? raw.items ?? [],
+    total: raw.total,
+    page: raw.page,
+    pageSize: raw.pageSize,
+  };
+}
+
+/** 分页拉取全部商品（单页最大 100，与后端 PaginationQueryDto 一致） */
+export async function fetchAllProducts(): Promise<ProductResponseDto[]> {
+  const pageSize = 100;
+  const out: ProductResponseDto[] = [];
+  let page = 1;
+  const maxPages = 100;
+  for (; page <= maxPages; page += 1) {
+    const res = await fetchProducts({ page, pageSize });
+    out.push(...res.list);
+    if (out.length >= res.total || res.list.length < pageSize) break;
+  }
+  return out;
 }
 
 export async function createProduct(

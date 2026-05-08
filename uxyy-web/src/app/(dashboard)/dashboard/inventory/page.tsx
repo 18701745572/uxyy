@@ -27,6 +27,12 @@ const modules = [
     status: "available",
   },
   {
+    title: "仓库管理",
+    desc: "查看企业仓库档案（与盘点、库存 warehouseId 对应）",
+    href: "/dashboard/inventory/warehouses",
+    status: "available",
+  },
+  {
     title: "库存盘点",
     desc: "库存盘点管理",
     href: "/dashboard/inventory/stocktaking",

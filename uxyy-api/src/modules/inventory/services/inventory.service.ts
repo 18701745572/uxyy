@@ -10,6 +10,13 @@ import {
   getStock,
   writeInventoryLog,
 } from './inventory-mutation';
+import {
+  batchExpiryRowPredicates,
+  ceilDaysUntil,
+  classifyExpirySeverity,
+  DEFAULT_EXPIRY_WARNING_DAYS,
+  inventoryExpiryRowPredicates,
+} from './expiry-warning';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -84,11 +91,17 @@ export class InventoryService {
     categoryId?: number;
     keyword?: string;
     lowStock?: boolean;
+    expiringSoon?: boolean;
+    expiryWarningDays?: number;
   }) {
     const eid = requireEnterpriseId(params.enterpriseId);
     const offset = (params.page - 1) * params.pageSize;
+    const wd =
+      params.expiryWarningDays != null &&
+      Number.isFinite(params.expiryWarningDays)
+        ? Math.max(1, Math.min(730, Number(params.expiryWarningDays)))
+        : DEFAULT_EXPIRY_WARNING_DAYS;
 
-    // Build join with products for filtering
     const productWhere: ReturnType<typeof eq>[] = [];
     if (params.keyword) {
       const kw = `%${params.keyword}%`;
@@ -103,7 +116,15 @@ export class InventoryService {
     const productCondition =
       productWhere.length > 0 ? and(...productWhere) : undefined;
 
-    // For low stock: we filter after query since it involves comparing across tables
+    const invPredicates = [eq(schema.inventory.enterpriseId, eid)];
+    if (productCondition) {
+      invPredicates.push(productCondition);
+    }
+    if (params.expiringSoon) {
+      invPredicates.push(...inventoryExpiryRowPredicates(wd));
+    }
+    const invWhere = and(...invPredicates);
+
     const [totalRows] = await this.db
       .select({ c: count() })
       .from(schema.inventory)
@@ -118,12 +139,7 @@ export class InventoryService {
         schema.productCategories,
         eq(schema.products.categoryId, schema.productCategories.id),
       )
-      .where(
-        and(
-          eq(schema.inventory.enterpriseId, eid),
-          ...(productCondition ? [productCondition] : []),
-        ),
-      );
+      .where(invWhere);
 
     let total = Number(totalRows?.c ?? 0);
 
@@ -150,17 +166,11 @@ export class InventoryService {
         schema.productCategories,
         eq(schema.products.categoryId, schema.productCategories.id),
       )
-      .where(
-        and(
-          eq(schema.inventory.enterpriseId, eid),
-          ...(productCondition ? [productCondition] : []),
-        ),
-      )
+      .where(invWhere)
       .orderBy(desc(schema.inventory.updatedAt))
       .limit(params.pageSize)
       .offset(offset);
 
-    // Low stock filter — applied in-memory since decimal comparison across tables
     if (params.lowStock) {
       rows = rows.filter((r) => {
         const qty = Number(r.inventory.quantity);
@@ -178,7 +188,13 @@ export class InventoryService {
     };
   }
 
-  async getAlerts(enterpriseId: number | undefined) {
+  async getAlerts(
+    enterpriseId: number | undefined,
+    options?: {
+      expiryWarningDays?: number;
+      includeBatchExpiry?: boolean;
+    },
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const rows = await this.db
@@ -212,9 +228,175 @@ export class InventoryService {
       return qty <= minS && minS > 0;
     });
 
+    const wd =
+      options?.expiryWarningDays != null &&
+      Number.isFinite(options.expiryWarningDays)
+        ? Math.max(1, Math.min(730, Number(options.expiryWarningDays)))
+        : DEFAULT_EXPIRY_WARNING_DAYS;
+    const includeBatches = options?.includeBatchExpiry !== false;
+
+    const expiryWarnings = await this.collectExpiryWarningItems(
+      eid,
+      wd,
+      includeBatches,
+    );
+
     return {
       items: alerts.map(mapInventoryRow),
       alertCount: alerts.length,
+      expiryWarnings,
+      expiryWarningCount: expiryWarnings.length,
+    };
+  }
+
+  /** 效期预警：inventory 行级效期 + 可选 product_batches（结存>0，效期在窗口内或已过期） */
+  async collectExpiryWarningItems(
+    enterpriseId: number,
+    warningDays: number,
+    includeBatches: boolean,
+  ) {
+    const eid = enterpriseId;
+    const wd = Math.max(1, Math.min(730, warningDays));
+    const now = new Date();
+
+    type Item = {
+      source: 'inventory' | 'batch';
+      productId: number;
+      productName: string;
+      productCode: string;
+      warehouseId: number | null;
+      batchNo: string | null;
+      batchId: number | null;
+      quantity: string;
+      expiryDate: string;
+      daysUntilExpiry: number;
+      severity: 'expired' | 'critical' | 'warning';
+    };
+
+    const out: Item[] = [];
+
+    const invRows = await this.db
+      .select({
+        inventory: schema.inventory,
+        productName: schema.products.name,
+        productCode: schema.products.code,
+      })
+      .from(schema.inventory)
+      .innerJoin(
+        schema.products,
+        and(
+          eq(schema.inventory.productId, schema.products.id),
+          eq(schema.products.enterpriseId, eid),
+        ),
+      )
+      .where(
+        and(
+          eq(schema.inventory.enterpriseId, eid),
+          ...inventoryExpiryRowPredicates(wd),
+        ),
+      )
+      .orderBy(schema.inventory.expiryDate);
+
+    for (const r of invRows) {
+      const exp = r.inventory.expiryDate!;
+      const days = ceilDaysUntil(exp, now);
+      out.push({
+        source: 'inventory',
+        productId: r.inventory.productId,
+        productName: r.productName ?? '',
+        productCode: r.productCode ?? '',
+        warehouseId: r.inventory.warehouseId ?? null,
+        batchNo: r.inventory.batchNo ?? null,
+        batchId: null,
+        quantity: r.inventory.quantity,
+        expiryDate: exp.toISOString(),
+        daysUntilExpiry: days,
+        severity: classifyExpirySeverity(days),
+      });
+    }
+
+    if (includeBatches) {
+      const batchRows = await this.db
+        .select({
+          batch: schema.productBatches,
+          productName: schema.products.name,
+          productCode: schema.products.code,
+        })
+        .from(schema.productBatches)
+        .innerJoin(
+          schema.products,
+          and(
+            eq(schema.productBatches.productId, schema.products.id),
+            eq(schema.products.enterpriseId, eid),
+          ),
+        )
+        .where(
+          and(
+            eq(schema.productBatches.enterpriseId, eid),
+            ...batchExpiryRowPredicates(wd),
+          ),
+        )
+        .orderBy(schema.productBatches.expiryDate);
+
+      for (const r of batchRows) {
+        const b = r.batch;
+        const exp = b.expiryDate!;
+        const days = ceilDaysUntil(exp, now);
+        out.push({
+          source: 'batch',
+          productId: b.productId,
+          productName: r.productName ?? '',
+          productCode: r.productCode ?? '',
+          warehouseId: b.warehouseId ?? null,
+          batchNo: b.batchNo,
+          batchId: b.id,
+          quantity: b.quantity,
+          expiryDate: exp.toISOString(),
+          daysUntilExpiry: days,
+          severity: classifyExpirySeverity(days),
+        });
+      }
+    }
+
+    out.sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
+    return out;
+  }
+
+  async findExpiryAlertsPage(params: {
+    enterpriseId?: number;
+    page: number;
+    pageSize: number;
+    warningDays?: number;
+    includeBatches: boolean;
+    severity?: 'expired' | 'critical' | 'warning';
+  }) {
+    const eid = requireEnterpriseId(params.enterpriseId);
+    const wd =
+      params.warningDays != null && Number.isFinite(params.warningDays)
+        ? Math.max(1, Math.min(730, Number(params.warningDays)))
+        : DEFAULT_EXPIRY_WARNING_DAYS;
+    let items = await this.collectExpiryWarningItems(
+      eid,
+      wd,
+      params.includeBatches,
+    );
+    if (params.severity) {
+      items = items.filter((x) => x.severity === params.severity);
+    }
+    const total = items.length;
+    const offset = (params.page - 1) * params.pageSize;
+    const pageItems = items.slice(offset, offset + params.pageSize);
+    const expiredCount = pageItems.filter((x) => x.severity === 'expired').length;
+    const criticalCount = pageItems.filter(
+      (x) => x.severity === 'critical',
+    ).length;
+    return {
+      items: pageItems,
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+      expiredCount,
+      criticalCount,
     };
   }
 
@@ -497,11 +679,33 @@ export class InventoryService {
         ),
       );
 
+    const [expiryWarnRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          eq(schema.stockAlerts.type, 'expiry_warn'),
+        ),
+      );
+
+    const [expiryExpiredRow] = await this.db
+      .select({ c: count() })
+      .from(schema.stockAlerts)
+      .where(
+        and(
+          eq(schema.stockAlerts.enterpriseId, eid),
+          eq(schema.stockAlerts.type, 'expiry_expired'),
+        ),
+      );
+
     return {
       pendingCount: Number(pendingRow?.c ?? 0),
       todayCount: Number(todayRow?.c ?? 0),
       lowCount: Number(lowRow?.c ?? 0),
       highCount: Number(highRow?.c ?? 0),
+      expiryWarnCount: Number(expiryWarnRow?.c ?? 0),
+      expiryExpiredCount: Number(expiryExpiredRow?.c ?? 0),
     };
   }
 
@@ -532,7 +736,6 @@ export class InventoryService {
       const minS = row.minStock != null ? Number(row.minStock) : 0;
       const maxS = row.maxStock != null ? Number(row.maxStock) : 0;
 
-      // 低于下限预警
       if (minS > 0 && qty <= minS) {
         alerts.push({
           enterpriseId: eid,
@@ -545,7 +748,6 @@ export class InventoryService {
         });
       }
 
-      // 高于上限预警
       if (maxS > 0 && qty >= maxS) {
         alerts.push({
           enterpriseId: eid,
@@ -559,7 +761,32 @@ export class InventoryService {
       }
     }
 
-    // 批量插入预警记录
+    const expiryItems = await this.collectExpiryWarningItems(
+      eid,
+      DEFAULT_EXPIRY_WARNING_DAYS,
+      true,
+    );
+    for (const it of expiryItems) {
+      const expired = it.severity === 'expired';
+      alerts.push({
+        enterpriseId: eid,
+        productId: it.productId,
+        type: expired ? 'expiry_expired' : 'expiry_warn',
+        currentStock: String(it.quantity),
+        threshold: String(expired ? 0 : DEFAULT_EXPIRY_WARNING_DAYS),
+        status: 'pending',
+        remark: JSON.stringify({
+          source: it.source,
+          batchId: it.batchId,
+          batchNo: it.batchNo,
+          warehouseId: it.warehouseId,
+          expiryDate: it.expiryDate,
+          daysUntilExpiry: it.daysUntilExpiry,
+          severity: it.severity,
+        }),
+      });
+    }
+
     if (alerts.length > 0) {
       await this.db.insert(schema.stockAlerts).values(alerts);
     }
@@ -567,6 +794,7 @@ export class InventoryService {
     return {
       checkedCount: rows.length,
       alertCount: alerts.length,
+      expiryAlertCount: expiryItems.length,
     };
   }
 }

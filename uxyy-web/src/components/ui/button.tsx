@@ -53,20 +53,27 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const Comp = asChild ? Slot : "button";
+    const mergedClassName = cn(buttonVariants({ variant, size }), className);
+    if (asChild) {
+      return (
+        <Slot className={mergedClassName} ref={ref} {...props}>
+          {children}
+        </Slot>
+      );
+    }
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size }), className)}
+      <button
+        className={mergedClassName}
         ref={ref}
-        type={asChild ? undefined : type}
-        disabled={asChild ? undefined : disabled || loading}
+        type={type}
+        disabled={disabled || loading}
         {...props}
       >
-        {!asChild && loading ? (
+        {loading ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         ) : null}
         {children}
-      </Comp>
+      </button>
     );
   },
 );

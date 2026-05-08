@@ -12,9 +12,12 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/roles.guard';
+import { PermissionsGuard } from '../../auth/permissions.guard';
 import { BackupService } from '../services/backup.service';
 import { Roles } from '../../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { isBossRole, Permission } from '../../auth/role-permissions';
 
 interface UserContext {
   userId: number;
@@ -23,7 +26,9 @@ interface UserContext {
 }
 
 @Controller('system/backup')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Roles('oa', 'boss', 'owner')
+@Permissions(Permission.SYS_BACKUP)
 export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 
@@ -31,15 +36,14 @@ export class BackupController {
    * 创建备份（仅管理员）
    */
   @Post('create')
-  @Roles('admin', 'boss')
   async createBackup(
     @Req() req: Request & { user: UserContext },
     @Query('enterpriseId', new ParseIntPipe({ optional: true })) enterpriseId?: number,
   ) {
-    // 普通管理员只能备份自己企业
-    const targetEnterpriseId = req.user.role === 'admin' 
-      ? req.user.enterpriseId 
-      : (enterpriseId || req.user.enterpriseId);
+    const isBoss = isBossRole(req.user.role);
+    const targetEnterpriseId = isBoss
+      ? (enterpriseId ?? req.user.enterpriseId)
+      : req.user.enterpriseId;
 
     return this.backupService.createBackup(targetEnterpriseId);
   }
@@ -52,9 +56,10 @@ export class BackupController {
     @Req() req: Request & { user: UserContext },
     @Query('enterpriseId', new ParseIntPipe({ optional: true })) enterpriseId?: number,
   ) {
-    const targetEnterpriseId = req.user.role === 'admin' 
-      ? req.user.enterpriseId 
-      : (enterpriseId || req.user.enterpriseId);
+    const isBoss = isBossRole(req.user.role);
+    const targetEnterpriseId = isBoss
+      ? (enterpriseId ?? req.user.enterpriseId)
+      : req.user.enterpriseId;
 
     return this.backupService.getBackupList(targetEnterpriseId);
   }
@@ -63,7 +68,6 @@ export class BackupController {
    * 删除备份（仅管理员）
    */
   @Delete(':fileName')
-  @Roles('admin', 'boss')
   async deleteBackup(@Param('fileName') fileName: string) {
     return this.backupService.deleteBackup(fileName);
   }
@@ -100,14 +104,13 @@ export class BackupController {
       return res.status(500).json(result);
     }
 
-    res.download(result.filePath, result.fileName);
+    res.download(result.filePath, result.fileName || 'backup.zip');
   }
 
   /**
    * 清理过期备份（仅管理员）
    */
   @Post('cleanup')
-  @Roles('admin', 'boss')
   async cleanupBackups(
     @Query('retentionDays', new ParseIntPipe({ optional: true })) retentionDays?: number,
   ) {

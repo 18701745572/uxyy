@@ -71,6 +71,83 @@ export const voucherEntries = pgTable('voucher_entries', {
 // ==================== 会计科目 ====================
 // 自引用树形结构，企业级科目表
 
+export const accounts = pgTable('accounts', {
+  id: serial('id').primaryKey(),
+  enterpriseId: integer('enterprise_id')
+    .references(() => enterprises.id)
+    .notNull(),
+  code: varchar('code', { length: 20 }).notNull(),
+  name: varchar('name', { length: 50 }).notNull(),
+  category: varchar('category', { length: 20 }).notNull(), // asset, liability, equity, revenue, expense
+  parentId: integer('parent_id'),
+  balanceDirection: varchar('balance_direction', { length: 10 }).default('debit'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  enterprise: one(enterprises, {
+    fields: [accounts.enterpriseId],
+    references: [enterprises.id],
+  }),
+}));
+
+// ==================== 财务凭证 ====================
+export const vouchers = pgTable('vouchers', {
+  id: serial('id').primaryKey(),
+  enterpriseId: integer('enterprise_id')
+    .references(() => enterprises.id)
+    .notNull(),
+  voucherNo: varchar('voucher_no', { length: 50 }).notNull(),
+  voucherDate: timestamp('voucher_date').defaultNow().notNull(),
+  totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull(),
+  summary: text('summary'),
+  status: varchar('status', { length: 20 }).default('draft').notNull(),
+  createdBy: integer('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const vouchersRelations = relations(vouchers, ({ one, many }) => ({
+  enterprise: one(enterprises, {
+    fields: [vouchers.enterpriseId],
+    references: [enterprises.id],
+  }),
+  createdByUser: one(users, {
+    fields: [vouchers.createdBy],
+    references: [users.id],
+  }),
+  items: many(voucherItems),
+}));
+
+// ==================== 凭证明细 ====================
+export const voucherItems = pgTable('voucher_items', {
+  id: serial('id').primaryKey(),
+  voucherId: integer('voucher_id')
+    .references(() => vouchers.id)
+    .notNull(),
+  accountId: integer('account_id')
+    .references(() => accounts.id)
+    .notNull(),
+  debitAmount: decimal('debit_amount', { precision: 12, scale: 2 }).default('0'),
+  creditAmount: decimal('credit_amount', { precision: 12, scale: 2 }).default('0'),
+  summary: text('summary'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const voucherItemsRelations = relations(voucherItems, ({ one }) => ({
+  voucher: one(vouchers, {
+    fields: [voucherItems.voucherId],
+    references: [vouchers.id],
+  }),
+  account: one(accounts, {
+    fields: [voucherItems.accountId],
+    references: [accounts.id],
+  }),
+}));
+
+// ==================== 会计科目表(旧版兼容) ====================
 export const accountSubjects = pgTable('account_subjects', {
   id: serial('id').primaryKey(),
   enterpriseId: integer('enterprise_id')

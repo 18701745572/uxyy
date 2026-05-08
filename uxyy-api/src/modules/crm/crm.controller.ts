@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,15 +10,24 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Express } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../../modules/auth/permissions.guard';
+import { Permission } from '../../modules/auth/role-permissions';
 import { CrmService } from './crm.service';
 import {
   CreateCustomerDto,
@@ -108,6 +118,43 @@ export class CrmController {
     @Body() body: CreateCustomerDto,
   ): Promise<CustomerResponseDto> {
     return this.crm.create(enterpriseIdFromRequest(req), body);
+  }
+
+  @ApiBearerAuth()
+  @Post('customers/import')
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
+  @ApiOperation({
+    summary:
+      'Excel/CSV 导入客户（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importCustomers(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.crm.importCustomersFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+    );
   }
 
   @ApiBearerAuth()

@@ -54,7 +54,7 @@ export class AttendanceController {
    */
   @Get('department/:departmentId')
   getDepartmentAttendance(
-    @Param('departmentId', ParseIntPipe) departmentId: number,
+    @Param('departmentId') departmentId: string,
     @Req() req: Request & { user: UserContext },
     @Query('month') month: string,
   ) {

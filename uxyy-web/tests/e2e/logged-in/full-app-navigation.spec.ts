@@ -67,6 +67,7 @@ test.describe("登录后 · 进销存", () => {
       { path: "/dashboard/inventory/purchase-orders", title: "采购订单" },
       { path: "/dashboard/inventory/sales-orders", title: "销售订单" },
       { path: "/dashboard/inventory/stocktaking", title: "库存盘点" },
+      { path: "/dashboard/inventory/warehouses", title: "仓库管理" },
     ];
     for (const c of cases) {
       await gotoWorkstation(page, c.path);

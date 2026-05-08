@@ -1,6 +1,8 @@
 import {
+  boolean,
   date,
   decimal,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -9,6 +11,7 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 import {
   approvalFlowStatusEnum,
@@ -36,6 +39,8 @@ export interface ApprovalStep {
   userId?: number;
   condition?: {
     amount?: { gte?: number; lte?: number };
+    /** 请假等：触发该步骤所需最少天数等 */
+    days?: { gte?: number; lte?: number };
   };
 }
 
@@ -119,6 +124,85 @@ export const employeeProfiles = pgTable('employee_profiles', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+/** 考勤记录表 */
+export const attendanceRecords = pgTable(
+  'attendance_records',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .references(() => users.id)
+      .notNull(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    date: timestamp('date').notNull(),
+    checkIn: timestamp('check_in'),
+    checkOut: timestamp('check_out'),
+    status: varchar('status', { length: 20 }).default('normal').notNull(), // normal, late, early_leave, absent, leave, overtime
+    workHours: decimal('work_hours', { precision: 4, scale: 1 }).default('0'),
+    lateMinutes: integer('late_minutes').default(0),
+    earlyMinutes: integer('early_minutes').default(0),
+    location: varchar('location', { length: 100 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('attendance_records_user_idx').on(t.userId),
+    index('attendance_records_enterprise_idx').on(t.enterpriseId),
+    index('attendance_records_date_idx').on(t.date),
+  ],
+);
+
+/** 补卡申请表 */
+export const attendanceMakeUpRequests = pgTable(
+  'attendance_make_up_requests',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .references(() => users.id)
+      .notNull(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    date: timestamp('date').notNull(),
+    type: varchar('type', { length: 10 }).notNull(), // 'in' | 'out'
+    reason: text('reason').notNull(),
+    status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, approved, rejected
+    approverId: integer('approver_id').references(() => users.id),
+    approvedAt: timestamp('approved_at'),
+    remark: text('remark'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('attendance_makeup_user_idx').on(t.userId),
+    index('attendance_makeup_status_idx').on(t.status),
+  ],
+);
+
+// ==================== 关系定义 ====================
+export const attendanceRecordsRelations = relations(attendanceRecords, ({ one }) => ({
+  user: one(users, {
+    fields: [attendanceRecords.userId],
+    references: [users.id],
+  }),
+  enterprise: one(enterprises, {
+    fields: [attendanceRecords.enterpriseId],
+    references: [enterprises.id],
+  }),
+}));
+
+export const attendanceMakeUpRequestsRelations = relations(attendanceMakeUpRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [attendanceMakeUpRequests.userId],
+    references: [users.id],
+  }),
+  approver: one(users, {
+    fields: [attendanceMakeUpRequests.approverId],
+    references: [users.id],
+  }),
+}));
 
 /** 通知表 */
 export const notifications = pgTable('notifications', {

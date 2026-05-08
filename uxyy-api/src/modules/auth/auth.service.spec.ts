@@ -228,6 +228,13 @@ describe('AuthService', () => {
       expect(result.refresh_token).toBe('mock-access-token');
       expect(result.user.id).toBe(1);
       expect(result.enterprise).toEqual({ id: 10 });
+      expect(jwt.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: '1',
+          enterpriseId: 10,
+          role: 'boss',
+        }),
+      );
     });
 
     it('should throw ConflictException if phone already registered', async () => {

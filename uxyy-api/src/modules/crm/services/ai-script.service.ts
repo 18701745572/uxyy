@@ -261,6 +261,8 @@ export class AiScriptService {
       '需求挖掘': ['需求挖掘'],
       '产品介绍': ['产品介绍'],
       '价格谈判': ['价格谈判'],
+      /** 教程 / 产品用语：与「价格谈判」共用模板 */
+      '谈判协商': ['价格谈判'],
       '异议处理': ['异议处理'],
       '促成成交': ['促成成交'],
       '售后跟进': ['售后跟进'],
@@ -284,7 +286,7 @@ export class AiScriptService {
 
     // 替换变量
     content = content.replace(/{customer_name}/g, customer.name || '张总');
-    content = content.replace(/{company}/g, customer.company || '我们公司');
+    content = content.replace(/{company}/g, customer.name || '我们公司');
     content = content.replace(/{industry}/g, customer.industry || '相关');
 
     // 根据模板类型添加提示

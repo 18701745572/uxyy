@@ -232,7 +232,7 @@ export class ChurnPredictionService {
     else if (churnProbability >= 30) churnRisk = 'medium';
 
     // 生成建议
-    const recommendedActions = this.generateRetentionActions(riskFactors, churnRisk, customer);
+    const recommendedActions = this.generateRetentionActions(riskFactors, churnRisk, customer, totalAmount);
 
     return {
       customerId,
@@ -318,6 +318,7 @@ export class ChurnPredictionService {
     riskFactors: RiskFactor[],
     churnRisk: 'high' | 'medium' | 'low',
     customer: typeof schema.customers.$inferSelect,
+    totalAmount: string,
   ): string[] {
     const actions: string[] = [];
 
@@ -354,7 +355,7 @@ export class ChurnPredictionService {
     }
 
     // 通用建议
-    if (parseFloat(customer.totalAmount || '0') > 100000) {
+    if (parseFloat(totalAmount || '0') > 100000) {
       actions.push('💎 高价值客户，建议制定专属服务方案');
     }
 

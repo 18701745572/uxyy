@@ -94,6 +94,15 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
+  it('should allow enterprise owner role alias (owner → boss)', () => {
+    const { reflector, context } = mockContext({
+      handlerRoles: ['boss'],
+      user: { userId: 1, enterpriseId: 1, role: 'owner' },
+    });
+    guard = new RolesGuard(reflector);
+    expect(guard.canActivate(context)).toBe(true);
+  });
+
   it('should check error message mentions required roles', () => {
     const { reflector, context } = mockContext({
       handlerRoles: ['boss', 'finance'],
@@ -107,6 +116,7 @@ describe('RolesGuard', () => {
       const msg = (e as ForbiddenException).message;
       expect(msg).toContain('boss');
       expect(msg).toContain('finance');
+      expect(msg).toContain('sales');
     }
   });
 });

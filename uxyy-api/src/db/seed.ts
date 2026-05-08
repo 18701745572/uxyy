@@ -11,6 +11,39 @@ const SEED_PHONE = process.env.SEED_DEV_PHONE ?? '13800138000';
 const SEED_PASSWORD = process.env.SEED_DEV_PASSWORD ?? 'Dev12345!';
 const ROUNDS = 10;
 
+/** 保证该企业至少有一条仓库主数据，供 GET /inventory/warehouses、盘点等到处使用 */
+async function ensureEnterpriseDefaultWarehouse(
+  db: NodePgDatabase<typeof schema>,
+  enterpriseId: number,
+  userId: number,
+): Promise<number> {
+  const [existing] = await db
+    .select({ id: schema.warehouses.id })
+    .from(schema.warehouses)
+    .where(eq(schema.warehouses.enterpriseId, enterpriseId))
+    .limit(1);
+
+  if (existing) return existing.id;
+
+  const [created] = await db
+    .insert(schema.warehouses)
+    .values({
+      enterpriseId,
+      name: '主仓库',
+      code: 'WH-MAIN',
+      isDefault: true,
+      status: 'active',
+      createdBy: userId,
+    })
+    .returning({ id: schema.warehouses.id });
+
+  if (!created) throw new Error('Failed to seed default warehouse');
+  console.log(
+    `Seeded default warehouse id=${created.id} for enterpriseId=${enterpriseId}`,
+  );
+  return created.id;
+}
+
 async function seedSampleCustomers(
   db: NodePgDatabase<typeof schema>,
   enterpriseId: number,
@@ -108,6 +141,12 @@ async function seedSampleInventory(
   enterpriseId: number,
   userId: number,
 ) {
+  const defaultWarehouseId = await ensureEnterpriseDefaultWarehouse(
+    db,
+    enterpriseId,
+    userId,
+  );
+
   const [existingProduct] = await db
     .select({ c: count() })
     .from(schema.products)
@@ -223,13 +262,38 @@ async function seedSampleInventory(
     })
     .returning();
 
-  // Initial inventory stock
+  // Initial inventory stock（与仓库主档 id 对齐）
   await db.insert(schema.inventory).values([
-    { enterpriseId, productId: p1.id, quantity: '200', warehouseId: 1 },
-    { enterpriseId, productId: p2.id, quantity: '800', warehouseId: 1 },
-    { enterpriseId, productId: p3.id, quantity: '5000', warehouseId: 1 },
-    { enterpriseId, productId: p4.id, quantity: '1200', warehouseId: 1 },
-    { enterpriseId, productId: p5.id, quantity: '15', warehouseId: 1 },
+    {
+      enterpriseId,
+      productId: p1.id,
+      quantity: '200',
+      warehouseId: defaultWarehouseId,
+    },
+    {
+      enterpriseId,
+      productId: p2.id,
+      quantity: '800',
+      warehouseId: defaultWarehouseId,
+    },
+    {
+      enterpriseId,
+      productId: p3.id,
+      quantity: '5000',
+      warehouseId: defaultWarehouseId,
+    },
+    {
+      enterpriseId,
+      productId: p4.id,
+      quantity: '1200',
+      warehouseId: defaultWarehouseId,
+    },
+    {
+      enterpriseId,
+      productId: p5.id,
+      quantity: '15',
+      warehouseId: defaultWarehouseId,
+    },
   ]);
 
   // Write initial inventory logs (seeding)

@@ -17,6 +17,21 @@ export class ApiError extends Error {
   }
 }
 
+/** 将 JSON 错误体中的 `message` 提取为可读文案（兼容 Nest 校验数组 message） */
+function nestStyleErrorMessage(text: string, fallback: string): string {
+  const raw = (text ?? "").trim();
+  if (!raw) return fallback;
+  try {
+    const j = JSON.parse(raw) as { message?: unknown };
+    if (typeof j.message === "string" && j.message.trim()) return j.message;
+    if (Array.isArray(j.message) && j.message.length > 0)
+      return j.message.map(String).join("; ");
+  } catch {
+    /* 非 JSON，整段作为说明 */
+  }
+  return raw || fallback;
+}
+
 /** 表示未授权（401）且刷新失败 */
 export class UnauthorizedError extends ApiError {
   constructor(message = "未授权，请重新登录") {
@@ -52,7 +67,6 @@ async function doRefresh(): Promise<string | null> {
     });
 
     if (!res.ok) {
-      // 刷新失败，清除登录态
       clearAllTokens();
       return null;
     }
@@ -77,7 +91,7 @@ async function doRefresh(): Promise<string | null> {
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
-  _retry = true, // 内部使用，避免无限重试
+  _retry = true,
 ): Promise<T> {
   const base = getPublicApiBaseUrl();
   if (!base) {
@@ -106,13 +120,10 @@ export async function apiFetch<T = unknown>(
     headers,
   });
 
-  // 401 时尝试自动刷新（且尚未重试过）
   if (res.status === 401 && _retry) {
-    // 若正在刷新，则排队等待结果
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
-        subscribeToRefresh((newToken) => {
-          // 用新 token 重试原请求
+        subscribeToRefresh(() => {
           apiFetch<T>(path, options, false)
             .then(resolve)
             .catch(reject);
@@ -126,18 +137,17 @@ export async function apiFetch<T = unknown>(
 
     if (newToken) {
       notifyRefreshSubscribers(newToken);
-      // 用新 token 重试原请求（不再自动刷新）
       return apiFetch<T>(path, options, false);
     }
 
-    // 刷新失败，通知排队者并抛出未授权
     notifyRefreshSubscribers("");
     throw new UnauthorizedError();
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new ApiError(res.status, text || res.statusText);
+    const message = nestStyleErrorMessage(text, res.statusText);
+    throw new ApiError(res.status, message || res.statusText);
   }
 
   return (await res.json()) as T;

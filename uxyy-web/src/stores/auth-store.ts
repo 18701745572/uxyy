@@ -5,7 +5,6 @@ import type { LoginInput, RegisterInput, ProfilePayload } from "@uxyy/shared";
 import {
   login as loginApi,
   register as registerApi,
-  fetchProfile,
   switchEnterprise as switchEnterpriseApi,
 } from "@/lib/api/auth";
 import { readJwtAccessClaims } from "@/lib/api/jwt-payload";
@@ -21,19 +20,10 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
 
-  /** 挂载时调用：验证已有 token */
   checkProfile: () => Promise<void>;
-
-  /** 登录 */
   login: (input: LoginInput) => Promise<void>;
-
-  /** 注册 */
   register: (input: RegisterInput) => Promise<void>;
-
-  /** 退出 */
   logout: () => void;
-
-  /** 切换当前企业（新 JWT 写入 sessionStorage，后续 apiFetch 自动带 Bearer） */
   switchEnterprise: (enterpriseId: number) => Promise<void>;
 }
 
@@ -42,10 +32,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isAuthenticated: false,
 
-  /**
-   * 页面刷新时恢复登录态：从 sessionStorage 的 token 解析 JWT claims
-   * 不请求后端 /auth/profile，保证 sub/enterpriseId 与 JWT 完全一致
-   */
   checkProfile: async () => {
     const token = readStoredAccessToken();
     if (!token) {
@@ -54,7 +40,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     const claims = readJwtAccessClaims(token);
     if (!claims?.sub) {
-      // Token 无效或过期，清除全部 token
       clearAllTokens();
       set({ user: null, isLoading: false, isAuthenticated: false });
       return;

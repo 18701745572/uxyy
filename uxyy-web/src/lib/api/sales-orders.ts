@@ -19,9 +19,21 @@ export async function fetchSalesOrders(
   if (query.endDate) params.set("endDate", query.endDate);
 
   const qs = params.toString();
-  return apiFetch<SalesOrderListResponseDto>(
-    `/inventory/sales-orders${qs ? `?${qs}` : ""}`,
-  );
+  /** 后端 `SalesOrderListResponseDto` 使用 `items` 表示订单列表；shared 与各页面约定为 `list`。 */
+  const raw = await apiFetch<{
+    list?: SalesOrderResponseDto[];
+    items?: SalesOrderResponseDto[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(`/inventory/sales-orders${qs ? `?${qs}` : ""}`);
+
+  return {
+    list: raw.list ?? raw.items ?? [],
+    total: raw.total,
+    page: raw.page,
+    pageSize: raw.pageSize,
+  };
 }
 
 export async function createSalesOrder(
@@ -65,19 +77,23 @@ export async function approveSalesOrder(
   comment?: string,
 ): Promise<SalesOrderResponseDto> {
   return apiFetch<SalesOrderResponseDto>(`/inventory/sales-orders/${id}/approve`, {
-    method: "POST",
+    method: "PUT",
     body: JSON.stringify({ action, comment }),
   });
 }
 
-export async function deliverSalesOrder(
+/** 出库；与后端 `PUT .../outbound`、`OutboundDto` 一致（`outboundQty`） */
+export async function outboundSalesOrder(
   id: number,
-  items: { itemId: number; deliverQty: number }[],
-): Promise<SalesOrderResponseDto> {
-  return apiFetch<SalesOrderResponseDto>(`/inventory/sales-orders/${id}/deliver`, {
-    method: "POST",
-    body: JSON.stringify({ items }),
-  });
+  items: { itemId: number; outboundQty: number }[],
+): Promise<{ ok: boolean; orderId: number; status: string }> {
+  return apiFetch<{ ok: boolean; orderId: number; status: string }>(
+    `/inventory/sales-orders/${id}/outbound`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ items }),
+    },
+  );
 }
 
 export async function cancelSalesOrder(id: number): Promise<SalesOrderResponseDto> {

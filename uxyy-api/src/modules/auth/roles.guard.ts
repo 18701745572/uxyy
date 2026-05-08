@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { normalizeEnterpriseRole } from './role-permissions';
+
 export const ROLES_KEY = 'uxyy_roles';
 
 @Injectable()
@@ -30,8 +32,19 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('当前用户无角色信息');
     }
 
-    if (!roles.includes(user.role)) {
-      throw new ForbiddenException(`角色权限不足，需要: ${roles.join(' 或 ')}`);
+    const userCanonical = normalizeEnterpriseRole(user.role);
+    if (!userCanonical) {
+      throw new ForbiddenException('当前角色未配置或无效，请联系管理员');
+    }
+
+    const requiredCanonical = roles
+      .map((r) => normalizeEnterpriseRole(r) ?? r)
+      .filter(Boolean) as string[];
+
+    if (!requiredCanonical.includes(userCanonical)) {
+      throw new ForbiddenException(
+        `角色权限不足，需要: ${requiredCanonical.join(' 或 ')}（当前: ${userCanonical}）`,
+      );
     }
 
     return true;

@@ -12,9 +12,15 @@ import {
   approvePurchaseOrder,
   cancelPurchaseOrder,
 } from "@/lib/api/purchase-orders";
+import { fetchAllSuppliers } from "@/lib/api/suppliers";
+import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Plus, Trash2 } from "lucide-react";
+
+const selectCls =
+  "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
 
 const statusMap: Record<OrderStatus, string> = {
   draft: "草稿",
@@ -38,6 +44,19 @@ interface OrderFormData {
   items: { productId: number; quantity: number; unitPrice: number }[];
 }
 
+function mapItemsFromOrder(
+  init: PurchaseOrderResponseDto | undefined,
+): OrderFormData["items"] {
+  if (init?.items?.length) {
+    return init.items.map((it) => ({
+      productId: it.productId,
+      quantity: Number(it.quantity),
+      unitPrice: Number(it.unitPrice),
+    }));
+  }
+  return [{ productId: 0, quantity: 1, unitPrice: 0 }];
+}
+
 function PurchaseOrderForm({
   init,
   onDone,
@@ -46,20 +65,48 @@ function PurchaseOrderForm({
   onDone: () => void;
 }) {
   const isEdit = !!init;
-  const [formData, setFormData] = useState<OrderFormData>({
+  const [formData, setFormData] = useState<OrderFormData>(() => ({
     supplierId: init?.supplierId ?? 0,
     remark: init?.remark ?? "",
-    items: init?.items ?? [],
-  });
+    items: mapItemsFromOrder(init),
+  }));
   const [error, setError] = useState("");
 
   const qc = useQueryClient();
 
+  const suppliersQ = useQuery({
+    queryKey: ["inventory", "suppliers", "purchase-order-form"],
+    queryFn: () => fetchAllSuppliers(),
+    enabled: !isEdit,
+  });
+
+  const productsQ = useQuery({
+    queryKey: ["inventory", "products", "purchase-order-form"],
+    queryFn: () => fetchAllProducts(),
+    enabled: !isEdit,
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
-      isEdit
-        ? updatePurchaseOrder(init!.id, { remark: formData.remark })
-        : createPurchaseOrder(formData),
+    mutationFn: () => {
+      if (isEdit) {
+        return updatePurchaseOrder(init!.id, {
+          remark: formData.remark?.trim() || undefined,
+        });
+      }
+      const validItems = formData.items.filter(
+        (l) => l.productId > 0 && l.quantity > 0 && !Number.isNaN(l.quantity),
+      );
+      const body = {
+        supplierId: formData.supplierId,
+        remark: formData.remark?.trim() || undefined,
+        items: validItems.map((l) => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+        })),
+      } satisfies Parameters<typeof createPurchaseOrder>[0];
+      return createPurchaseOrder(body);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory", "purchase-orders"] });
       onDone();
@@ -70,29 +117,197 @@ function PurchaseOrderForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isEdit && (formData.supplierId <= 0 || formData.items.length === 0)) {
-      setError("请填写供应商和商品明细");
-      return;
+    setError("");
+    if (!isEdit) {
+      if (formData.supplierId <= 0) {
+        setError("请选择供应商");
+        return;
+      }
+      const validItems = formData.items.filter(
+        (l) => l.productId > 0 && l.quantity > 0 && !Number.isNaN(l.quantity),
+      );
+      if (validItems.length === 0) {
+        setError("请至少添加一行商品，并选择商品、填写数量（单价可为 0）");
+        return;
+      }
+      if (validItems.some((l) => l.unitPrice < 0 || Number.isNaN(l.unitPrice))) {
+        setError("单价不能为负数");
+        return;
+      }
     }
     mutation.mutate();
   };
 
+  const addItemRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { productId: 0, quantity: 1, unitPrice: 0 }],
+    }));
+  };
+
+  const removeItemRow = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateItemRow = (
+    index: number,
+    patch: Partial<OrderFormData["items"][number]>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    }));
+  };
+
+  const suppliers = suppliersQ.data ?? [];
+  const products = productsQ.data ?? [];
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {!isEdit && (
-        <Input
-          label="供应商ID *"
-          type="number"
-          value={formData.supplierId}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              supplierId: Number(e.target.value),
-            }))
-          }
-          placeholder="1"
-        />
+        <>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-zinc-700">供应商 *</label>
+            {suppliersQ.isLoading ? (
+              <p className="text-sm text-zinc-500">加载供应商…</p>
+            ) : suppliers.length === 0 ? (
+              <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
+                暂无供应商，请先在「进销存 → 供应商」中新建供应商后再建采购单。
+              </p>
+            ) : (
+              <select
+                className={selectCls}
+                value={formData.supplierId > 0 ? String(formData.supplierId) : ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    supplierId: Number(e.target.value),
+                  }))
+                }
+                required
+              >
+                <option value="">请选择供应商</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} (#{s.id})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium text-zinc-700">
+                采购明细 *
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="gap-1"
+                onClick={addItemRow}
+              >
+                <Plus className="h-4 w-4" />
+                添加商品行
+              </Button>
+            </div>
+            {productsQ.isLoading ? (
+              <p className="text-sm text-zinc-500">加载商品…</p>
+            ) : products.length === 0 ? (
+              <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
+                暂无商品，请先在「进销存 → 商品」中建档后再添加明细。
+              </p>
+            ) : (
+              <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
+                {formData.items.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap"
+                  >
+                    <div className="flex flex-col gap-1 min-w-[180px] flex-1">
+                      <span className="text-xs text-zinc-500">商品</span>
+                      <select
+                        className={selectCls}
+                        value={row.productId > 0 ? String(row.productId) : ""}
+                        onChange={(e) =>
+                          updateItemRow(idx, {
+                            productId: Number(e.target.value),
+                          })
+                        }
+                      >
+                        <option value="">选择商品</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.code}) #{p.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      label="数量 *"
+                      type="number"
+                      min={0.01}
+                      step="any"
+                      className="w-full sm:w-28"
+                      value={row.quantity}
+                      onChange={(e) =>
+                        updateItemRow(idx, {
+                          quantity: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <Input
+                      label="单价"
+                      type="number"
+                      min={0}
+                      step="any"
+                      className="w-full sm:w-28"
+                      value={row.unitPrice}
+                      onChange={(e) =>
+                        updateItemRow(idx, {
+                          unitPrice: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600"
+                      disabled={formData.items.length <= 1}
+                      onClick={() => removeItemRow(idx)}
+                      aria-label="删除本行"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
+
+      {isEdit && init?.items?.length ? (
+        <div className="rounded-lg border border-zinc-200 p-3 space-y-2">
+          <p className="text-sm font-medium text-zinc-700">采购明细（只读）</p>
+          <p className="text-xs text-zinc-500">
+            草稿仅支持修改备注；若要调整商品，请删除本单后重新创建。
+          </p>
+          <ul className="text-sm text-zinc-600 space-y-1">
+            {init.items.map((it) => (
+              <li key={it.id}>
+                商品 #{it.productId} × {it.quantity} @ ¥{it.unitPrice} = ¥
+                {it.amount}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-zinc-700">备注</label>

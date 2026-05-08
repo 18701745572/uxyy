@@ -7,6 +7,7 @@ import type {
 } from "@uxyy/shared";
 import { apiFetch } from "./client";
 
+/** 后端分页返回使用 `items`；与前端/共享约定的 `list` 对齐 */
 export async function fetchStocktakingList(
   query: StocktakingListQueryDto,
 ): Promise<StocktakingListResponseDto> {
@@ -16,9 +17,14 @@ export async function fetchStocktakingList(
   if (query.status) params.set("status", query.status);
 
   const qs = params.toString();
-  return apiFetch<StocktakingListResponseDto>(
-    `/inventory/stocktaking${qs ? `?${qs}` : ""}`,
-  );
+  const raw = await apiFetch<
+    Omit<StocktakingListResponseDto, "list"> & {
+      list?: StocktakingListResponseDto["list"];
+      items?: StocktakingListResponseDto["list"];
+    }
+  >(`/inventory/stocktaking${qs ? `?${qs}` : ""}`);
+  const list = raw.list ?? raw.items ?? [];
+  return { ...raw, list };
 }
 
 export async function createStocktaking(
@@ -40,13 +46,13 @@ export async function updateStocktakingItem(
   data: UpdateStocktakingItemDto,
 ): Promise<StocktakingDto> {
   return apiFetch<StocktakingDto>(`/inventory/stocktaking/${stocktakingId}/items/${itemId}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }
 
 export async function confirmStocktaking(id: number): Promise<StocktakingDto> {
   return apiFetch<StocktakingDto>(`/inventory/stocktaking/${id}/confirm`, {
-    method: "POST",
+    method: "PUT",
   });
 }

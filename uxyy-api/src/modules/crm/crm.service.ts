@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -6,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
@@ -269,6 +271,146 @@ export class CrmService {
       throw new NotFoundException('客户不存在');
     }
     return { ok: true, id: deleted.id, enterpriseId: eid };
+  }
+
+  /** Excel / CSV 批量导入客户（列与导出模板一致，支持中文/英文表头） */
+  async importCustomersFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      客户名称: 'name',
+      联系人: 'contactPerson',
+      电话: 'phone',
+      地址: 'address',
+      类型: 'type',
+      等级: 'level',
+      行业: 'industry',
+      备注: 'remark',
+      授信额度: 'creditLimit',
+      name: 'name',
+      contactPerson: 'contactPerson',
+      phone: 'phone',
+      address: 'address',
+      type: 'type',
+      level: 'level',
+      industry: 'industry',
+      remark: 'remark',
+      creditLimit: 'creditLimit',
+    };
+
+    const validTypes = new Set(['personal', 'enterprise']);
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const dto: CreateCustomerDto = {
+        name: '',
+        source: 'import',
+        force: mode === 'force',
+      };
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key) continue;
+
+        if (key === 'creditLimit') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) dto.creditLimit = n;
+          continue;
+        }
+
+        const str =
+          val instanceof Date ? val.toISOString() : String(val).trim();
+        if (!str) continue;
+
+        switch (key) {
+          case 'name':
+            dto.name = str.slice(0, 200);
+            break;
+          case 'contactPerson':
+            dto.contactPerson = str.slice(0, 50);
+            break;
+          case 'phone':
+            dto.phone = str.slice(0, 20);
+            break;
+          case 'address':
+            dto.address = str;
+            break;
+          case 'type': {
+            const t = str.toLowerCase();
+            if (validTypes.has(t)) dto.type = t;
+            break;
+          }
+          case 'level': {
+            const l = str.toLowerCase();
+            if (l === 'vip') dto.level = 'VIP';
+            else if (l === 'regular') dto.level = 'regular';
+            else if (l === 'potential') dto.level = 'potential';
+            break;
+          }
+          case 'industry':
+            dto.industry = str.slice(0, 50);
+            break;
+          case 'remark':
+            dto.remark = str.slice(0, 4000);
+            break;
+          default:
+            break;
+        }
+      }
+
+      if (!dto.name?.trim()) {
+        failures.push({ row: rowIndex, reason: '缺少客户名称' });
+        continue;
+      }
+
+      try {
+        if (mode === 'skip') {
+          const dupId = await this.checkDuplicate(eid, dto.name, dto.phone);
+          if (dupId !== null) {
+            skipped++;
+            continue;
+          }
+        }
+        await this.create(eid, { ...dto, force: mode === 'force' });
+        created++;
+      } catch (e) {
+        if (e instanceof ConflictException && mode === 'skip') {
+          skipped++;
+          continue;
+        }
+        const msg = e instanceof Error ? e.message : '创建失败';
+        failures.push({ row: rowIndex, reason: msg });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 
   // ─── Follow-up records ──────────────────────────────────────────
