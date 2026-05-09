@@ -53,9 +53,26 @@ export class AiErrorCorrectionService {
       .from(schema.voucherItems)
       .where(eq(schema.voucherItems.voucherId, voucherId));
 
+    if (!items || items.length === 0) {
+      errors.push({
+        type: 'warning',
+        category: '凭证明细',
+        title: '凭证明细为空',
+        description: '该凭证没有明细记录',
+        suggestion: '请补充凭证明细',
+      });
+      return errors;
+    }
+
     // 1. 检查借贷平衡
-    const totalDebit = items.reduce((sum, item) => sum + parseFloat(item.debitAmount || '0'), 0);
-    const totalCredit = items.reduce((sum, item) => sum + parseFloat(item.creditAmount || '0'), 0);
+    let totalDebit = 0;
+    let totalCredit = 0;
+    for (const item of items) {
+      const debit = parseFloat(item.debitAmount || '0');
+      const credit = parseFloat(item.creditAmount || '0');
+      if (!isNaN(debit)) totalDebit += debit;
+      if (!isNaN(credit)) totalCredit += credit;
+    }
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       errors.push({
@@ -70,6 +87,8 @@ export class AiErrorCorrectionService {
 
     // 2. 检查科目使用合理性
     for (const item of items) {
+      if (!item.accountId) continue;
+      
       const [account] = await this.db
         .select()
         .from(schema.accounts)
@@ -77,7 +96,10 @@ export class AiErrorCorrectionService {
 
       if (account) {
         // 检查资产类科目贷方金额异常
-        if (account.category === 'asset' && parseFloat(item.creditAmount || '0') > 0) {
+        const creditAmount = parseFloat(item.creditAmount || '0');
+        const debitAmount = parseFloat(item.debitAmount || '0');
+        
+        if (account.category === 'asset' && !isNaN(creditAmount) && creditAmount > 0) {
           errors.push({
             type: 'warning',
             category: '科目使用',
@@ -89,7 +111,7 @@ export class AiErrorCorrectionService {
         }
 
         // 检查负债类科目借方金额异常
-        if (account.category === 'liability' && parseFloat(item.debitAmount || '0') > 0) {
+        if (account.category === 'liability' && !isNaN(debitAmount) && debitAmount > 0) {
           errors.push({
             type: 'warning',
             category: '科目使用',
@@ -101,7 +123,7 @@ export class AiErrorCorrectionService {
         }
 
         // 检查损益类科目方向
-        if (account.category === 'revenue' && parseFloat(item.debitAmount || '0') > 0) {
+        if (account.category === 'revenue' && !isNaN(debitAmount) && debitAmount > 0) {
           errors.push({
             type: 'info',
             category: '科目使用',
@@ -116,7 +138,11 @@ export class AiErrorCorrectionService {
 
     // 3. 检查金额异常（过大或过小）
     for (const item of items) {
-      const amount = parseFloat(item.debitAmount || item.creditAmount || '0');
+      const debitAmount = parseFloat(item.debitAmount || '0');
+      const creditAmount = parseFloat(item.creditAmount || '0');
+      const amount = !isNaN(debitAmount) && debitAmount > 0 ? debitAmount : 
+                    !isNaN(creditAmount) && creditAmount > 0 ? creditAmount : 0;
+      
       if (amount > 1000000) {
         errors.push({
           type: 'warning',
@@ -152,33 +178,35 @@ export class AiErrorCorrectionService {
     }
 
     // 5. 检查重复凭证
-    const startOfDay = new Date(voucher.voucherDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(voucher.voucherDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    if (voucher.voucherDate) {
+      const startOfDay = new Date(voucher.voucherDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(voucher.voucherDate);
+      endOfDay.setHours(23, 59, 59, 999);
 
-    const similarVouchers = await this.db
-      .select()
-      .from(schema.vouchers)
-      .where(
-        and(
-          eq(schema.vouchers.enterpriseId, enterpriseId),
-          gte(schema.vouchers.voucherDate, startOfDay),
-          lte(schema.vouchers.voucherDate, endOfDay),
-          sql`${schema.vouchers.id} != ${voucherId}`,
-          sql`ABS(${schema.vouchers.totalAmount} - ${voucher.totalAmount}) < 0.01`,
-        ),
-      );
+      const similarVouchers = await this.db
+        .select()
+        .from(schema.vouchers)
+        .where(
+          and(
+            eq(schema.vouchers.enterpriseId, enterpriseId),
+            gte(schema.vouchers.voucherDate, startOfDay),
+            lte(schema.vouchers.voucherDate, endOfDay),
+            sql`${schema.vouchers.id} != ${voucherId}`,
+            sql`ABS(${schema.vouchers.totalAmount} - ${voucher.totalAmount}) < 0.01`,
+          ),
+        );
 
-    if (similarVouchers.length > 0) {
-      errors.push({
-        type: 'warning',
-        category: '重复检测',
-        title: '可能存在重复凭证',
-        description: `发现 ${similarVouchers.length} 张金额相同的凭证在同一天录入`,
-        suggestion: '请检查是否为重复录入，如果是不同业务可忽略此警告',
-        data: { similarVouchers: similarVouchers.map(v => ({ id: v.id, voucherNo: v.voucherNo })) },
-      });
+      if (similarVouchers.length > 0) {
+        errors.push({
+          type: 'warning',
+          category: '重复检测',
+          title: '可能存在重复凭证',
+          description: `发现 ${similarVouchers.length} 张金额相同的凭证在同一天录入`,
+          suggestion: '请检查是否为重复录入，如果是不同业务可忽略此警告',
+          data: { similarVouchers: similarVouchers.map(v => ({ id: v.id, voucherNo: v.voucherNo })) },
+        });
+      }
     }
 
     return errors;
@@ -354,7 +382,8 @@ export class AiErrorCorrectionService {
 
     const totalVouchers = allVouchers[0]?.count || 0;
     const errorVouchers = errorCheck.errorVouchers;
-    const errorRate = totalVouchers > 0 ? (errorVouchers / totalVouchers * 100).toFixed(2) : '0';
+    const errorRateValue = totalVouchers > 0 ? (errorVouchers / totalVouchers * 100) : 0;
+    const errorRate = errorRateValue.toFixed(2);
 
     // 统计各类错误
     const errorCategories: Record<string, number> = {};
@@ -370,7 +399,7 @@ export class AiErrorCorrectionService {
         totalVouchers,
         errorVouchers,
         errorRate: `${errorRate}%`,
-        healthLevel: parseFloat(errorRate) < 5 ? '优秀' : parseFloat(errorRate) < 15 ? '良好' : '需改进',
+        healthLevel: errorRateValue < 5 ? '优秀' : errorRateValue < 15 ? '良好' : '需改进',
       },
       errorCategories,
       topIssues: Object.entries(errorCategories)
