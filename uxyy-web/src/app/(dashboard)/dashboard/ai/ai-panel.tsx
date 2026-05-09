@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -335,14 +336,7 @@ export function AiPanel() {
       summary: suggested.summary,
       entryDate: invoiceEntryDateIso ?? "",
     });
-  }, [
-    currentTask?.id,
-    invoiceEntryDateIso,
-    suggested?.debitAccount,
-    suggested?.creditAccount,
-    suggested?.amount,
-    suggested?.summary,
-  ]);
+  }, [currentTask, invoiceEntryDateIso, suggested]);
 
   const applyVoucherMutation = useMutation({
     mutationFn: async () => {
@@ -446,11 +440,15 @@ export function AiPanel() {
               {imagePreview && (
                 <div className="mt-2 p-2 border border-zinc-200 rounded-md">
                   <p className="text-xs text-zinc-500 mb-2">图片预览：</p>
-                  <img
-                    src={imagePreview}
-                    alt="发票预览"
-                    className="max-h-48 object-contain rounded"
-                  />
+                  <div className="relative max-h-48">
+                    <Image
+                      src={imagePreview}
+                      alt="发票预览"
+                      className="max-h-48 object-contain rounded"
+                      width={400}
+                      height={300}
+                    />
+                  </div>
                 </div>
               )}
             </div>

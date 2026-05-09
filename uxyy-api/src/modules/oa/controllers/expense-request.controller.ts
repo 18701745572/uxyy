@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   ParseIntPipe,
@@ -22,8 +23,16 @@ import {
 
 interface UserContext {
   userId: number;
-  enterpriseId: number;
+  enterpriseId?: number;
   role?: string;
+}
+
+function requireEnterprise(req: Request & { user: UserContext }): number {
+  const e = req.user.enterpriseId;
+  if (e == null || Number.isNaN(Number(e))) {
+    throw new ForbiddenException('当前会话未绑定企业');
+  }
+  return e;
 }
 
 @Controller('oa/expense-requests')
@@ -32,36 +41,54 @@ export class ExpenseRequestController {
   constructor(private readonly service: ExpenseRequestService) {}
 
   @Post()
-  create(@Body() dto: CreateExpenseRequestDto, @Req() req: Request & { user: UserContext }) {
-    return this.service.create(req.user.enterpriseId, req.user.userId, dto);
+  create(
+    @Body() dto: CreateExpenseRequestDto,
+    @Req() req: Request & { user: UserContext },
+  ) {
+    const eid = requireEnterprise(req);
+    return this.service.create(eid, req.user.userId, dto);
   }
 
   @Get()
-  findAll(@Query() query: ExpenseRequestQueryDto, @Req() req: Request & { user: UserContext }) {
-    return this.service.findAll(req.user.enterpriseId, query);
+  findAll(
+    @Query() query: ExpenseRequestQueryDto,
+    @Req() req: Request & { user: UserContext },
+  ) {
+    const eid = requireEnterprise(req);
+    return this.service.findAll(eid, query);
   }
 
   @Get('my')
   findMyExpenses(@Req() req: Request & { user: UserContext }) {
-    return this.service.findMyExpenses(req.user.userId, req.user.enterpriseId);
+    const eid = requireEnterprise(req);
+    return this.service.findMyExpenses(req.user.userId, eid);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request & { user: UserContext }) {
-    return this.service.findById(id, req.user.enterpriseId);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: UserContext },
+  ) {
+    const eid = requireEnterprise(req);
+    return this.service.findById(id, eid);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateExpenseRequestDto,
-    @Req() req: Request & { user: UserContext }
+    @Req() req: Request & { user: UserContext },
   ) {
-    return this.service.update(id, req.user.enterpriseId, req.user.userId, dto);
+    const eid = requireEnterprise(req);
+    return this.service.update(id, eid, req.user.userId, dto);
   }
 
   @Delete(':id')
-  cancel(@Param('id', ParseIntPipe) id: number, @Req() req: Request & { user: UserContext }) {
-    return this.service.cancel(id, req.user.enterpriseId, req.user.userId);
+  cancel(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: UserContext },
+  ) {
+    const eid = requireEnterprise(req);
+    return this.service.cancel(id, eid, req.user.userId);
   }
 }

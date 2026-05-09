@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
@@ -34,6 +40,8 @@ export class ExpenseRequestService {
         status: flow ? 'pending' : 'approved', // 无流程则自动通过
       })
       .returning();
+
+    if (!expense) throw new NotFoundException('创建报销申请失败');
 
     // 如果有审批流程，创建审批记录
     if (flow) {
@@ -104,10 +112,10 @@ export class ExpenseRequestService {
 
     // 只能修改自己的待审批申请
     if (expense.userId !== userId) {
-      throw new Error('无权修改此申请');
+      throw new ForbiddenException('无权修改此申请');
     }
     if (expense.status !== 'pending') {
-      throw new Error('已审批的申请不能修改');
+      throw new BadRequestException('已审批的申请不能修改');
     }
 
     const [updated] = await this.db
@@ -129,10 +137,10 @@ export class ExpenseRequestService {
     const expense = await this.findById(id, enterpriseId);
 
     if (expense.userId !== userId) {
-      throw new Error('无权取消此申请');
+      throw new ForbiddenException('无权取消此申请');
     }
     if (expense.status !== 'pending') {
-      throw new Error('已审批的申请不能取消');
+      throw new BadRequestException('已审批的申请不能取消');
     }
 
     const [updated] = await this.db

@@ -37,6 +37,13 @@ const oaModules = [
     color: "bg-orange-500",
   },
   {
+    title: "考勤打卡",
+    description: "上下班打卡、考勤记录查询、补卡申请",
+    icon: Clock,
+    href: "/dashboard/oa/attendance",
+    color: "bg-indigo-500",
+  },
+  {
     title: "员工通讯录",
     description: "员工信息、部门管理、联系方式",
     icon: Users,

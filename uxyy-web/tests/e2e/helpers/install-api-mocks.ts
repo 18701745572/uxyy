@@ -249,22 +249,25 @@ export async function installApiMocks(page: Page): Promise<void> {
       const nowId = Math.floor(Date.now() / 1000) % 1_000_000;
       return fulfillJson(route, {
         id: nowId,
+        enterpriseId: 1,
         invoiceNo: `MOCK-${nowId}`,
-        invoiceCode: "",
+        invoiceCode: null,
         type: "normal",
         amount: "10000.00",
-        taxRate: "13",
-        taxAmount: "1300",
-        totalAmount: "11300",
+        taxRate: "13.00",
+        taxAmount: "1300.00",
+        totalAmount: "11300.00",
         buyerName: null,
         buyerTaxNo: null,
         sellerName: null,
         sellerTaxNo: null,
-        invoiceDate: iso.split("T")[0],
+        issueDate: iso,
         status: "unverified",
-        remark: null,
+        ocrData: null,
+        sourceType: null,
+        sourceId: null,
+        createdBy: null,
         createdAt: iso,
-        updatedAt: iso,
       });
     }
     if (method === "POST" && sub === "/ai/tasks") {

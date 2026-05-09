@@ -187,7 +187,7 @@ export default function ApprovalFlowsPage() {
     queryFn: fetchApprovalFlows,
   });
 
-  const flows = flowsQuery.data ?? [];
+  const flows = useMemo(() => flowsQuery.data ?? [], [flowsQuery.data]);
 
   const filteredFlows = useMemo(() => {
     const q = searchQuery.trim();

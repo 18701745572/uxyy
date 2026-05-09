@@ -15,44 +15,6 @@ import type {
   ApprovalActionDto,
 } from '../dtos/approval-flow.dto';
 
-function cleanThreshold(t?: { gte?: number; lte?: number }) {
-  if (!t) return undefined;
-  const out: { gte?: number; lte?: number } = {};
-  if (typeof t.gte === 'number' && Number.isFinite(t.gte)) out.gte = t.gte;
-  if (typeof t.lte === 'number' && Number.isFinite(t.lte)) out.lte = t.lte;
-  return Object.keys(out).length ? out : undefined;
-}
-
-function cleanCondition(c?: ApprovalStep['condition']): ApprovalStep['condition'] | undefined {
-  if (!c) return undefined;
-  const amount = cleanThreshold(c.amount);
-  const days = cleanThreshold(c.days);
-  if (!amount && !days) return undefined;
-  return {
-    ...(amount ? { amount } : {}),
-    ...(days ? { days } : {}),
-  };
-}
-
-function normalizeSteps(raw: ApprovalStep[]): ApprovalStep[] {
-  if (!raw?.length) {
-    throw new BadRequestException('审批流程至少包含一个步骤');
-  }
-  const sorted = [...raw].sort((a, b) => a.step - b.step);
-  return sorted.map((s, i) => {
-    const step: ApprovalStep = {
-      role: s.role,
-      step: i + 1,
-    };
-    if (typeof s.userId === 'number' && Number.isInteger(s.userId) && s.userId > 0) {
-      step.userId = s.userId;
-    }
-    const cond = cleanCondition(s.condition);
-    if (cond) step.condition = cond;
-    return step;
-  });
-}
-
 @Injectable()
 export class ApprovalFlowService {
   constructor(
@@ -60,14 +22,13 @@ export class ApprovalFlowService {
   ) {}
 
   async createFlow(enterpriseId: number, dto: CreateApprovalFlowDto) {
-    const steps = normalizeSteps(dto.steps as ApprovalStep[]);
     const [flow] = await this.db
       .insert(schema.approvalFlows)
       .values({
         enterpriseId,
         name: dto.name,
         type: dto.type,
-        steps,
+        steps: dto.steps as ApprovalStep[],
       })
       .returning();
     return flow;
@@ -106,14 +67,11 @@ export class ApprovalFlowService {
 
   async updateFlow(id: number, enterpriseId: number, dto: UpdateApprovalFlowDto) {
     await this.findFlowById(id, enterpriseId);
-    const stepsPatch = dto.steps
-      ? normalizeSteps(dto.steps as ApprovalStep[])
-      : undefined;
     const [flow] = await this.db
       .update(schema.approvalFlows)
       .set({
         ...(dto.name && { name: dto.name }),
-        ...(stepsPatch && { steps: stepsPatch }),
+        ...(dto.steps && { steps: dto.steps as ApprovalStep[] }),
         ...(dto.status && { status: dto.status }),
       })
       .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)))
@@ -127,6 +85,33 @@ export class ApprovalFlowService {
       .delete(schema.approvalFlows)
       .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)));
     return { success: true };
+  }
+
+  /** 终态审批（通过/驳回）后同步请假、报销等业务单状态 */
+  private async syncBusinessDocumentAfterTerminalApproval(
+    record: typeof schema.approvalRecords.$inferSelect,
+    outcome: 'approved' | 'rejected',
+  ) {
+    const bid = record.businessId;
+    if (bid == null) return;
+
+    switch (record.businessType) {
+      case 'leave':
+        await this.db
+          .update(schema.leaveRequests)
+          .set({ status: outcome, updatedAt: new Date() })
+          .where(eq(schema.leaveRequests.id, bid));
+        break;
+      case 'expense':
+      case 'reimbursement':
+        await this.db
+          .update(schema.expenseRequests)
+          .set({ status: outcome, updatedAt: new Date() })
+          .where(eq(schema.expenseRequests.id, bid));
+        break;
+      default:
+        break;
+    }
   }
 
   // 创建审批记录
@@ -166,7 +151,9 @@ export class ApprovalFlowService {
       .where(eq(schema.approvalRecords.id, recordId));
 
     if (!record) throw new NotFoundException('审批记录不存在');
-    if (record.status !== 'pending') throw new Error('该审批已处理');
+    if (record.status !== 'pending') {
+      throw new BadRequestException('该审批已处理');
+    }
 
     const { action, comment, transferToUserId } = dto;
 
@@ -192,6 +179,7 @@ export class ApprovalFlowService {
           })
           .where(eq(schema.approvalRecords.id, recordId))
           .returning();
+        await this.syncBusinessDocumentAfterTerminalApproval(record, 'approved');
         return { ...updated, completed: true };
       } else {
         // 进入下一步
@@ -213,6 +201,7 @@ export class ApprovalFlowService {
         })
         .where(eq(schema.approvalRecords.id, recordId))
         .returning();
+      await this.syncBusinessDocumentAfterTerminalApproval(record, 'rejected');
       return { ...updated, completed: true };
     } else if (action === 'transfer') {
       // 转签逻辑 - 更新当前步骤的审批人

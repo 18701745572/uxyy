@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { createLeaveRequest } from "@/lib/api/leave-requests";
+import { ApiError } from "@/lib/api/client";
 
 const leaveTypes = [
   { value: "事假", label: "事假" },
@@ -29,6 +33,7 @@ const leaveTypes = [
 
 export default function NewLeaveRequestPage() {
   const router = useRouter();
+  const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "",
@@ -58,18 +63,24 @@ export default function NewLeaveRequestPage() {
     setLoading(true);
 
     try {
-      // TODO: 调用 API 创建请假申请
-      // const response = await fetch('/api/oa/leave-requests', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
-
-      // 模拟提交成功
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await createLeaveRequest({
+        type: formData.type,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        days: String(formData.days).trim(),
+        ...(formData.reason.trim() ? { reason: formData.reason.trim() } : {}),
+      });
+      await qc.invalidateQueries({ queryKey: ["oa", "leave-requests"] });
+      toast.success("请假申请已提交");
       router.push("/dashboard/oa/leave-requests");
     } catch (error) {
-      console.error("提交失败:", error);
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "提交失败";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

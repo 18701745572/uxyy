@@ -26,6 +26,18 @@ const modules = [
     href: "/dashboard/finance/ar-ap",
     status: "available",
   },
+  {
+    title: "AI智能纠错",
+    desc: "自动检测凭证错误，提供修复建议",
+    href: "/dashboard/finance/ai-error-correction",
+    status: "available",
+  },
+  {
+    title: "发票OCR识别",
+    desc: "上传发票图片，AI自动识别信息",
+    href: "/dashboard/finance/invoices/ocr",
+    status: "available",
+  },
 ];
 
 export default function FinancePage() {

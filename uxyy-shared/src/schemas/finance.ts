@@ -8,24 +8,28 @@ export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
 export const invoiceTypeSchema = z.enum(['special', 'normal', 'electronic']);
 export type InvoiceType = z.infer<typeof invoiceTypeSchema>;
 
+/** GET 发票等与 Nest `InvoiceResponseDto` / `mapInvoiceRow` 对齐 */
 export const invoiceSchema = z.object({
   id: z.number(),
+  enterpriseId: z.number(),
   invoiceNo: z.string(),
-  invoiceCode: z.string().optional(),
+  invoiceCode: z.string().nullable(),
   type: invoiceTypeSchema,
   amount: z.string(),
-  taxRate: z.string().optional(),
-  taxAmount: z.string().optional(),
+  taxRate: z.string(),
+  taxAmount: z.string(),
   totalAmount: z.string(),
-  buyerName: z.string().optional(),
-  buyerTaxNo: z.string().optional(),
-  sellerName: z.string().optional(),
-  sellerTaxNo: z.string().optional(),
-  invoiceDate: z.string().optional(),
+  buyerName: z.string().nullable(),
+  buyerTaxNo: z.string().nullable(),
+  sellerName: z.string().nullable(),
+  sellerTaxNo: z.string().nullable(),
+  issueDate: z.string().nullable(),
   status: invoiceStatusSchema,
-  remark: z.string().optional(),
+  ocrData: z.unknown().nullable().optional(),
+  sourceType: z.string().nullable().optional(),
+  sourceId: z.number().nullable().optional(),
+  createdBy: z.number().nullable().optional(),
   createdAt: z.string(),
-  updatedAt: z.string(),
 });
 export type InvoiceDto = z.infer<typeof invoiceSchema>;
 
@@ -44,6 +48,7 @@ export const invoiceListResponseSchema = z.object({
 });
 export type InvoiceListResponseDto = z.infer<typeof invoiceListResponseSchema>;
 
+/** POST/PATCH Body 与 Nest `CreateInvoiceDto` / `UpdateInvoiceDto` 对齐 */
 export const createInvoiceSchema = z.object({
   invoiceNo: z.string(),
   invoiceCode: z.string().optional(),
@@ -56,8 +61,9 @@ export const createInvoiceSchema = z.object({
   buyerTaxNo: z.string().optional(),
   sellerName: z.string().optional(),
   sellerTaxNo: z.string().optional(),
-  invoiceDate: z.string().optional(),
-  remark: z.string().optional(),
+  issueDate: z.string().optional(),
+  sourceType: z.string().optional(),
+  sourceId: z.number().optional(),
 });
 export type CreateInvoiceDto = z.infer<typeof createInvoiceSchema>;
 

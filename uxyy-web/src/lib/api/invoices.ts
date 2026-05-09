@@ -20,9 +20,13 @@ export async function fetchInvoices(
   if (query.endDate) params.set("endDate", query.endDate);
 
   const qs = params.toString();
-  return apiFetch<InvoiceListResponseDto>(
-    `/finance/invoices${qs ? `?${qs}` : ""}`,
-  );
+  const raw = await apiFetch<
+    InvoiceListResponseDto & {
+      items?: InvoiceListResponseDto["list"];
+    }
+  >(`/finance/invoices${qs ? `?${qs}` : ""}`);
+  const list = raw.list ?? raw.items ?? [];
+  return { ...raw, list };
 }
 
 export async function postInvoiceOcr(file: File): Promise<InvoiceOcrResult> {

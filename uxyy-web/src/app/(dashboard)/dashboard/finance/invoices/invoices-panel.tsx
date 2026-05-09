@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
+  CreateInvoiceDto,
   InvoiceResponseDto,
   InvoiceStatus,
   InvoiceType,
@@ -70,6 +71,44 @@ interface InvoiceFormData {
   remark?: string;
 }
 
+/** 表单字段 → Nest `CreateInvoiceDto`：`invoiceDate` 映射为 `issueDate`，不写未持久化的 remark */
+function invoiceFormToWriteDto(form: InvoiceFormData): CreateInvoiceDto {
+  const trimmedDate = form.invoiceDate?.trim();
+  const issueDate =
+    !trimmedDate
+      ? undefined
+      : invoiceDateStringToEntryDateIso(trimmedDate) ?? undefined;
+
+  return {
+    invoiceNo: form.invoiceNo.trim(),
+    ...(form.invoiceCode?.trim()
+      ? { invoiceCode: form.invoiceCode.trim() }
+      : {}),
+    type: form.type,
+    amount: form.amount.trim(),
+    ...(form.taxRate?.trim()
+      ? { taxRate: form.taxRate.trim() }
+      : {}),
+    ...(form.taxAmount?.trim()
+      ? { taxAmount: form.taxAmount.trim() }
+      : {}),
+    totalAmount: form.totalAmount.trim(),
+    ...(form.buyerName?.trim()
+      ? { buyerName: form.buyerName.trim() }
+      : {}),
+    ...(form.buyerTaxNo?.trim()
+      ? { buyerTaxNo: form.buyerTaxNo.trim() }
+      : {}),
+    ...(form.sellerName?.trim()
+      ? { sellerName: form.sellerName.trim() }
+      : {}),
+    ...(form.sellerTaxNo?.trim()
+      ? { sellerTaxNo: form.sellerTaxNo.trim() }
+      : {}),
+    ...(issueDate ? { issueDate } : {}),
+  };
+}
+
 function buildFormFromInit(init?: InvoiceResponseDto): InvoiceFormData {
   const today = new Date().toISOString().split("T")[0];
   return {
@@ -84,8 +123,9 @@ function buildFormFromInit(init?: InvoiceResponseDto): InvoiceFormData {
     buyerTaxNo: init?.buyerTaxNo ?? "",
     sellerName: init?.sellerName ?? "",
     sellerTaxNo: init?.sellerTaxNo ?? "",
-    invoiceDate: init?.invoiceDate ?? today,
-    remark: init?.remark ?? "",
+    invoiceDate:
+      issueDateToInvoiceFormDate(init?.issueDate ?? undefined) || today,
+    remark: "",
   };
 }
 
@@ -202,8 +242,8 @@ function InvoiceForm({
   const mutation = useMutation({
     mutationFn: () =>
       isEdit
-        ? updateInvoice(init!.id, formData)
-        : createInvoice(formData),
+        ? updateInvoice(init!.id, invoiceFormToWriteDto(formData))
+        : createInvoice(invoiceFormToWriteDto(formData)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["finance", "invoices"] });
       onDone();

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Receipt, Upload, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Receipt, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { createExpenseRequest } from "@/lib/api/expense-requests";
+import { ApiError } from "@/lib/api/client";
 
 const expenseTypes = [
   { value: "差旅费", label: "差旅费" },
@@ -29,46 +33,42 @@ const expenseTypes = [
 
 export default function NewExpenseRequestPage() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [attachments, setAttachments] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     type: "",
     amount: "",
     description: "",
   });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockUrl = URL.createObjectURL(files[0]);
-      setAttachments([...attachments, mockUrl]);
-    } catch (error) {
-      console.error("上传失败:", error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const amt = Number(formData.amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
+        toast.error("请输入有效金额");
+        return;
+      }
+      await createExpenseRequest({
+        type: formData.type,
+        amount: amt.toFixed(2),
+        ...(formData.description.trim()
+          ? { description: formData.description.trim() }
+          : {}),
+      });
+      await qc.invalidateQueries({ queryKey: ["oa", "expense-requests"] });
+      toast.success("报销申请已提交");
       router.push("/dashboard/oa/expense-requests");
     } catch (error) {
-      console.error("提交失败:", error);
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "提交失败";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export default function NewExpenseRequestPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">报销申请</h1>
-          <p className="text-zinc-500 mt-1">填写报销信息并上传凭证</p>
+          <p className="text-zinc-500 mt-1">填写报销信息（附件 URL 上传待对接）</p>
         </div>
       </div>
 
@@ -103,6 +103,7 @@ export default function NewExpenseRequestPage() {
                 报销类型 <span className="text-red-500">*</span>
               </Label>
               <Select
+                required
                 value={formData.type}
                 onValueChange={(value) =>
                   setFormData({ ...formData, type: value })
@@ -158,64 +159,8 @@ export default function NewExpenseRequestPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>凭证附件</Label>
-              <div className="space-y-3">
-                {attachments.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {attachments.map((url, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square border rounded-lg overflow-hidden group"
-                      >
-                        <img
-                          src={url}
-                          alt={`凭证 ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(index)}
-                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full h-24 border-dashed"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      上传中...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5 mr-2" />
-                      点击上传凭证图片
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-zinc-500">
-                  支持 JPG、PNG 格式，单个文件不超过 10MB
-                </p>
-              </div>
+            <div className="rounded-md border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-3 text-xs text-zinc-600">
+              凭证附件：当前版本提交时<strong>不附带</strong>图片；后端字段已预留，后续可对接对象存储后在此补充。
             </div>
 
             <div className="flex gap-4 pt-4">
