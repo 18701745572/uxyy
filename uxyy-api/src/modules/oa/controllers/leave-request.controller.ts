@@ -46,7 +46,8 @@ export class LeaveRequestController {
     @Req() req: Request & { user: UserContext },
   ) {
     const eid = requireEnterprise(req);
-    return this.service.create(eid, req.user.userId, dto);
+    const role = req.user.role || '';
+    return this.service.create(eid, req.user.userId, role, dto);
   }
 
   @Get()

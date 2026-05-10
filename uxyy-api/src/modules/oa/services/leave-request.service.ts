@@ -15,6 +15,7 @@ import type {
   UpdateLeaveRequestDto,
   LeaveRequestQueryDto,
 } from '../dtos/leave-request.dto';
+import { isBossRole } from '../../auth/role-permissions';
 
 @Injectable()
 export class LeaveRequestService {
@@ -23,11 +24,11 @@ export class LeaveRequestService {
     private readonly approvalFlowService: ApprovalFlowService
   ) {}
 
-  async create(enterpriseId: number, userId: number, dto: CreateLeaveRequestDto) {
-    // 查找请假审批流程
-    const flow = await this.approvalFlowService.findFlowByType('leave', enterpriseId);
+  async create(enterpriseId: number, userId: number, userRole: string, dto: CreateLeaveRequestDto) {
+    // 老板的请假申请自动通过，无需审批
+    const isBoss = isBossRole(userRole);
+    const status = isBoss ? 'approved' : 'pending';
 
-    // 创建请假申请
     const [leave] = await this.db
       .insert(schema.leaveRequests)
       .values({
@@ -38,24 +39,28 @@ export class LeaveRequestService {
         endDate: dto.endDate,
         days: dto.days,
         reason: dto.reason,
-        status: flow ? 'pending' : 'approved', // 无流程则自动通过
+        status,
       })
       .returning();
 
     if (!leave) throw new NotFoundException('创建请假申请失败');
 
-    // 如果有审批流程，创建审批记录
-    if (flow) {
+    // 非老板用户需要创建审批记录
+    if (!isBoss) {
+      const flow = await this.approvalFlowService.ensureActiveFlowOrDefault(
+        enterpriseId,
+        'leave',
+      );
+
       const record = await this.approvalFlowService.createApprovalRecord(
         flow.id,
         'leave',
         leave.id,
         `${dto.type}申请 - ${dto.days}天`,
         userId,
-        dto.reason
+        dto.reason,
       );
 
-      // 更新请假记录的审批记录ID
       await this.db
         .update(schema.leaveRequests)
         .set({ approvalRecordId: record.id })
