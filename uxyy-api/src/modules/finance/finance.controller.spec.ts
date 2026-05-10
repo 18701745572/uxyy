@@ -25,6 +25,8 @@ describe('FinanceController', () => {
       createVoucher: jest.fn(),
       findVoucherPage: jest.fn(),
       findOneVoucher: jest.fn(),
+      findVoucherBySource: jest.fn(),
+      nextVoucherNo: jest.fn(),
       createAccountSubject: jest.fn(),
       findAccountSubjects: jest.fn(),
       findOneAccountSubject: jest.fn(),

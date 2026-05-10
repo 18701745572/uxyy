@@ -58,7 +58,10 @@ export default function LeaveRequestsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">请假管理</h1>
-          <p className="text-zinc-500 mt-1">事假、病假、年假申请与审批（数据来自后端）</p>
+        <p className="text-zinc-500 mt-1">
+          事假、病假、年假申请；本列表按企业展示<strong>全员</strong>申请记录。
+          具有审批权限的成员请在详情中使用<strong>审批操作</strong>，或通过 OA 首页「待审批中心」处理。
+        </p>
         </div>
         <Link href="/dashboard/oa/leave-requests/new">
           <Button>

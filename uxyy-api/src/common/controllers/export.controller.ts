@@ -182,6 +182,57 @@ export class ExportController {
     res.send(result);
   }
 
+  @Get('purchase-orders')
+  @Permissions(Permission.INV_PURCHASE)
+  async exportPurchaseOrders(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    let conditions = eq(schema.purchaseOrders.enterpriseId, req.user.enterpriseId);
+
+    if (startDate && endDate) {
+      conditions = and(
+        conditions,
+        gte(schema.purchaseOrders.createdAt, new Date(startDate)),
+        lte(schema.purchaseOrders.createdAt, new Date(endDate)),
+      ) as any;
+    }
+
+    const orders = await this.db
+      .select({
+        order: schema.purchaseOrders,
+        supplierName: schema.suppliers.name,
+      })
+      .from(schema.purchaseOrders)
+      .leftJoin(schema.suppliers, eq(schema.purchaseOrders.supplierId, schema.suppliers.id))
+      .where(conditions);
+
+    const data = orders.map(({ order, supplierName }) => ({
+      ...order,
+      supplierName: supplierName || '',
+    }));
+
+    const columns = [
+      { key: 'orderNo', header: '订单编号', width: 20 },
+      { key: 'supplierName', header: '供应商', width: 20 },
+      { key: 'totalAmount', header: '订单金额', width: 12 },
+      { key: 'discountAmount', header: '折扣金额', width: 12 },
+      { key: 'payableAmount', header: '应付金额', width: 12 },
+      { key: 'status', header: '状态', width: 10 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, data, columns, '采购订单');
+
+    const filename = `purchase_orders_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
   @Get('invoices')
   @Permissions(Permission.FIN_READ)
   async exportInvoices(

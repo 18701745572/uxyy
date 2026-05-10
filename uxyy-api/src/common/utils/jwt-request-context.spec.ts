@@ -10,7 +10,7 @@ describe('jwt-request-context', () => {
     expect(
       jwtUserIdFromRequest({
         user: { userId: 42, enterpriseId: 1, role: 'boss' },
-      } as Express.Request),
+      } as unknown as Express.Request),
     ).toBe(42);
   });
 
@@ -18,7 +18,7 @@ describe('jwt-request-context', () => {
     expect(
       jwtUserIdFromRequest({
         user: { enterpriseId: 1 },
-      } as Express.Request),
+      } as unknown as Express.Request),
     ).toBeUndefined();
   });
 
@@ -26,7 +26,7 @@ describe('jwt-request-context', () => {
     expect(() =>
       requireJwtUserId({
         user: {},
-      } as Express.Request),
+      } as unknown as Express.Request),
     ).toThrow(UnauthorizedException);
   });
 
@@ -34,7 +34,7 @@ describe('jwt-request-context', () => {
     expect(
       requireJwtUserId({
         user: { userId: 99 },
-      } as Express.Request),
+      } as unknown as Express.Request),
     ).toBe(99);
   });
 });

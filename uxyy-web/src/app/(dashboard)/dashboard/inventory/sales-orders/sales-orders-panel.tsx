@@ -12,12 +12,20 @@ import {
   approveSalesOrder,
   cancelSalesOrder,
 } from "@/lib/api/sales-orders";
+import { createPaymentRecord } from "@/lib/api/payment-records";
 import { fetchCustomersAllPages } from "@/lib/api/customers";
 import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const selectCls =
   "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
@@ -401,6 +409,9 @@ export function SalesOrdersPanel() {
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
   const [editing, setEditing] = useState<SalesOrderResponseDto | null>(null);
   const [creating, setCreating] = useState(false);
+  const [receivingOrder, setReceivingOrder] = useState<SalesOrderResponseDto | null>(null);
+  const [receiveAmount, setReceiveAmount] = useState("");
+  const [receiveMethod, setReceiveMethod] = useState<"cash" | "bank" | "alipay" | "wechat">("bank");
   const pageSize = 10;
 
   const qc = useQueryClient();
@@ -441,6 +452,36 @@ export function SalesOrdersPanel() {
       qc.invalidateQueries({ queryKey: ["inventory", "sales-orders"] }),
   });
 
+  const receiveMutation = useMutation({
+    mutationFn: ({
+      orderId,
+      customerId,
+      amount,
+      paymentMethod,
+      orderNo,
+    }: {
+      orderId: number;
+      customerId: number;
+      amount: string;
+      paymentMethod: string;
+      orderNo: string;
+    }) =>
+      createPaymentRecord({
+        customerId,
+        orderId,
+        amount,
+        paymentMethod: paymentMethod as "cash" | "bank" | "alipay" | "wechat",
+        paymentDate: new Date().toISOString().split("T")[0],
+        remark: `销售订单 ${orderNo} 回款`,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", "sales-orders"] });
+      qc.invalidateQueries({ queryKey: ["inventory", "payment-records"] });
+      setReceivingOrder(null);
+      setReceiveAmount("");
+    },
+  });
+
   const totalPages = Math.max(1, Math.ceil((q.data?.total ?? 0) / pageSize));
 
   if (creating) {
@@ -467,7 +508,10 @@ export function SalesOrdersPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-zinc-900">销售订单</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建销售订单</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="sales_orders" filename="sales-orders" />
+          <Button onClick={() => setCreating(true)}>+ 新建销售订单</Button>
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -595,6 +639,18 @@ export function SalesOrdersPanel() {
                           取消
                         </Button>
                       )}
+                      {row.status === "approved" && (
+                        <Button
+                          variant="secondary"
+                          className="text-xs px-2.5 py-1 text-green-600 hover:text-green-700"
+                          onClick={() => {
+                            setReceivingOrder(row);
+                            setReceiveAmount(row.totalAmount);
+                          }}
+                        >
+                          回款
+                        </Button>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -623,6 +679,93 @@ export function SalesOrdersPanel() {
           </>
         )}
       </Card>
+
+      <Dialog
+        open={!!receivingOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReceivingOrder(null);
+            setReceiveAmount("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              客户回款 · {receivingOrder?.orderNo}
+            </DialogTitle>
+          </DialogHeader>
+          {receivingOrder && (
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-zinc-600">
+                <p>
+                  客户：{receivingOrder.customerName}
+                </p>
+                <p>
+                  订单金额：¥{receivingOrder.totalAmount}
+                </p>
+              </div>
+
+              <Input
+                label="回款金额 *"
+                type="number"
+                step="0.01"
+                value={receiveAmount}
+                onChange={(e) => setReceiveAmount(e.target.value)}
+              />
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-zinc-700">
+                  回款方式
+                </label>
+                <select
+                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                  value={receiveMethod}
+                  onChange={(e) =>
+                    setReceiveMethod(e.target.value as typeof receiveMethod)
+                  }
+                >
+                  <option value="bank">银行转账</option>
+                  <option value="cash">现金</option>
+                  <option value="alipay">支付宝</option>
+                  <option value="wechat">微信支付</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setReceivingOrder(null);
+                    setReceiveAmount("");
+                  }}
+                >
+                  取消
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!receiveAmount || parseFloat(receiveAmount) <= 0) return;
+                    receiveMutation.mutate({
+                      orderId: receivingOrder.id,
+                      customerId: receivingOrder.customerId,
+                      amount: receiveAmount,
+                      paymentMethod: receiveMethod,
+                      orderNo: receivingOrder.orderNo,
+                    });
+                  }}
+                  disabled={
+                    receiveMutation.isPending ||
+                    !receiveAmount ||
+                    parseFloat(receiveAmount) <= 0
+                  }
+                >
+                  {receiveMutation.isPending ? "回款中..." : "确认回款"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

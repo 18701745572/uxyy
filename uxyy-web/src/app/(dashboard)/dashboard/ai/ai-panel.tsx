@@ -13,22 +13,48 @@ import {
 } from "@uxyy/shared";
 import {
   applyAiTaskVoucher,
-  fetchAiQueueStats,
   submitAiTask,
   fetchAiTask,
 } from "@/lib/api/ai";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  FileText,
+  Sparkles,
+  Tag,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  Brain,
+  Receipt,
+  ArrowRight,
+  Wand2,
+} from "lucide-react";
 
-const taskTypeMap: Record<AiTaskType, string> = {
-  ocr_invoice: "发票 OCR 识别",
-  accounting_suggestion: "会计分录建议",
-  classification: "智能分类",
+const taskTypeMap: Record<AiTaskType, { label: string; desc: string; icon: React.ReactNode }> = {
+  ocr_invoice: {
+    label: "发票 OCR 识别",
+    desc: "上传发票图片，自动识别票面信息并生成会计分录",
+    icon: <Receipt className="w-5 h-5" />,
+  },
+  accounting_suggestion: {
+    label: "会计分录建议",
+    desc: "输入业务描述，AI 智能推荐合适的借贷科目",
+    icon: <Sparkles className="w-5 h-5" />,
+  },
+  classification: {
+    label: "智能分类",
+    desc: "对发票、凭证进行智能分类与标签标注",
+    icon: <Tag className="w-5 h-5" />,
+  },
 };
 
-// 将文件转为 base64
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -41,7 +67,6 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// OCR 结果展示组件
 function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
   const getString = (key: string): string => {
     const val = data[key];
@@ -58,7 +83,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-3">
-      {/* 基本信息 */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-white p-2 rounded border">
           <span className="text-zinc-500">发票类型</span>
@@ -78,7 +102,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         </div>
       </div>
 
-      {/* 金额信息 */}
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="bg-white p-2 rounded border">
           <span className="text-zinc-500">不含税金额</span>
@@ -94,7 +117,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         </div>
       </div>
 
-      {/* 购买方信息 */}
       <div className="bg-white p-2 rounded border text-xs">
         <p className="text-zinc-500 mb-1">购买方</p>
         <p className="font-medium">{getString('buyerName')}</p>
@@ -107,7 +129,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         )}
       </div>
 
-      {/* 销售方信息 */}
       <div className="bg-white p-2 rounded border text-xs">
         <p className="text-zinc-500 mb-1">销售方</p>
         <p className="font-medium">{getString('sellerName')}</p>
@@ -120,7 +141,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         )}
       </div>
 
-      {/* 商品明细 */}
       {items.length > 0 && (
         <div className="bg-white p-2 rounded border text-xs">
           <p className="text-zinc-500 mb-2">商品明细</p>
@@ -138,7 +158,6 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         </div>
       )}
 
-      {/* 其他信息 */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         {Boolean(data.drawer) && (
           <div className="bg-white p-2 rounded border">
@@ -164,55 +183,33 @@ function OcrResultDisplay({ data }: { data: Record<string, unknown> }) {
         </div>
       </div>
 
-      {/* 备注 */}
       {Boolean(data.remarks) && (
         <div className="bg-white p-2 rounded border text-xs">
           <span className="text-zinc-500">备注</span>
           <p className="mt-1">{getString('remarks')}</p>
         </div>
       )}
-
-      {/* 原始 JSON */}
-      <details className="text-xs">
-        <summary className="cursor-pointer text-zinc-500 hover:text-zinc-700">查看原始 JSON</summary>
-        <pre className="mt-2 text-xs text-zinc-800 overflow-auto bg-zinc-100 p-2 rounded">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </details>
     </div>
   );
 }
 
-const statusMap: Record<string, string> = {
-  pending: "等待中",
-  processing: "处理中",
-  completed: "已完成",
-  failed: "失败",
-  dead: "已入死信",
-};
-
-const statusColorMap: Record<string, string> = {
-  pending: "text-yellow-600",
-  processing: "text-blue-600",
-  completed: "text-green-600",
-  failed: "text-red-600",
-  dead: "text-zinc-600",
+const statusMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  pending: { label: "等待中", color: "text-yellow-600", icon: <Clock className="w-4 h-4" /> },
+  processing: { label: "处理中", color: "text-blue-600", icon: <Loader2 className="w-4 h-4 animate-spin" /> },
+  completed: { label: "已完成", color: "text-green-600", icon: <CheckCircle2 className="w-4 h-4" /> },
+  failed: { label: "失败", color: "text-red-600", icon: <XCircle className="w-4 h-4" /> },
+  dead: { label: "已入死信", color: "text-zinc-600", icon: <XCircle className="w-4 h-4" /> },
 };
 
 export function AiPanel() {
   const [taskType, setTaskType] = useState<AiTaskType>("accounting_suggestion");
   const [clientKey, setClientKey] = useState("");
-  const [payload, setPayload] = useState("{}");
+  const [payload, setPayload] = useState('{"description": ""}');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submittedTask, setSubmittedTask] = useState<AiTaskResult | null>(null);
   const [error, setError] = useState("");
-
-  const statsQuery = useQuery({
-    queryKey: ["ai", "queue-stats"],
-    queryFn: fetchAiQueueStats,
-    refetchInterval: 5000,
-  });
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const submitMutation = useMutation({
     mutationFn: submitAiTask,
@@ -228,12 +225,9 @@ export function AiPanel() {
   const taskQuery = useQuery({
     queryKey: ["ai", "task", submittedTask?.id],
     queryFn: () => fetchAiTask(submittedTask!.id),
-    /** 勿仅用提交瞬间的 status：初始多为 pending，完成后若不轮询则永远看不到 completed */
     enabled: submittedTask !== null,
     refetchInterval: (q) => {
-      const st =
-        q.state.data?.status ?? submittedTask?.status;
-      // 仅终态停止；勿用 !st —— 否则在首帧或异常缺失 status 时会误停，任务永远停在「等待中」
+      const st = q.state.data?.status ?? submittedTask?.status;
       if (st === "completed" || st === "failed" || st === "dead") {
         return false;
       }
@@ -245,13 +239,11 @@ export function AiPanel() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查文件类型
     if (!file.type.startsWith('image/')) {
       setError('请选择图片文件（JPG、PNG 等）');
       return;
     }
 
-    // 检查文件大小（最大 5MB）
     if (file.size > 5 * 1024 * 1024) {
       setError('图片大小不能超过 5MB');
       return;
@@ -260,12 +252,10 @@ export function AiPanel() {
     setSelectedFile(file);
     setError('');
 
-    // 生成预览
     const reader = new FileReader();
     reader.onload = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    // 自动转为 base64 并填充 payload
     try {
       const base64 = await fileToBase64(file);
       setPayload(JSON.stringify({ imageBase64: base64 }, null, 2));
@@ -280,11 +270,9 @@ export function AiPanel() {
       let finalPayload: Record<string, unknown>;
 
       if (taskType === 'ocr_invoice' && selectedFile) {
-        // OCR 任务使用图片 base64
         const base64 = await fileToBase64(selectedFile);
         finalPayload = { imageBase64: base64 };
       } else {
-        // 其他任务使用 JSON payload
         finalPayload = JSON.parse(payload);
       }
 
@@ -350,6 +338,7 @@ export function AiPanel() {
       });
     },
     onSuccess: (data) => {
+      setShowSuccessDialog(true);
       toast.success(
         data.created ? "已写入财务凭证库" : "该任务已生成过凭证，已返回已有记录",
       );
@@ -361,60 +350,60 @@ export function AiPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-zinc-900">AI 助手</h1>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+          <Brain className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-zinc-900">AI 助手</h1>
+          <p className="text-sm text-zinc-500">智能发票识别 · 会计分录建议 · 智能分类</p>
+        </div>
+      </div>
 
-      {/* 队列状态 */}
-      <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">队列状态</h2>
-        {statsQuery.isLoading ? (
-          <p className="text-sm text-zinc-600">加载中…</p>
-        ) : statsQuery.isError ? (
-          <p className="text-sm text-red-600">
-            {statsQuery.error instanceof Error ? statsQuery.error.message : "加载失败"}
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-zinc-50 rounded-md">
-              <p className="text-xs text-zinc-500 mb-1">主队列</p>
-              <p className="text-sm font-medium">{statsQuery.data?.queue}</p>
-              <div className="flex gap-3 mt-2 text-xs">
-                <span className="text-yellow-600">等待: {statsQuery.data?.counts?.waiting ?? 0}</span>
-                <span className="text-blue-600">处理中: {statsQuery.data?.counts?.active ?? 0}</span>
-                <span className="text-green-600">完成: {statsQuery.data?.counts?.completed ?? 0}</span>
-                <span className="text-red-600">失败: {statsQuery.data?.counts?.failed ?? 0}</span>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {AI_TASK_TYPES.map((type) => (
+          <Card
+            key={type}
+            className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
+              taskType === type
+                ? "ring-2 ring-purple-500 bg-purple-50"
+                : "hover:bg-zinc-50"
+            }`}
+            onClick={() => setTaskType(type)}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                taskType === type ? "bg-purple-500 text-white" : "bg-zinc-100 text-zinc-600"
+              }`}>
+                {taskTypeMap[type]?.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-zinc-900">{taskTypeMap[type]?.label}</h3>
+                <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
+                  {taskTypeMap[type]?.desc}
+                </p>
               </div>
             </div>
-            <div className="p-3 bg-zinc-50 rounded-md">
-              <p className="text-xs text-zinc-500 mb-1">死信队列</p>
-              <p className="text-sm font-medium">{statsQuery.data?.dlqQueue}</p>
-              <div className="flex gap-3 mt-2 text-xs">
-                <span className="text-yellow-600">等待: {statsQuery.data?.dlqCounts?.waiting ?? 0}</span>
-                <span className="text-blue-600">处理中: {statsQuery.data?.dlqCounts?.active ?? 0}</span>
-                <span className="text-green-600">完成: {statsQuery.data?.dlqCounts?.completed ?? 0}</span>
-                <span className="text-red-600">失败: {statsQuery.data?.dlqCounts?.failed ?? 0}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
+          </Card>
+        ))}
+      </div>
 
-      {/* 提交任务 */}
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">提交 AI 任务</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-5 h-5 text-zinc-400" />
+          <h2 className="font-medium text-zinc-900">提交 AI 任务</h2>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-zinc-700">任务类型</label>
-            <select
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
-              value={taskType}
-              onChange={(e) => setTaskType(e.target.value as AiTaskType)}
-            >
-              {AI_TASK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {taskTypeMap[type] || type}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-md">
+              <div className={`w-8 h-8 rounded flex items-center justify-center ${
+                taskType === 'ocr_invoice' ? "bg-purple-500 text-white" : "bg-zinc-200 text-zinc-500"
+              }`}>
+                {taskTypeMap[taskType]?.icon}
+              </div>
+              <span className="font-medium">{taskTypeMap[taskType]?.label}</span>
+            </div>
           </div>
 
           <Input
@@ -424,23 +413,39 @@ export function AiPanel() {
             placeholder="用于防止重复创建任务"
           />
 
-          {/* OCR 任务显示图片上传 */}
           {taskType === 'ocr_invoice' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-zinc-700">上传发票图片</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-zinc-900 file:text-white hover:file:bg-zinc-800"
-              />
-              <p className="text-xs text-zinc-500">支持 JPG、PNG 格式，最大 5MB</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-700 flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  上传发票图片
+                </label>
+                <div className="border-2 border-dashed border-zinc-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="invoice-upload"
+                  />
+                  <label htmlFor="invoice-upload" className="cursor-pointer">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-zinc-400" />
+                      </div>
+                      <p className="text-sm text-zinc-600">
+                        点击上传或拖拽图片到此处
+                      </p>
+                      <p className="text-xs text-zinc-400">支持 JPG、PNG 格式，最大 5MB</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
 
-              {/* 图片预览 */}
               {imagePreview && (
-                <div className="mt-2 p-2 border border-zinc-200 rounded-md">
+                <div className="relative p-2 border border-zinc-200 rounded-md">
                   <p className="text-xs text-zinc-500 mb-2">图片预览：</p>
-                  <div className="relative max-h-48">
+                  <div className="relative max-h-48 mx-auto">
                     <Image
                       src={imagePreview}
                       alt="发票预览"
@@ -449,17 +454,29 @@ export function AiPanel() {
                       height={300}
                     />
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setImagePreview(null);
+                      setPayload('{"description": ""}');
+                    }}
+                  >
+                    移除
+                  </Button>
                 </div>
               )}
             </div>
           )}
 
-          {/* 非 OCR 任务显示 JSON 输入 */}
           {taskType !== 'ocr_invoice' && (
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-zinc-700">任务参数 (JSON)</label>
               <textarea
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 font-mono"
+                className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-mono"
                 rows={5}
                 value={payload}
                 onChange={(e) => setPayload(e.target.value)}
@@ -468,83 +485,102 @@ export function AiPanel() {
             </div>
           )}
 
-          {/* OCR 任务也显示 payload（只读） */}
-          {taskType === 'ocr_invoice' && selectedFile && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-zinc-700">任务参数（已自动生成）</label>
-              <textarea
-                className="rounded-md border border-zinc-200 px-3 py-2 text-sm bg-zinc-50 font-mono text-zinc-500"
-                rows={3}
-                value={payload}
-                readOnly
-                title="Base64 图片数据"
-              />
-            </div>
-          )}
-
           {error && (
-            <p className="text-sm text-red-600 rounded-md bg-red-50 px-3 py-2">
+            <p className="text-sm text-red-600 rounded-md bg-red-50 px-3 py-2 flex items-center gap-2">
+              <XCircle className="w-4 h-4" />
               {error}
             </p>
           )}
 
-          <div className="flex gap-2 justify-end">
-            <Button type="submit" loading={submitMutation.isPending}>
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              loading={submitMutation.isPending}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
               提交任务
             </Button>
           </div>
         </form>
       </Card>
 
-      {/* 任务状态 */}
       {currentTask && (
         <Card>
-          <h2 className="font-medium text-zinc-900 mb-4">任务状态</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-zinc-600">任务 ID</span>
-              <span className="text-sm font-medium">{currentTask.id}</span>
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-zinc-400" />
+            <h2 className="font-medium text-zinc-900">任务状态</h2>
+            {taskQuery.isFetching && (
+              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+            )}
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 bg-zinc-50 rounded-lg">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                currentTask.status === 'completed' ? 'bg-green-100' :
+                currentTask.status === 'failed' ? 'bg-red-100' :
+                currentTask.status === 'processing' ? 'bg-blue-100' : 'bg-yellow-100'
+              }`}>
+                <span className={statusMap[currentTask.status]?.color}>
+                  {statusMap[currentTask.status]?.icon}
+                </span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">任务 #{currentTask.id}</span>
+                  <Badge className={
+                    currentTask.status === 'completed' ? 'bg-green-100 text-green-700' :
+                    currentTask.status === 'failed' ? 'bg-red-100 text-red-700' :
+                    currentTask.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }>
+                    {statusMap[currentTask.status]?.label}
+                  </Badge>
+                </div>
+                <p className="text-sm text-zinc-500 mt-1">
+                  {taskTypeMap[currentTask.taskType]?.label || currentTask.taskType}
+                </p>
+              </div>
+              {currentTask.status === 'completed' && (
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">完成</span>
+                </div>
+              )}
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-zinc-600">任务类型</span>
-              <span className="text-sm font-medium">
-                {taskTypeMap[currentTask.taskType] || currentTask.taskType}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-zinc-600">状态</span>
-              <span className={`text-sm font-medium ${statusColorMap[currentTask.status]}`}>
-                {statusMap[currentTask.status] || currentTask.status}
-              </span>
-            </div>
+
             {currentTask.clientKey && (
-              <div className="flex justify-between">
-                <span className="text-sm text-zinc-600">幂等键</span>
-                <span className="text-sm font-medium">{currentTask.clientKey}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-zinc-500">幂等键</span>
+                <span className="font-medium">{currentTask.clientKey}</span>
               </div>
             )}
             {currentTask.attempts > 0 && (
-              <div className="flex justify-between">
-                <span className="text-sm text-zinc-600">尝试次数</span>
-                <span className="text-sm font-medium">{currentTask.attempts}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-zinc-500">尝试次数</span>
+                <span className="font-medium">{currentTask.attempts}</span>
               </div>
             )}
             {currentTask.errorMessage && (
-              <div className="p-3 bg-red-50 rounded-md">
-                <p className="text-xs text-red-600 font-medium">错误信息</p>
-                <p className="text-sm text-red-700 mt-1">{currentTask.errorMessage}</p>
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-sm text-red-700 font-medium flex items-center gap-2">
+                  <XCircle className="w-4 h-4" />
+                  错误信息
+                </p>
+                <p className="text-sm text-red-600 mt-2">{currentTask.errorMessage}</p>
               </div>
             )}
             {currentTask.outputPayload && (
-              <div className="p-3 bg-zinc-50 rounded-md">
-                <p className="text-xs text-zinc-600 font-medium mb-2">输出结果</p>
-                {/* OCR 发票识别结果格式化展示 */}
+              <div className="p-4 bg-zinc-50 rounded-lg">
+                <p className="text-sm font-medium text-zinc-700 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  输出结果
+                </p>
                 {currentTask.taskType === 'ocr_invoice' && (
                   <OcrResultDisplay data={currentTask.outputPayload as Record<string, unknown>} />
                 )}
-                {/* 非 OCR 任务显示原始 JSON */}
                 {currentTask.taskType !== 'ocr_invoice' && (
-                  <pre className="text-xs text-zinc-800 mt-1 overflow-auto">
+                  <pre className="text-xs text-zinc-800 overflow-auto bg-white p-3 rounded border">
                     {JSON.stringify(currentTask.outputPayload, null, 2)}
                   </pre>
                 )}
@@ -552,21 +588,25 @@ export function AiPanel() {
             )}
 
             {currentTask.status === "completed" && currentTask.outputPayload && (
-              <div className="border-t border-zinc-200 pt-4 mt-4 space-y-4">
-                <p className="text-sm font-medium text-zinc-900">写入财务凭证</p>
+              <div className="border-t border-zinc-200 pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wand2 className="w-5 h-5 text-purple-500" />
+                  <h3 className="font-medium text-zinc-900">写入财务凭证</h3>
+                </div>
                 {suggested ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {currentTask.taskType === "ocr_invoice" ? (
-                      <p className="sm:col-span-2 text-xs text-zinc-600">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {currentTask.taskType === "ocr_invoice" && (
+                      <p className="sm:col-span-2 text-xs text-zinc-600 bg-blue-50 rounded-md px-3 py-2">
                         发票 OCR 成功后，系统按<strong>采购费用</strong>预设为借「管理费用」、贷「应付账款」；若实为销售开票或对公已付款，请在写入前改为「应收账款 / 主营业务收入」「银行存款」等正确科目。
                       </p>
-                    ) : null}
+                    )}
                     <Input
                       label="借方科目"
                       value={voucherDraft.debitAccount}
                       onChange={(e) =>
                         setVoucherDraft((d) => ({ ...d, debitAccount: e.target.value }))
                       }
+                      className="focus:ring-purple-500/20 focus:border-purple-500"
                     />
                     <Input
                       label="贷方科目"
@@ -574,6 +614,7 @@ export function AiPanel() {
                       onChange={(e) =>
                         setVoucherDraft((d) => ({ ...d, creditAccount: e.target.value }))
                       }
+                      className="focus:ring-purple-500/20 focus:border-purple-500"
                     />
                     <Input
                       label="金额"
@@ -581,6 +622,7 @@ export function AiPanel() {
                       onChange={(e) =>
                         setVoucherDraft((d) => ({ ...d, amount: e.target.value }))
                       }
+                      className="focus:ring-purple-500/20 focus:border-purple-500"
                     />
                     <div className="sm:col-span-2 flex flex-col gap-2">
                       <div className="flex flex-wrap items-end gap-2">
@@ -597,17 +639,12 @@ export function AiPanel() {
                             placeholder="留空则用写入凭证时服务器当前时间"
                           />
                         </div>
-                        {currentTask.taskType === "ocr_invoice" ? (
+                        {currentTask.taskType === "ocr_invoice" && (
                           <Button
                             type="button"
                             variant="outline"
-                            className="shrink-0"
+                            className="shrink-0 gap-1"
                             disabled={!invoiceEntryDateIso}
-                            title={
-                              invoiceEntryDateIso
-                                ? "用 OCR 结构化字段 invoiceDate"
-                                : "未识别到可解析的开票日期"
-                            }
                             onClick={() => {
                               if (!invoiceEntryDateIso) {
                                 toast.error(
@@ -622,27 +659,16 @@ export function AiPanel() {
                               toast.success("已填入票面开票日");
                             }}
                           >
+                            <Receipt className="w-4 h-4" />
                             一键用发票日期
                           </Button>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-zinc-500">
-                        {currentTask.taskType === "ocr_invoice" ? (
-                          <>
-                            发票 OCR 完成后会尝试按票面开票日自动填入；若清空后需恢复，点「一键用发票日期」。解析后示例：
-                            <code className="mx-1 rounded bg-zinc-100 px-1">
-                              {invoiceEntryDateIso ?? "2025-03-26T00:00:00.000Z"}
-                            </code>
-                          </>
-                        ) : (
-                          <>留空则使用写入凭证时服务器当前时间。</>
                         )}
-                      </p>
+                      </div>
                     </div>
                     <div className="sm:col-span-2 flex flex-col gap-1">
                       <label className="text-sm font-medium text-zinc-700">摘要</label>
                       <textarea
-                        className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                        className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                         rows={2}
                         value={voucherDraft.summary}
                         onChange={(e) =>
@@ -650,19 +676,21 @@ export function AiPanel() {
                         }
                       />
                     </div>
-                    <div className="sm:col-span-2 flex flex-wrap gap-2 items-center">
+                    <div className="sm:col-span-2 flex flex-wrap gap-3 items-center pt-2">
                       <Button
                         type="button"
                         loading={applyVoucherMutation.isPending}
-                        onClick={() => applyVoucherMutation.mutate()}
+                        className="gap-2"
                       >
+                        <CheckCircle2 className="w-4 h-4" />
                         确认并写入凭证
                       </Button>
                       <Link
                         href="/dashboard/finance/vouchers"
-                        className="text-sm text-zinc-600 underline hover:text-zinc-900"
+                        className="text-sm text-zinc-600 hover:text-zinc-900 flex items-center gap-1"
                       >
                         查看凭证库
+                        <ArrowRight className="w-4 h-4" />
                       </Link>
                     </div>
                   </div>
@@ -678,6 +706,28 @@ export function AiPanel() {
           </div>
         </Card>
       )}
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center py-6">
+            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-2">凭证写入成功</h3>
+            <p className="text-sm text-zinc-600 text-center">
+              AI 任务结果已成功写入财务凭证库
+            </p>
+          </div>
+          <div className="flex justify-center gap-3">
+            <Button variant="secondary" onClick={() => setShowSuccessDialog(false)}>
+              继续处理
+            </Button>
+            <Link href="/dashboard/finance/vouchers">
+              <Button>查看凭证库</Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

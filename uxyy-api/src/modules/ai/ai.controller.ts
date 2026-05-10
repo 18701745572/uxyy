@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -104,9 +105,13 @@ export class AiController {
   async getTask(
     @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<AiTaskResponse | null> {
+  ): Promise<AiTaskResponse> {
     const { enterpriseId } = requireAiCtx(req);
-    return this.ai.getTask(enterpriseId, id);
+    const task = await this.ai.getTask(enterpriseId, id);
+    if (!task) {
+      throw new NotFoundException('任务不存在或无权查看');
+    }
+    return task;
   }
 
   @ApiBearerAuth()

@@ -33,6 +33,15 @@ describe('JwtStrategy', () => {
       expect(result).toEqual({ userId: 42, enterpriseId: 7, role: 'boss' });
     });
 
+    it('should canonicalize owner alias on JWT role claim to boss', async () => {
+      const result = await strategy.validate({
+        sub: '1',
+        enterpriseId: 2,
+        role: 'owner',
+      });
+      expect(result).toEqual({ userId: 1, enterpriseId: 2, role: 'boss' });
+    });
+
     it('should return undefined enterpriseId and role when not in payload', async () => {
       const result = await strategy.validate({ sub: '1' });
 

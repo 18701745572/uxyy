@@ -14,13 +14,16 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
-import { AuthService } from './auth.service';
-import type {
-  RegisterDto,
-  RefreshTokenDto,
-  ResetPasswordDto,
+import { RegisterInviteDto } from './dto/invitations.dto';
+import { EnterpriseInvitationsService } from './enterprise-invitations.service';
+import {
+  AuthService,
+  type RefreshTokenDto,
+  type RegisterDto,
+  type ResetPasswordDto,
 } from './auth.service';
 import {
+  canonicalEnterpriseRoleForApi,
   getPermissionsForRole,
   KNOWN_ENTERPRISE_ROLE_CODES,
   normalizeEnterpriseRole,
@@ -70,7 +73,10 @@ function requireUserId(req: Request): number {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly invitations: EnterpriseInvitationsService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -86,6 +92,14 @@ export class AuthController {
   @ApiOperation({ summary: '注册' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
+  }
+
+  @Public()
+  @Post('register-invite')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: '受邀用手机号注册并入会（须有效邀请令牌；不经客户端传入手机号）' })
+  registerViaInvitation(@Body() dto: RegisterInviteDto) {
+    return this.invitations.registerViaInvitation(dto);
   }
 
   @Public()
@@ -112,13 +126,18 @@ export class AuthController {
   })
   authPermissions(@Req() req: Request) {
     const ctx = userFromRequest(req);
-    if (!ctx?.role) {
+    const rawClaim =
+      typeof ctx?.role === 'string' && ctx.role.trim() !== ''
+        ? ctx.role
+        : undefined;
+    const roleForApi = canonicalEnterpriseRoleForApi(rawClaim);
+    if (!roleForApi) {
       throw new ForbiddenException('无角色信息');
     }
     return {
-      roleRaw: ctx.role,
-      canonicalRole: normalizeEnterpriseRole(ctx.role) ?? null,
-      permissions: getPermissionsForRole(ctx.role),
+      roleRaw: roleForApi,
+      canonicalRole: normalizeEnterpriseRole(roleForApi) ?? null,
+      permissions: getPermissionsForRole(roleForApi),
       permissionCatalog: Object.values(Permission),
       validRoleCodes: [...KNOWN_ENTERPRISE_ROLE_CODES],
       presets: PRESET_ENTERPRISE_ROLES,
@@ -226,7 +245,11 @@ export class AuthController {
 
   @ApiBearerAuth()
   @Put('approvals/:id/action')
-  @ApiOperation({ summary: '审批操作（同意/驳回/取消）' })
+  @ApiOperation({
+    summary: '审批操作（兼容旧路由，语义与 OA 审批实例一致）',
+    description:
+      '推荐使用 **`POST /oa/approval-flows/records/:recordId/action`**（需 **oa:approve**）。本接口对 **同意 / 驳回** 与 OA 共用 `ApprovalFlowService.processApproval`，会同步请假单、报销单等；**取消** 仅完结审批实例，不写业务单从表。',
+  })
   actionApproval(
     @Req() req: Request,
     @Param('id') id: string,

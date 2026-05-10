@@ -127,6 +127,12 @@ export function VouchersPanel() {
                 {items.map((row) => (
                   <li key={row.id} className="px-4 py-3 flex flex-col gap-1">
                     <div className="flex flex-wrap items-baseline gap-2">
+                      <span
+                        className="text-xs text-zinc-500 tabular-nums"
+                        title="数据库主键，用于 AI 纠错等按 id 查询的场景"
+                      >
+                        分录 id {row.id}
+                      </span>
                       <span className="font-medium text-zinc-900">
                         {row.voucherNo}
                       </span>

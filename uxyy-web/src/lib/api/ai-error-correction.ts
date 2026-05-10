@@ -1,5 +1,8 @@
 import { apiFetch } from "./client";
 
+/** 与 PostgreSQL `integer` / serial 一致；超出会触发后端/数据库错误 */
+export const VOUCHER_ENTRY_ID_MAX = 2_147_483_647;
+
 export interface ErrorDetectionResult {
   type: 'error' | 'warning' | 'info';
   category: string;
@@ -32,8 +35,9 @@ export interface CorrectionSuggestion {
 export interface FinancialHealthReport {
   period: string;
   summary: {
-    totalVouchers: number;
-    errorVouchers: number;
+    /** 后端统计 voucher_entries 条数 */
+    totalVoucherEntries: number;
+    errorEntries: number;
     errorRate: string;
     healthLevel: string;
   };

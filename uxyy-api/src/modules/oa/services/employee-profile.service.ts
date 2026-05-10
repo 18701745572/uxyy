@@ -1,5 +1,11 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import {
+  ConflictException,
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { eq, and, asc } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -15,15 +21,32 @@ export class EmployeeProfileService {
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb
   ) {}
 
+  async assertUserInEnterprise(enterpriseId: number, userId: number): Promise<void> {
+    const [member] = await this.db
+      .select({ id: schema.userEnterprises.id })
+      .from(schema.userEnterprises)
+      .where(
+        and(
+          eq(schema.userEnterprises.userId, userId),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
+        ),
+      )
+      .limit(1);
+    if (!member) {
+      throw new BadRequestException('所选用户不在本企业中，请先邀请其加入当前企业后再建档');
+    }
+  }
+
   async create(enterpriseId: number, dto: CreateEmployeeProfileDto) {
-    // 检查用户是否已存在档案
+    await this.assertUserInEnterprise(enterpriseId, dto.userId);
+
     const [existing] = await this.db
       .select()
       .from(schema.employeeProfiles)
       .where(eq(schema.employeeProfiles.userId, dto.userId));
 
     if (existing) {
-      throw new Error('该用户已存在员工档案');
+      throw new ConflictException('该用户已存在员工档案');
     }
 
     const [profile] = await this.db
@@ -77,6 +100,37 @@ export class EmployeeProfileService {
     }
 
     return profiles;
+  }
+
+  /** 本企业成员 + 是否已有通讯录档案（选人建档用） */
+  async listEnterpriseMembers(enterpriseId: number) {
+    const rows = await this.db
+      .select({
+        userId: schema.users.id,
+        phone: schema.users.phone,
+        nickname: schema.users.nickname,
+        enterpriseRole: schema.userEnterprises.role,
+        profileId: schema.employeeProfiles.id,
+      })
+      .from(schema.userEnterprises)
+      .innerJoin(schema.users, eq(schema.users.id, schema.userEnterprises.userId))
+      .leftJoin(
+        schema.employeeProfiles,
+        and(
+          eq(schema.employeeProfiles.userId, schema.users.id),
+          eq(schema.employeeProfiles.enterpriseId, enterpriseId),
+        ),
+      )
+      .where(eq(schema.userEnterprises.enterpriseId, enterpriseId))
+      .orderBy(asc(schema.users.id));
+
+    return rows.map((r) => ({
+      userId: r.userId,
+      phone: r.phone,
+      nickname: r.nickname,
+      enterpriseRole: r.enterpriseRole,
+      hasProfile: r.profileId != null,
+    }));
   }
 
   async findById(id: number, enterpriseId: number) {

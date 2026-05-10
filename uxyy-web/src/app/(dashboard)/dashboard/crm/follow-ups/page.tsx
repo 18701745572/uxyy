@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchFollowUpRecords,
@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Plus, Edit, Trash2, MessageSquare, Link2 } from "lucide-react";
+import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const NON_TEXT_TYPES: FollowUpType[] = ["image", "voice", "file"];
 
@@ -141,6 +142,7 @@ export default function FollowUpsPage() {
 }
 
 function FollowUpsPanel() {
+  const crm = useCrmCaps();
   const [page, setPage] = useState(1);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [editing, setEditing] = useState<FollowUpRecordResponseDto | null>(null);
@@ -193,6 +195,13 @@ function FollowUpsPanel() {
     },
   });
 
+  useEffect(() => {
+    if (!crm.write) {
+      setCreating(false);
+      setEditing(null);
+    }
+  }, [crm.write]);
+
   const totalPages = q.data ? Math.ceil(q.data.total / pageSize) : 0;
 
   return (
@@ -219,7 +228,7 @@ function FollowUpsPanel() {
             </SelectContent>
           </Select>
         </div>
-        {selectedCustomerId && (
+        {selectedCustomerId && crm.write ? (
           <Dialog
             open={creating}
             onOpenChange={(open) => {
@@ -250,7 +259,11 @@ function FollowUpsPanel() {
               />
             </DialogContent>
           </Dialog>
-        )}
+        ) : selectedCustomerId ? (
+          <p className="text-xs text-zinc-500 mt-8 self-start">
+            仅查看跟进；需要 crm:write 才可新增
+          </p>
+        ) : null}
       </div>
 
       {!selectedCustomerId ? (
@@ -340,27 +353,31 @@ function FollowUpsPanel() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditing(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (confirm("确定删除该跟进记录吗？")) {
-                                deleteM.mutate({
-                                  customerId: item.customerId,
-                                  followUpId: item.id,
-                                });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {crm.write ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditing(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {crm.delete ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("确定删除该跟进记录吗？")) {
+                                  deleteM.mutate({
+                                    customerId: item.customerId,
+                                    followUpId: item.id,
+                                  });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -394,7 +411,12 @@ function FollowUpsPanel() {
         </>
       )}
 
-      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+      <Dialog
+        open={!!editing && crm.write}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      >
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>编辑跟进记录</DialogTitle>

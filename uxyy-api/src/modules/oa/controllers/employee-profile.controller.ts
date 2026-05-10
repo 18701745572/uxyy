@@ -13,7 +13,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../auth/permissions.guard';
+import { Permission } from '../../auth/role-permissions';
 import { EmployeeProfileService } from '../services/employee-profile.service';
 import {
   CreateEmployeeProfileDto,
@@ -41,6 +44,8 @@ export class EmployeeProfileController {
   constructor(private readonly service: EmployeeProfileService) {}
 
   @Post()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.OA_MANAGE)
   create(
     @Body() dto: CreateEmployeeProfileDto,
     @Req() req: Request & { user: UserContext },
@@ -64,6 +69,13 @@ export class EmployeeProfileController {
     return this.service.getDepartments(eid);
   }
 
+  /** 本企业成员清单及是否已有员工档案（须置于 :id 之前） */
+  @Get('members')
+  listMembers(@Req() req: Request & { user: UserContext }) {
+    const eid = requireEnterprise(req);
+    return this.service.listEnterpriseMembers(eid);
+  }
+
   @Get('my')
   findMyProfile(@Req() req: Request & { user: UserContext }) {
     const eid = requireEnterprise(req);
@@ -80,6 +92,8 @@ export class EmployeeProfileController {
   }
 
   @Patch(':id')
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.OA_MANAGE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEmployeeProfileDto,
@@ -90,6 +104,8 @@ export class EmployeeProfileController {
   }
 
   @Delete(':id')
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.OA_MANAGE)
   remove(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: UserContext },

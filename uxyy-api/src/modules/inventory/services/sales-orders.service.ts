@@ -17,6 +17,7 @@ import type {
 } from '../dto/sales-order.dto';
 import { addStock, deductStock, writeInventoryLog } from './inventory-mutation';
 import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
+import { PriceAnomalyService } from './price-anomaly.service';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -78,6 +79,7 @@ export class SalesOrdersService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
     private readonly autoAccountingService: AutoAccountingService,
+    private readonly priceAnomalyService: PriceAnomalyService,
   ) {}
 
   async findPage(params: {
@@ -162,6 +164,11 @@ export class SalesOrdersService {
       throw new BadRequestException('订单明细不能为空');
     }
 
+    const priceValidation = await this.priceAnomalyService.validateSalesOrder(
+      eid,
+      dto.items,
+    );
+
     let totalAmount = 0;
     for (const item of dto.items) {
       totalAmount += item.quantity * item.unitPrice;
@@ -199,7 +206,11 @@ export class SalesOrdersService {
       .values(itemValues)
       .returning();
 
-    return mapOrderRow(order, insertedItems.map(mapItemRow));
+    const result = mapOrderRow(order, insertedItems.map(mapItemRow));
+    return {
+      ...result,
+      priceAnomalies: priceValidation.anomalies,
+    };
   }
 
   async findOne(id: number, enterpriseId: number | undefined) {

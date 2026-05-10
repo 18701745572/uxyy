@@ -46,7 +46,8 @@ $ pnpm install
 
 Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
 
-5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。
+5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。  
+   若需 **清空应用数据并按五种企业角色写入 5 个测试账号**（及 CRM/库存等演示数据），使用 **`pnpm run db:seed:purge-five-roles`**；账号与环境变量详见仓库根 **`docs/开发-五角色purge种子说明.md`**。
 
 ## API 文档
 
@@ -76,6 +77,16 @@ Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表
 | `GET /auth/enterprises` | 企业列表（含默认标记） |
 | `PUT /auth/switch-enterprise/:id` | 切换默认企业（返回新 token） |
 | `POST /auth/reset-password` | 修改密码 |
+| **企业成员（boss / oa，`system:member`）** |
+| `GET /enterprise/members` | 当前企业成员列表 |
+| `POST /enterprise/members` | 已注册用户手机号 + 四种角色立即入会 |
+| `POST /enterprise/members/invitations` | 生成邀请：`joinRelativePath`（`/join?t=…`）；未注册可走 `register-invite`，已注册可走 `invitations/accept` |
+| `PATCH /enterprise/members/:userId` | 调整成员角色（四种子角色） |
+| `DELETE /enterprise/members/:userId` | 移出企业（不含企业主） |
+| `GET /invitations/preview?t=` | 邀请预览（脱敏；公开） |
+| `POST /invitations/accept` | 已登录接受邀请（Bearer + invitationToken），返回会话 token |
+| `POST /auth/register-invite` | 受邀手机号注册并入会（公开；不经客户端传入手机号） |
+| 说明 | **未实现**：企业主转让。详 PRD §9.26。 |
 | **业务** |
 | `GET /crm/customers` | 客户列表（JWT `enterpriseId` 租户隔离） |
 | `GET /inventory/products` | 商品列表 |

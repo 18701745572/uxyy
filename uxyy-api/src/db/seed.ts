@@ -4,12 +4,185 @@ import { count, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { UxyyRole, type UxyyRoleCode } from '../modules/auth/role-permissions';
 import * as schema from './schema';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const SEED_PHONE = process.env.SEED_DEV_PHONE ?? '13800138000';
 const SEED_PASSWORD = process.env.SEED_DEV_PASSWORD ?? 'Dev12345!';
 const ROUNDS = 10;
+
+const PURGE_FIVE_CLI = process.argv.includes('--purge-five-roles');
+
+function envTruthy(name: string): boolean {
+  const v = process.env[name]?.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+/** 破坏性：清空 public 应用表；跳过以 __ 开头的表（如 Drizzle 迁移元数据）。 */
+async function truncatePublicApplicationTables(pool: Pool): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const res = await client.query<{ tablename: string }>(
+      `SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`,
+      ['public'],
+    );
+    const names = res.rows.map((r) => r.tablename).filter((t) => !t.startsWith('__'));
+    if (names.length === 0) {
+      await client.query('COMMIT');
+      return;
+    }
+    const quoted = names
+      .map((t) => `"${String(t).replace(/"/g, '""')}"`)
+      .join(', ');
+    await client.query(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`);
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+type FiveRoleSeedRow = {
+  phone: string;
+  nickname: string;
+  role: UxyyRoleCode;
+  isBoss: boolean;
+};
+
+function fiveRoleSeedRows(): ReadonlyArray<FiveRoleSeedRow> {
+  return [
+    {
+      phone: SEED_PHONE,
+      nickname: '种子用户·老板',
+      role: UxyyRole.BOSS,
+      isBoss: true,
+    },
+    {
+      phone:
+        process.env.SEED_DEMO_FINANCE_PHONE ??
+        process.env.SEED_PURGE_SECONDARY_FINANCE ??
+        '13900138901',
+      nickname: '种子用户·财务',
+      role: UxyyRole.FINANCE,
+      isBoss: false,
+    },
+    {
+      phone:
+        process.env.SEED_DEMO_SALES_PHONE ??
+        process.env.SEED_PURGE_SECONDARY_SALES ??
+        '13900138902',
+      nickname: '种子用户·销售',
+      role: UxyyRole.SALES,
+      isBoss: false,
+    },
+    {
+      phone:
+        process.env.SEED_DEMO_WAREHOUSE_PHONE ??
+        process.env.SEED_PURGE_SECONDARY_WAREHOUSE ??
+        '13900138903',
+      nickname: '种子用户·仓管',
+      role: UxyyRole.WAREHOUSE,
+      isBoss: false,
+    },
+    {
+      phone:
+        process.env.SEED_DEMO_OA_PHONE ??
+        process.env.SEED_PURGE_SECONDARY_OA ??
+        '13900138904',
+      nickname: '种子用户·行政',
+      role: UxyyRole.OA,
+      isBoss: false,
+    },
+  ];
+}
+
+async function purgeAndSeedFiveRoleMatrix(
+  pool: Pool,
+  db: NodePgDatabase<typeof schema>,
+): Promise<void> {
+  console.warn(
+    '[seed] DESTRUCTIVE：将 TRUNCATE public 下全部应用表（保留 Drizzle 迁移表），随后写入五种角色演示成员。',
+  );
+  await truncatePublicApplicationTables(pool);
+
+  const passwordHash = await bcrypt.hash(SEED_PASSWORD, ROUNDS);
+  const rows = fiveRoleSeedRows();
+  const phones = rows.map((r) => r.phone.trim());
+  if (new Set(phones).size !== phones.length) {
+    throw new Error('[seed] 五角色矩阵手机号存在重复');
+  }
+
+  const createdUsers = await db
+    .insert(schema.users)
+    .values(
+      rows.map((cfg) => ({
+        phone: cfg.phone.trim(),
+        passwordHash,
+        nickname: cfg.nickname,
+        status: 'active' as const,
+      })),
+    )
+    .returning({
+      id: schema.users.id,
+      phone: schema.users.phone,
+    });
+
+  if (createdUsers.length !== rows.length) {
+    throw new Error('[seed] 创建用户数与配置不一致');
+  }
+
+  const bossCfg = rows.find((r) => r.isBoss);
+  if (!bossCfg) throw new Error('[seed] missing boss row');
+  const bossUser = createdUsers.find((u) => u.phone.trim() === bossCfg.phone.trim());
+  if (!bossUser) throw new Error('[seed] boss user missing');
+
+  const [enterprise] = await db
+    .insert(schema.enterprises)
+    .values({
+      ownerId: bossUser.id,
+      name:
+        process.env.SEED_PURGE_ENTERPRISE_NAME ??
+        process.env.SEED_ENTERPRISE_NAME ??
+        '演示企业（五种角色矩阵）',
+      status: 'active',
+      maxUsers: 99,
+    })
+    .returning({ id: schema.enterprises.id });
+
+  if (!enterprise) throw new Error('[seed] 创建企业失败');
+
+  await db.insert(schema.userEnterprises).values(
+    createdUsers.map((u) => {
+      const cfg = rows.find((r) => r.phone.trim() === u.phone.trim());
+      if (!cfg) throw new Error(`[seed] 无角色配置: ${u.phone}`);
+      return {
+        userId: u.id,
+        enterpriseId: enterprise.id,
+        role: cfg.role,
+        isDefault: true,
+      };
+    }),
+  );
+
+  console.log(
+    `\n[seed] 已完成。enterpriseId=${enterprise.id}，统一密码="${SEED_PASSWORD}"：`,
+  );
+  for (const u of createdUsers) {
+    const cfg = rows.find((r) => r.phone.trim() === u.phone.trim());
+    console.log(`  • ${cfg?.role}\t手机号 ${u.phone}\tuserId=${u.id}`);
+  }
+
+  await seedSampleCustomers(db, enterprise.id, bossUser.id);
+  await seedSampleInventory(db, enterprise.id, bossUser.id);
+  await ensureSeedEmployeeProfile(db, enterprise.id, bossUser.id);
+  console.log(
+    `[seed] 演示客户、库存、员工档案已挂到老板账号 userId=${bossUser.id}。\n`,
+  );
+}
 
 /** 保证该企业至少有一条仓库主数据，供 GET /inventory/warehouses、盘点等到处使用 */
 async function ensureEnterpriseDefaultWarehouse(
@@ -361,6 +534,34 @@ async function seedSampleInventory(
   );
 }
 
+async function ensureSeedEmployeeProfile(
+  db: NodePgDatabase<typeof schema>,
+  enterpriseId: number,
+  userId: number,
+) {
+  const [existing] = await db
+    .select({ id: schema.employeeProfiles.id })
+    .from(schema.employeeProfiles)
+    .where(eq(schema.employeeProfiles.userId, userId))
+    .limit(1);
+
+  if (existing) return;
+
+  await db.insert(schema.employeeProfiles).values({
+    userId,
+    enterpriseId,
+    department: '运营部',
+    position: '店长',
+    employeeNo: 'EMP-001',
+    phone: SEED_PHONE,
+    joinDate: new Date().toISOString().slice(0, 10),
+  });
+
+  console.log(
+    `Seeded employee_profile for seed user userId=${userId} enterpriseId=${enterpriseId}`,
+  );
+}
+
 async function main() {
   if (!DATABASE_URL) {
     console.error('Missing DATABASE_URL');
@@ -369,6 +570,12 @@ async function main() {
 
   const pool = new Pool({ connectionString: DATABASE_URL });
   const db = drizzle(pool, { schema });
+
+  if (PURGE_FIVE_CLI || envTruthy('SEED_PURGE_DATABASE')) {
+    await purgeAndSeedFiveRoleMatrix(pool, db);
+    await pool.end();
+    return;
+  }
 
   const existing = await db
     .select()
@@ -390,6 +597,7 @@ async function main() {
       .limit(1);
     const enterpriseId = membership?.enterpriseId;
     if (enterpriseId != null) {
+      await ensureSeedEmployeeProfile(db, enterpriseId, user.id);
       await seedSampleCustomers(db, enterpriseId, user.id);
       await seedSampleInventory(db, enterpriseId, user.id);
     }
@@ -429,12 +637,13 @@ async function main() {
   await db.insert(schema.userEnterprises).values({
     userId: user.id,
     enterpriseId: enterprise.id,
-    role: 'boss',
+    role: UxyyRole.BOSS,
     isDefault: true,
   });
 
   await seedSampleCustomers(db, enterprise.id, user.id);
   await seedSampleInventory(db, enterprise.id, user.id);
+  await ensureSeedEmployeeProfile(db, enterprise.id, user.id);
 
   console.log(
     `Seeded dev user phone=${SEED_PHONE} password=${SEED_PASSWORD} enterpriseId=${enterprise.id}`,

@@ -62,3 +62,28 @@ export const registerResponseSchema = z.object({
 });
 
 export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+
+/** GET /invitations/preview?t= */
+export const invitationPreviewResponseSchema = z.union([
+  z.object({ valid: z.literal(false) }),
+  z.object({
+    valid: z.literal(true),
+    enterpriseName: z.string(),
+    inviteePhoneMasked: z.string(),
+    presetRole: z.string(),
+    expiresAt: z.string(),
+  }),
+]);
+
+export type InvitationPreviewResponse = z.infer<
+  typeof invitationPreviewResponseSchema
+>;
+
+/** POST /auth/register-invite */
+export const registerInviteSchema = z.object({
+  invitationToken: z.string().min(32, "邀请链接无效或过短"),
+  password: z.string().min(8, "密码至少 8 位"),
+  nickname: z.string().max(50).optional(),
+});
+
+export type RegisterInviteInput = z.infer<typeof registerInviteSchema>;

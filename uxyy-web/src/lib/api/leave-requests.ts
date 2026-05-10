@@ -52,3 +52,8 @@ export async function createLeaveRequest(
 export async function fetchLeaveRequest(id: number): Promise<LeaveRequestRow> {
   return apiFetch<LeaveRequestRow>(`/oa/leave-requests/${id}`);
 }
+
+/** 当前用户在本企业的请假记录（OA 首页统计用） */
+export async function fetchMyLeaveRequests(): Promise<LeaveRequestRow[]> {
+  return apiFetch<LeaveRequestRow[]>("/oa/leave-requests/my");
+}

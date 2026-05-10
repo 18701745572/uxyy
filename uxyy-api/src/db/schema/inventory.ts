@@ -328,6 +328,64 @@ export const stocktakingItems = pgTable(
   ],
 );
 
+// ==================== 销售出库单 ====================
+export const salesOutboundOrders = pgTable(
+  'sales_outbound_orders',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    orderId: integer('order_id')
+      .references(() => salesOrders.id)
+      .notNull(),
+    orderNo: varchar('order_no', { length: 50 }).notNull().unique(),
+    customerId: integer('customer_id')
+      .references(() => customers.id)
+      .notNull(),
+    customerName: varchar('customer_name', { length: 100 }).notNull(),
+    warehouseId: integer('warehouse_id').default(1),
+    status: varchar('status', { length: 20 }).default('draft').notNull(), // draft, confirmed
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id)
+      .notNull(),
+    confirmedBy: integer('confirmed_by').references(() => users.id),
+    confirmedAt: timestamp('confirmed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('sales_outbound_orders_enterprise_idx').on(t.enterpriseId),
+    index('sales_outbound_orders_order_idx').on(t.orderId),
+    index('sales_outbound_orders_status_idx').on(t.enterpriseId, t.status),
+  ],
+);
+
+export const salesOutboundItems = pgTable(
+  'sales_outbound_items',
+  {
+    id: serial('id').primaryKey(),
+    orderId: integer('order_id')
+      .references(() => salesOutboundOrders.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    productName: varchar('product_name', { length: 100 }).notNull(),
+    productCode: varchar('product_code', { length: 50 }).notNull(),
+    unit: varchar('unit', { length: 20 }).default('件'),
+    quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(),
+    unitPrice: decimal('unit_price', { precision: 12, scale: 2 }).notNull(),
+    amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+    batchNo: varchar('batch_no', { length: 50 }),
+  },
+  (t) => [
+    index('sales_outbound_items_order_idx').on(t.orderId),
+    index('sales_outbound_items_product_idx').on(t.productId),
+  ],
+);
+
 // ==================== 回款记录 ====================
 export const paymentRecords = pgTable(
   'payment_records',
@@ -356,6 +414,37 @@ export const paymentRecords = pgTable(
     index('payment_records_customer_idx').on(t.customerId),
     index('payment_records_order_idx').on(t.orderId),
     index('payment_records_date_idx').on(t.paymentDate),
+  ],
+);
+
+// ==================== 供应商付款记录 ====================
+export const supplierPayments = pgTable(
+  'supplier_payments',
+  {
+    id: serial('id').primaryKey(),
+    enterpriseId: integer('enterprise_id')
+      .references(() => enterprises.id)
+      .notNull(),
+    supplierId: integer('supplier_id')
+      .references(() => suppliers.id)
+      .notNull(),
+    orderId: integer('order_id')
+      .references(() => purchaseOrders.id),
+    orderNo: varchar('order_no', { length: 50 }),
+    amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+    paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // cash, bank, alipay, wechat
+    paymentDate: timestamp('payment_date').defaultNow().notNull(),
+    referenceNo: varchar('reference_no', { length: 50 }), // 银行流水号/支付单号
+    remark: text('remark'),
+    createdBy: integer('created_by')
+      .references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('supplier_payments_enterprise_idx').on(t.enterpriseId),
+    index('supplier_payments_supplier_idx').on(t.supplierId),
+    index('supplier_payments_order_idx').on(t.orderId),
+    index('supplier_payments_date_idx').on(t.paymentDate),
   ],
 );
 

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Receipt, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { toastSubmitted } from "@/lib/ui/toast-feedback";
 import { createExpenseRequest } from "@/lib/api/expense-requests";
 import { ApiError } from "@/lib/api/client";
 
@@ -59,7 +60,7 @@ export default function NewExpenseRequestPage() {
           : {}),
       });
       await qc.invalidateQueries({ queryKey: ["oa", "expense-requests"] });
-      toast.success("报销申请已提交");
+      toastSubmitted("报销申请");
       router.push("/dashboard/oa/expense-requests");
     } catch (error) {
       const msg =

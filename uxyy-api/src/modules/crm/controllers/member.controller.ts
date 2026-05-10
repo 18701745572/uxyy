@@ -12,8 +12,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { MemberService, type CreateMemberLevelDto, type CreateCustomerMemberDto, type PointsOperationDto } from '../services/member.service';
+import { PermissionsGuard } from '../../auth/permissions.guard';
+import { Permission } from '../../auth/role-permissions';
+import {
+  MemberService,
+  type CreateMemberLevelDto,
+  type CreateCustomerMemberDto,
+  type PointsOperationDto,
+} from '../services/member.service';
 
 interface UserContext {
   userId: number;
@@ -28,11 +36,15 @@ export class MemberController {
 
   // ==================== 会员等级管理 ====================
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('levels')
   findAllLevels(@Req() req: Request & { user: UserContext }) {
     return this.memberService.findAllLevels(req.user.enterpriseId);
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('levels/:id')
   findLevelById(
     @Param('id', ParseIntPipe) id: number,
@@ -41,6 +53,8 @@ export class MemberController {
     return this.memberService.findLevelById(id, req.user.enterpriseId);
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('levels')
   createLevel(
     @Req() req: Request & { user: UserContext },
@@ -49,6 +63,8 @@ export class MemberController {
     return this.memberService.createLevel(req.user.enterpriseId, dto);
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Put('levels/:id')
   updateLevel(
     @Param('id', ParseIntPipe) id: number,
@@ -58,6 +74,8 @@ export class MemberController {
     return this.memberService.updateLevel(id, req.user.enterpriseId, dto);
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('levels/:id')
   deleteLevel(
     @Param('id', ParseIntPipe) id: number,
@@ -68,23 +86,35 @@ export class MemberController {
 
   // ==================== 会员管理 ====================
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get()
   findAllMembers(
     @Req() req: Request & { user: UserContext },
     @Query('levelId', new ParseIntPipe({ optional: true })) levelId?: number,
     @Query('keyword') keyword?: string,
   ) {
-    return this.memberService.findAllMembers(req.user.enterpriseId, { levelId, keyword });
+    return this.memberService.findAllMembers(req.user.enterpriseId, {
+      levelId,
+      keyword,
+    });
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('customer/:customerId')
   findMemberByCustomerId(
     @Param('customerId', ParseIntPipe) customerId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.memberService.findMemberByCustomerId(customerId, req.user.enterpriseId);
+    return this.memberService.findMemberByCustomerId(
+      customerId,
+      req.user.enterpriseId,
+    );
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post()
   createMember(
     @Req() req: Request & { user: UserContext },
@@ -93,15 +123,23 @@ export class MemberController {
     return this.memberService.createMember(req.user.enterpriseId, dto);
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Put('customer/:customerId')
   updateMember(
     @Param('customerId', ParseIntPipe) customerId: number,
     @Req() req: Request & { user: UserContext },
     @Body() dto: Partial<CreateCustomerMemberDto>,
   ) {
-    return this.memberService.updateMember(customerId, req.user.enterpriseId, dto);
+    return this.memberService.updateMember(
+      customerId,
+      req.user.enterpriseId,
+      dto,
+    );
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('customer/:customerId')
   deleteMember(
     @Param('customerId', ParseIntPipe) customerId: number,
@@ -112,6 +150,8 @@ export class MemberController {
 
   // ==================== 积分管理 ====================
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('points/add')
   addPoints(
     @Req() req: Request & { user: UserContext },
@@ -123,6 +163,8 @@ export class MemberController {
     });
   }
 
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('points/records/:customerId')
   getPointsRecords(
     @Param('customerId', ParseIntPipe) customerId: number,
@@ -130,6 +172,9 @@ export class MemberController {
     @Query('type') type?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
-    return this.memberService.getPointsRecords(customerId, req.user.enterpriseId, { type, limit });
+    return this.memberService.getPointsRecords(customerId, req.user.enterpriseId, {
+      type,
+      limit,
+    });
   }
 }

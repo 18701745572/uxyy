@@ -1,11 +1,12 @@
 import { expect, test as base } from "@playwright/test";
 import { getApiOrigin, isApiHealthy } from "../helpers/api";
+import { encodeE2eMockAccessToken } from "../helpers/mock-access-jwt";
 import { installApiMocks } from "../helpers/install-api-mocks";
 
 const TOKEN_KEY = "uxyy_access_token";
 
-/** 占位 JWT；在非 LIVE 模式下 API 已由 Playwright mock，前端仅需带 token */
-export const MOCK_ACCESS_TOKEN = "e2e-mock-access-token";
+/** 可解码 JWT（`role: boss`）；非 LIVE 时与 `installApiMocks` 的 profile/permissions 一致 */
+export const MOCK_ACCESS_TOKEN = encodeE2eMockAccessToken("boss");
 
 const LIVE = process.env.E2E_LIVE_API === "1";
 

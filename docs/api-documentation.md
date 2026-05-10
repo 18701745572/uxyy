@@ -1,11 +1,16 @@
 # 优效营 API 文档
 
-**版本**: v1.0.2
+**版本**: v1.0.3
 **基础URL**: `http://localhost:3000/api/v1`
 **Swagger UI**: `http://localhost:3000/docs`
-**最后更新**: 2026-05-08
+**最后更新**: 2026-05-09
 
 ## 更新说明
+
+### v1.0.3
+
+- **文档**：与主 PRD **v1.0.3** 对齐——补充 **`GET /auth/permissions`**、细粒度权限码、CRM **`PermissionsGuard`** 与 OA 工作台语义（本人申请 vs 审批待办）。
+- CRM、OA 等模块的 **403** 含义：当前企业上下文中 **缺少路由声明的任一所需权限码**（服务端裁决）。
 
 ### v1.0.2 新增功能
 
@@ -22,7 +27,7 @@
 - **AI智能层**: 商机成单预测、客户流失预警
 - **数据导出**: PDF导出（销售单、报价单、对账单）
 
-### v1.0.2（规划中）新增功能
+### v1.0.2（规划中）
 
 - **财务模块**: 一键报税（需对接税务服务商）
 
@@ -217,6 +222,10 @@ PUT /auth/switch-enterprise/:id
 
 **说明**: 切换成功后，需使用新的 `access_token` 发起后续请求。
 
+**企业成员管理**（需 **`system:member`**，一般为老板/行政）：`GET` / `POST` / `PATCH` / `DELETE` **`/enterprise/members`**（`PATCH`/`DELETE` 带路径参数 `userId`）；另 **`POST /enterprise/members/invitations`** 生成 **`joinRelativePath`**（例如 `/join?t=…`，前端拼站点根 URL）。`POST`、`PATCH`、`invitations` 的 `role` 仅允许 **`finance`、`sales`、`warehouse`、`oa`**。`POST /enterprise/members` 的 **`phone`** 须为**已在平台注册**。不可通过本组接口变更或移除 **`enterprises.owner_id` 所指企业主**。  
+**企业与邀请（链路统一对象 `enterprise_invitations`）**：**`GET /invitations/preview?t=`**（`@Public`）返回脱敏受邀手机、企业名、预设角色（无效邀请统一 `valid:false`）；**已注册用户** **`POST /invitations/accept`**（JWT，Body `invitationToken`）入会并刷新与本企业绑定的会话；**未注册用户** **`POST /auth/register-invite`**（`@Public`，`invitationToken` + `password` + 可选 `nickname`）：手机号仅以邀请为准，不入新建企业链路。令牌仅存 **SHA-256(hash)** ，默认有效期见环境变量 **`ENTERPRISE_INVITE_EXPIRES_DAYS`**（默认 7 天）。  
+**未实现**：**企业主转让**（见主 PRD §9.26）。
+
 ### 1.6 刷新 Token
 
 ```http
@@ -241,7 +250,22 @@ POST /auth/refresh
 
 **说明**: 前端在收到 401 响应时应自动调用此接口刷新 token，无需用户感知。
 
-### 1.7 修改密码
+### 1.7 当前企业权限矩阵
+
+```http
+GET /auth/permissions
+```
+
+需 **Bearer**，租户取自 Access Token 内嵌的 **当前企业**。**响应**（节选）包含：
+
+- **`permissions`**：`string[]`，与后端 `ROLE_PERMISSIONS` 及 JWT 角色推导对齐的 **细粒度权限码**（如 `crm:read`、`oa:approve`、`finance:write` 等）。
+- **`canonicalRole`** / **`roleRaw`**：五种规范企业角色之一或其兼容别名。
+
+**用途**：前端工作台侧栏、路由守卫、表单按钮显隐；**不得**作为唯一安全边界——写类接口仍以各 Controller 上 **`PermissionsGuard`** 为准。
+
+**相关错误**：缺权限时接口返回 **403**，body 常含 `缺少权限，需要其一: ...` 类说明。
+
+### 1.8 修改密码
 
 ```http
 POST /auth/reset-password
@@ -1387,6 +1411,8 @@ PATCH /finance/account-subjects/:id
 
 ## 4. 客户关系 (CRM)
 
+**权限（服务端）**：`/crm/**` 及报价、会员、AI 话术/跟进等子路径已按 **`crm:read` / `crm:write` / `crm:delete`** 做方法级校验（含 **GET/POST/PATCH/DELETE**）；缺权返回 **403**。详见主 PRD **§9.7.1**、**§15.2.1**。
+
 ### 4.1 客户管理
 
 #### 获取客户列表
@@ -1801,6 +1827,8 @@ GET /crm/ai-followup/script/:customerId?context=电话回访
 ---
 
 ## 5. 办公自动化 (OA)
+
+**权限**：流程配置、通讯录维护等需 **`oa:manage`**；请假/报销列表与提交在具备 **`oa:read`** 等企业成员能力下可用；**审批实例操作、补卡审批** 等需 **`oa:approve`**。具体以各 Controller 与 OpenAPI 为准。
 
 ### 5.1 考勤管理
 

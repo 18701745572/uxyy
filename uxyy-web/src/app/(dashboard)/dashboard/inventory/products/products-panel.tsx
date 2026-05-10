@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
 
 interface ProductFormData {
   code: string;
@@ -231,7 +232,10 @@ export function ProductsPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-zinc-900">商品管理</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建商品</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="products" filename="products" />
+          <Button onClick={() => setCreating(true)}>+ 新建商品</Button>
+        </div>
       </div>
 
       <div className="flex gap-2">
