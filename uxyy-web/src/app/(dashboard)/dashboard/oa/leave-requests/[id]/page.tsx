@@ -8,6 +8,8 @@ import { fetchLeaveRequest } from "@/lib/api/leave-requests";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DocumentApprovalActions } from "@/components/oa/document-approval-actions";
+import { OaDocumentDetailSkeleton } from "@/components/oa/oa-document-detail-skeleton";
 
 export default function LeaveRequestDetailPage() {
   const params = useParams();
@@ -38,32 +40,41 @@ export default function LeaveRequestDetailPage() {
         <h1 className="text-xl font-semibold text-zinc-900">请假详情 #{id}</h1>
       </div>
 
-      {q.isLoading && (
-        <p className="text-sm text-zinc-500">加载中…</p>
-      )}
+      {q.isLoading && <OaDocumentDetailSkeleton />}
       {q.isError && (
         <pre className="text-sm text-red-700 whitespace-pre-wrap">
           {q.error instanceof ApiError ? q.error.message : String(q.error)}
         </pre>
       )}
       {q.data && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-zinc-700">
-            <p>
-              起止：<span className="font-medium">{String(q.data.startDate).slice(0, 10)}</span>
-              {" ～ "}
-              <span className="font-medium">{String(q.data.endDate).slice(0, 10)}</span>
-            </p>
-            <p>天数：{q.data.days}</p>
-            <p>原因：{q.data.reason ?? "—"}</p>
-            <p className="text-xs text-zinc-500 pt-2">
-              创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-zinc-700">
+              <p>
+                起止：<span className="font-medium">{String(q.data.startDate).slice(0, 10)}</span>
+                {" ～ "}
+                <span className="font-medium">{String(q.data.endDate).slice(0, 10)}</span>
+              </p>
+              <p>天数：{q.data.days}</p>
+              <p>原因：{q.data.reason ?? "—"}</p>
+              <p className="text-xs text-zinc-500 pt-2">
+                创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}
+              </p>
+            </CardContent>
+          </Card>
+          <DocumentApprovalActions
+            approvalRecordId={q.data.approvalRecordId}
+            documentStatus={q.data.status}
+            invalidateQueryKeys={[
+              ["oa", "pending-approvals"],
+              ["oa", "leave-requests"],
+            ]}
+            detailQueryKey={["oa", "leave-requests", id]}
+          />
+        </>
       )}
     </div>
   );

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { toastSubmitted } from "@/lib/ui/toast-feedback";
 import { createLeaveRequest } from "@/lib/api/leave-requests";
 import { ApiError } from "@/lib/api/client";
 
@@ -71,7 +72,7 @@ export default function NewLeaveRequestPage() {
         ...(formData.reason.trim() ? { reason: formData.reason.trim() } : {}),
       });
       await qc.invalidateQueries({ queryKey: ["oa", "leave-requests"] });
-      toast.success("请假申请已提交");
+      toastSubmitted("请假申请");
       router.push("/dashboard/oa/leave-requests");
     } catch (error) {
       const msg =

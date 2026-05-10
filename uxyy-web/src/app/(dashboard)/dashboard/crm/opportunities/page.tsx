@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchOpportunities,
@@ -46,6 +46,7 @@ import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import Link from "next/link";
 import { Search, Plus, Edit, Trash2, FileText } from "lucide-react";
+import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const statusLabels: Record<OpportunityStatus, string> = {
   potential: "潜在",
@@ -143,6 +144,7 @@ export default function OpportunitiesPage() {
 }
 
 function OpportunitiesPanel() {
+  const crm = useCrmCaps();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<OpportunityStatus | undefined>(undefined);
@@ -190,6 +192,13 @@ function OpportunitiesPanel() {
     },
   });
 
+  useEffect(() => {
+    if (!crm.write) {
+      setCreating(false);
+      setEditing(null);
+    }
+  }, [crm.write]);
+
   const totalPages = q.data ? Math.ceil(q.data.total / pageSize) : 0;
 
   return (
@@ -227,25 +236,31 @@ function OpportunitiesPanel() {
             ))}
           </SelectContent>
         </Select>
-        <Dialog open={creating} onOpenChange={setCreating}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              新增商机
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>新增商机</DialogTitle>
-            </DialogHeader>
-            <OpportunityForm
-              mode="create"
-              customers={customersQ.data?.items || []}
-              onCreateSubmit={(data) => createM.mutate(data)}
-              isSubmitting={createM.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+        {crm.write ? (
+          <Dialog open={creating} onOpenChange={setCreating}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                新增商机
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>新增商机</DialogTitle>
+              </DialogHeader>
+              <OpportunityForm
+                mode="create"
+                customers={customersQ.data?.items || []}
+                onCreateSubmit={(data) => createM.mutate(data)}
+                isSubmitting={createM.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <p className="text-xs text-zinc-500 shrink-0 self-center">
+            仅查看；需要 crm:write 才可新建商机
+          </p>
+        )}
       </div>
 
       {/* 数据表格 */}
@@ -318,24 +333,28 @@ function OpportunitiesPanel() {
                           <FileText className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditing(item)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("确定删除该商机吗？")) {
-                            deleteM.mutate(item.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {crm.write ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditing(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                      {crm.delete ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm("确定删除该商机吗？")) {
+                              deleteM.mutate(item.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -369,7 +388,12 @@ function OpportunitiesPanel() {
       )}
 
       {/* 编辑对话框 */}
-      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+      <Dialog
+        open={!!editing && crm.write}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>编辑商机</DialogTitle>

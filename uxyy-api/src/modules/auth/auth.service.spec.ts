@@ -18,6 +18,7 @@ jest.mock('bcrypt', () => ({
 import bcrypt from 'bcrypt';
 import { DRIZZLE_DB } from '../database/database.constants';
 import { AuthService } from './auth.service';
+import { ApprovalFlowService } from '../oa/services/approval-flow.service';
 import type {
   RegisterDto,
   RefreshTokenDto,
@@ -25,6 +26,10 @@ import type {
 } from './auth.service';
 
 // ---------- helpers ----------
+
+const mockApprovalFlowSvc = {
+  processLegacyAuthAction: jest.fn(),
+};
 
 type MockDb = Record<string, jest.Mock> & {
   __queue: (result: any) => void;
@@ -114,11 +119,13 @@ describe('AuthService', () => {
         { provide: DRIZZLE_DB, useValue: db },
         { provide: JwtService, useValue: jwt },
         { provide: ConfigService, useValue: config },
+        { provide: ApprovalFlowService, useValue: mockApprovalFlowSvc },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jest.clearAllMocks();
+    mockApprovalFlowSvc.processLegacyAuthAction.mockReset();
     db.__reset();
   });
 
@@ -580,87 +587,38 @@ describe('AuthService', () => {
   });
 
   describe('actionApproval', () => {
-    const pendingRecord = {
-      id: 100,
-      flowId: 1,
-      businessType: 'purchase_order',
-      businessId: 5001,
-      title: 'Test',
-      status: 'pending',
-      currentStep: 1,
-      submittedBy: 2,
-      approvedBy: null,
-      comment: null,
-      approvedAt: null,
-      createdAt: new Date(),
-    };
-
-    it('should approve and move to completed when last step', async () => {
-      db.__queue([pendingRecord]); // record
-      db.__queue([
-        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
-      ]); // flow
+    it('delegates to ApprovalFlowService.processLegacyAuthAction', async () => {
+      mockApprovalFlowSvc.processLegacyAuthAction.mockResolvedValue({
+        approvalId: 100,
+        status: 'approved',
+        approvedBy: 1,
+        approvedAt: '2024-06-01T00:00:00.000Z',
+        nextStep: null,
+      });
 
       const result = await service.actionApproval(100, 1, 'boss', {
         action: 'approve',
         comment: 'OK',
       });
 
+      expect(mockApprovalFlowSvc.processLegacyAuthAction).toHaveBeenCalledWith(
+        100,
+        1,
+        'boss',
+        { action: 'approve', comment: 'OK' },
+      );
       expect(result.status).toBe('approved');
       expect(result.nextStep).toBeNull();
     });
 
-    it('should approve and move to next step when multistep', async () => {
-      db.__queue([pendingRecord]);
-      db.__queue([
-        {
-          id: 1,
-          status: 'active',
-          steps: [
-            { step: 1, role: 'boss' },
-            { step: 2, role: 'finance' },
-          ],
-        },
-      ]);
-
-      const result = await service.actionApproval(100, 1, 'boss', {
-        action: 'approve',
-      });
-
-      expect(result.status).toBe('pending');
-      expect(result.nextStep).toBe(2);
-    });
-
-    it('should reject', async () => {
-      db.__queue([pendingRecord]);
-      db.__queue([
-        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
-      ]);
-
-      const result = await service.actionApproval(100, 1, 'boss', {
-        action: 'reject',
-      });
-
-      expect(result.status).toBe('rejected');
-    });
-
-    it('should throw ForbiddenException for wrong role', async () => {
-      db.__queue([pendingRecord]);
-      db.__queue([
-        { id: 1, status: 'active', steps: [{ step: 1, role: 'boss' }] },
-      ]);
+    it('propagates errors from OA delegation', async () => {
+      mockApprovalFlowSvc.processLegacyAuthAction.mockRejectedValue(
+        new ForbiddenException('当前审批步骤需要角色: boss'),
+      );
 
       await expect(
         service.actionApproval(100, 1, 'sales', { action: 'approve' }),
       ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should throw if record status is not pending', async () => {
-      db.__queue([{ ...pendingRecord, status: 'approved' }]);
-
-      await expect(
-        service.actionApproval(100, 1, 'boss', { action: 'approve' }),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 });

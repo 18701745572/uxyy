@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,6 +9,7 @@ import {
   getCorrectionSuggestions,
   autoFixBalance,
   getFinancialHealthReport,
+  VOUCHER_ENTRY_ID_MAX,
   type ErrorDetectionResult,
   type CorrectionSuggestion,
 } from "@/lib/api/ai-error-correction";
@@ -15,6 +17,65 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  Search,
+  FileSearch,
+  FileBadge,
+  Activity,
+  ShieldCheck,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  RefreshCw,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Lightbulb,
+  Zap,
+  BarChart3,
+  TrendingUp,
+  ChevronRight,
+  FileText,
+} from "lucide-react";
+
+const featureCards = [
+  {
+    id: "single-check" as const,
+    label: "单个检测",
+    desc: "精准定位单笔凭证问题",
+    icon: <Search className="w-5 h-5" />,
+    color: "from-blue-500 to-blue-600",
+  },
+  {
+    id: "batch-check" as const,
+    label: "批量检测",
+    desc: "全量扫描企业凭证风险",
+    icon: <FileSearch className="w-5 h-5" />,
+    color: "from-purple-500 to-purple-600",
+  },
+  {
+    id: "health-report" as const,
+    label: "健康报告",
+    desc: "财务健康度全景分析",
+    icon: <Activity className="w-5 h-5" />,
+    color: "from-green-500 to-green-600",
+  },
+];
+
+function getErrorTypeIcon(type: ErrorDetectionResult["type"]) {
+  switch (type) {
+    case "error":
+      return <AlertCircle className="w-4 h-4" />;
+    case "warning":
+      return <AlertTriangle className="w-4 h-4" />;
+    case "info":
+      return <Info className="w-4 h-4" />;
+    default:
+      return <Info className="w-4 h-4" />;
+  }
+}
 
 function getErrorTypeColor(type: ErrorDetectionResult["type"]): string {
   switch (type) {
@@ -89,11 +150,21 @@ export function ErrorCorrectionPanel() {
   const [selectedVoucherId, setSelectedVoucherId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
-  // 单个凭证检测
+  // 单个凭证检测（仅「开始检测」触发；refetch 会绕过 enabled，故在 queryFn 内必须再校验 id）
   const singleCheckQuery = useQuery({
     queryKey: ["ai-error-correction", "single", voucherId],
-    queryFn: () => detectVoucherErrors(parseInt(voucherId)),
-    enabled: voucherId !== "" && !isNaN(parseInt(voucherId)),
+    queryFn: () => {
+      const id = Number.parseInt(String(voucherId).trim(), 10);
+      if (!Number.isFinite(id) || id < 1 || id > VOUCHER_ENTRY_ID_MAX) {
+        return Promise.reject(
+          new Error(
+            `请填写凭证录入列表中的分录 id（1～${VOUCHER_ENTRY_ID_MAX}），勿填凭证号或过长编号`,
+          ),
+        );
+      }
+      return detectVoucherErrors(id);
+    },
+    enabled: false,
     retry: 1,
   });
 
@@ -131,92 +202,187 @@ export function ErrorCorrectionPanel() {
     },
   });
 
-  const tabs = [
-    { id: "single-check", label: "单个检测" },
-    { id: "batch-check", label: "批量检测" },
-    { id: "health-report", label: "健康报告" },
-  ] as const;
-
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">AI智能纠错</h1>
-        <p className="text-sm text-zinc-600">系统自动检测凭证错误，提供修复建议</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900">AI智能纠错</h1>
+            <p className="text-sm text-zinc-500">智能检测凭证错误，保障财务健康</p>
+          </div>
+        </div>
       </div>
 
-      {/* 标签页切换 */}
-      <div className="flex gap-2">
-        {tabs.map((tab) => (
-          <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "primary" : "secondary"}
-              onClick={() => setActiveTab(tab.id)}
-            >
-            {tab.label}
-          </Button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {featureCards.map((card) => (
+          <Card
+            key={card.id}
+            className={`p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${
+              activeTab === card.id
+                ? "ring-2 ring-purple-500 bg-purple-50/50"
+                : "hover:bg-zinc-50/50"
+            }`}
+            onClick={() => setActiveTab(card.id)}
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center text-white shadow-lg`}>
+                {card.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-zinc-900 flex items-center gap-2">
+                  {card.label}
+                  {activeTab === card.id && (
+                    <ChevronRight className="w-4 h-4 text-purple-500" />
+                  )}
+                </h3>
+                <p className="text-sm text-zinc-500 mt-1">{card.desc}</p>
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
 
       {/* 单个凭证检测 */}
       {activeTab === "single-check" && (
         <div className="flex flex-col gap-4">
-          <Card className="p-4">
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Search className="w-4 h-4 text-blue-600" />
+              </div>
+              <h2 className="font-semibold text-zinc-900">输入凭证分录 ID</h2>
+            </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="number"
-                placeholder="输入凭证ID"
+                min={1}
+                max={VOUCHER_ENTRY_ID_MAX}
+                placeholder="请输入分录 ID（非凭证号）"
                 value={voucherId}
                 onChange={(e) => setVoucherId(e.target.value)}
-                className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                className="flex-1 rounded-lg border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
               />
-              <Button onClick={() => singleCheckQuery.refetch()}>
+              <Button
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20"
+                onClick={() => {
+                  const id = Number.parseInt(voucherId.trim(), 10);
+                  if (!Number.isFinite(id) || id < 1) {
+                    toast.error("请先输入有效的分录 id（正整数）");
+                    return;
+                  }
+                  if (id > VOUCHER_ENTRY_ID_MAX) {
+                    toast.error(
+                      `分录 id 不能超过 ${VOUCHER_ENTRY_ID_MAX}。请在「凭证录入」列表查看该行 id，勿填凭证号（如日期+序号长码）`,
+                    );
+                    return;
+                  }
+                  void singleCheckQuery.refetch();
+                }}
+              >
+                <Zap className="w-4 h-4 mr-2" />
                 开始检测
               </Button>
+            </div>
+            <div className="mt-4 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+              <p className="text-xs text-zinc-600 flex items-start gap-2">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
+                <span>
+                  请打开{" "}
+                  <Link
+                    href="/dashboard/finance/vouchers"
+                    className="text-purple-600 font-medium underline underline-offset-2 hover:text-purple-700"
+                  >
+                    财务 → 凭证录入
+                  </Link>
+                  ，每条分录标题左侧有灰色小字「分录 id xxx」——复制该数字填入此处。
+                </span>
+              </p>
             </div>
           </Card>
 
           {singleCheckQuery.isLoading && (
-            <Card className="p-8 text-center">
-              <Spinner className="mx-auto mb-2" />
-              <p className="text-sm text-zinc-600">正在检测凭证...</p>
+            <Card className="p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center animate-pulse">
+                <Search className="w-8 h-8 text-white" />
+              </div>
+              <Spinner className="mx-auto mb-3 w-6 h-6" />
+              <p className="text-sm text-zinc-600 font-medium">正在智能检测凭证...</p>
+              <p className="text-xs text-zinc-400 mt-1">AI 正在分析凭证的完整性和准确性</p>
             </Card>
           )}
 
           {singleCheckQuery.isError && (
-            <Card className="p-4 bg-red-50 border-red-200">
-              <p className="text-sm text-red-700">
-                检测失败：{(singleCheckQuery.error as Error).message}
-              </p>
+            <Card className="p-6 bg-gradient-to-br from-red-50 to-red-50/50 border-red-200">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-900 mb-1">检测失败</h3>
+                  <p className="text-sm text-red-700">
+                    {(singleCheckQuery.error as Error).message}
+                  </p>
+                </div>
+              </div>
             </Card>
           )}
 
           {singleCheckQuery.data && (
-            <Card className="p-4">
+            <Card className="p-6">
               {singleCheckQuery.data.length === 0 ? (
-                <p className="text-sm text-green-700">✓ 该凭证未检测到错误</p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-green-700 mb-2">检测通过</h3>
+                  <p className="text-sm text-green-600">该凭证未检测到任何错误，财务状况良好</p>
+                </div>
               ) : (
                 <>
-                  <p className="text-sm text-zinc-700 mb-4">
-                    检测到 {singleCheckQuery.data.length} 个问题：
-                  </p>
-                  <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-zinc-900">检测结果</h3>
+                        <p className="text-sm text-zinc-500">发现 {singleCheckQuery.data.length} 个问题需要关注</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
                     {singleCheckQuery.data.map((error, index) => (
                       <div
                         key={index}
-                        className={`rounded-lg border p-4 ${getErrorTypeColor(error.type)}`}
+                        className={`rounded-xl border p-5 ${getErrorTypeColor(error.type)} transition-all hover:shadow-md`}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className={getErrorTypeBadge(error.type)}>
-                            {getErrorTypeName(error.type)}
-                          </Badge>
-                          <span className="text-xs text-zinc-500">{error.category}</span>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            error.type === "error" ? "bg-red-100 text-red-600" :
+                            error.type === "warning" ? "bg-amber-100 text-amber-600" :
+                            "bg-blue-100 text-blue-600"
+                          }`}>
+                            {getErrorTypeIcon(error.type)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getErrorTypeBadge(error.type)}>
+                              {getErrorTypeName(error.type)}
+                            </Badge>
+                            <span className="text-xs text-zinc-500 bg-white/50 px-2 py-0.5 rounded">{error.category}</span>
+                          </div>
                         </div>
-                        <h3 className="font-medium text-sm mb-1">{error.title}</h3>
-                        <p className="text-xs text-zinc-600 mb-2">{error.description}</p>
-                        <p className="text-xs">
-                          <span className="text-zinc-500">建议：</span>
-                          {error.suggestion}
-                        </p>
+                        <h3 className="font-semibold text-zinc-900 mb-2">{error.title}</h3>
+                        <p className="text-sm text-zinc-600 mb-3">{error.description}</p>
+                        <div className="flex items-start gap-2 p-3 bg-white/50 rounded-lg">
+                          <Lightbulb className="w-4 h-4 mt-0.5 text-purple-500 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-zinc-700 mb-1">修复建议</p>
+                            <p className="text-sm text-zinc-600">{error.suggestion}</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -230,80 +396,162 @@ export function ErrorCorrectionPanel() {
       {/* 批量检测 */}
       {activeTab === "batch-check" && (
         <div className="flex flex-col gap-4">
-          <Button onClick={() => batchCheckQuery.refetch()}>
-            重新检测全部凭证
-          </Button>
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                  <FileSearch className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-zinc-900">批量凭证检测</h2>
+                  <p className="text-sm text-zinc-500">对所有凭证进行全量风险扫描</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => batchCheckQuery.refetch()}
+                disabled={batchCheckQuery.isLoading}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/20"
+              >
+                {batchCheckQuery.isLoading ? (
+                  <>
+                    <Spinner className="w-4 h-4 mr-2" />
+                    检测中...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    重新检测
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
 
           {batchCheckQuery.isLoading && (
-            <Card className="p-8 text-center">
-              <Spinner className="mx-auto mb-2" />
-              <p className="text-sm text-zinc-600">正在批量检测凭证...</p>
+            <Card className="p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center animate-pulse">
+                <FileSearch className="w-8 h-8 text-white" />
+              </div>
+              <Spinner className="mx-auto mb-3 w-6 h-6" />
+              <p className="text-sm text-zinc-600 font-medium">正在批量检测凭证...</p>
+              <p className="text-xs text-zinc-400 mt-1">正在扫描 {VOUCHER_ENTRY_ID_MAX} 个分录</p>
             </Card>
           )}
 
           {batchCheckQuery.isError && (
-            <Card className="p-4 bg-red-50 border-red-200">
-              <p className="text-sm text-red-700">
-                检测失败：{(batchCheckQuery.error as Error).message}
-              </p>
+            <Card className="p-6 bg-gradient-to-br from-red-50 to-red-50/50 border-red-200">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-900 mb-1">批量检测失败</h3>
+                  <p className="text-sm text-red-700">
+                    {(batchCheckQuery.error as Error).message}
+                  </p>
+                </div>
+              </div>
             </Card>
           )}
 
           {batchCheckQuery.data && (
             <>
-              <Card className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-zinc-900">
+              <Card className="p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="text-center p-4 bg-gradient-to-br from-zinc-50 to-zinc-100 rounded-xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center">
+                      <FileBadge className="w-6 h-6 text-zinc-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-zinc-900">
                       {batchCheckQuery.data.totalChecked}
                     </p>
-                    <p className="text-xs text-zinc-600">检测凭证数</p>
+                    <p className="text-sm text-zinc-600 mt-1">检测凭证数</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-600">
+                  <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-200 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-red-600">
                       {batchCheckQuery.data.errorVouchers}
                     </p>
-                    <p className="text-xs text-zinc-600">异常凭证数</p>
+                    <p className="text-sm text-red-600 mt-1">异常凭证数</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-zinc-900">
+                  <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-200 flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-amber-600">
                       {batchCheckQuery.data.details.reduce((sum, d) => sum + d.errorCount, 0)}
                     </p>
-                    <p className="text-xs text-zinc-600">问题总数</p>
+                    <p className="text-sm text-amber-600 mt-1">问题总数</p>
                   </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-2xl font-bold ${
+                  <div className={`text-center p-4 rounded-xl ${
+                    batchCheckQuery.data.errorVouchers === 0
+                      ? "bg-gradient-to-br from-green-50 to-green-100"
+                      : "bg-gradient-to-br from-amber-50 to-amber-100"
+                  }`}>
+                    <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                      batchCheckQuery.data.errorVouchers === 0
+                        ? "bg-green-200"
+                        : "bg-amber-200"
+                    }`}>
+                      <TrendingUp className={`w-6 h-6 ${
                         batchCheckQuery.data.errorVouchers === 0
                           ? "text-green-600"
                           : "text-amber-600"
-                      }`}
-                    >
+                      }`} />
+                    </div>
+                    <p className={`text-3xl font-bold ${
+                      batchCheckQuery.data.errorVouchers === 0
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }`}>
                       {((batchCheckQuery.data.errorVouchers / batchCheckQuery.data.totalChecked) * 100).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-zinc-600">异常率</p>
+                    <p className={`text-sm mt-1 ${
+                      batchCheckQuery.data.errorVouchers === 0
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }`}>异常率</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-0 overflow-hidden">
-                <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">
-                  异常凭证列表
+              <Card className="overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-zinc-50 to-zinc-100 border-b border-zinc-200">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-5 h-5 text-zinc-600" />
+                    <h3 className="font-semibold text-zinc-900">异常凭证列表</h3>
+                    <Badge variant="secondary" className="ml-auto">
+                      共 {batchCheckQuery.data.details.length} 条异常
+                    </Badge>
+                  </div>
                 </div>
                 {batchCheckQuery.data.details.length === 0 ? (
-                  <p className="p-8 text-center text-sm text-zinc-500">暂无异常凭证</p>
+                  <div className="p-12 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-green-700 mb-2">全部通过</h3>
+                    <p className="text-sm text-green-600">所有凭证检测正常，未发现异常情况</p>
+                  </div>
                 ) : (
                   <div className="divide-y divide-zinc-100">
                     {batchCheckQuery.data.details.map((detail) => (
-                      <div key={detail.voucherId} className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-zinc-900">
-                              {detail.voucherNo}
-                            </span>
-                            <Badge variant="secondary" className="text-xs">
-                              {detail.errorCount} 个问题
-                            </Badge>
+                      <div key={detail.voucherId} className="px-6 py-4 hover:bg-zinc-50/50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <span className="font-semibold text-zinc-900">
+                                {detail.voucherNo}
+                              </span>
+                              <Badge variant="secondary" className="ml-2 text-xs bg-red-100 text-red-700">
+                                {detail.errorCount} 个问题
+                              </Badge>
+                            </div>
                           </div>
                           <Button
                             variant="secondary"
@@ -313,25 +561,34 @@ export function ErrorCorrectionPanel() {
                               setActiveTab("single-check");
                               setVoucherId(String(detail.voucherId));
                             }}
+                            className="flex items-center gap-1"
                           >
                             查看详情
+                            <ArrowRight className="w-3 h-3" />
                           </Button>
                         </div>
-                        <div className="text-xs text-zinc-500 mb-2">
-                          日期：{detail.voucherDate.slice(0, 10)} | 金额：¥{detail.totalAmount}
+                        <div className="flex items-center gap-4 text-sm text-zinc-500 mb-3">
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {detail.voucherDate.slice(0, 10)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            ¥{detail.totalAmount}
+                          </span>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {detail.errors.slice(0, 3).map((error, idx) => (
                             <span
                               key={idx}
-                              className={`text-xs px-2 py-0.5 rounded ${getErrorTypeBadge(error.type)}`}
+                              className={`text-xs px-3 py-1 rounded-full ${getErrorTypeBadge(error.type)}`}
                             >
                               {error.title}
                             </span>
                           ))}
                           {detail.errors.length > 3 && (
-                            <span className="text-xs text-zinc-500 px-2 py-0.5">
-                              +{detail.errors.length - 3}
+                            <span className="text-xs text-zinc-500 px-3 py-1 bg-zinc-100 rounded-full">
+                              +{detail.errors.length - 3} 更多
                             </span>
                           )}
                         </div>
@@ -348,22 +605,61 @@ export function ErrorCorrectionPanel() {
       {/* 财务健康度报告 */}
       {activeTab === "health-report" && (
         <div className="flex flex-col gap-4">
-          <Button onClick={() => healthReportQuery.refetch()}>
-            刷新报告
-          </Button>
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-zinc-900">财务健康报告</h2>
+                  <p className="text-sm text-zinc-500">全面评估企业财务健康状况</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => healthReportQuery.refetch()}
+                disabled={healthReportQuery.isLoading}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/20"
+              >
+                {healthReportQuery.isLoading ? (
+                  <>
+                    <Spinner className="w-4 h-4 mr-2" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    刷新报告
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
 
           {healthReportQuery.isLoading && (
-            <Card className="p-8 text-center">
-              <Spinner className="mx-auto mb-2" />
-              <p className="text-sm text-zinc-600">正在生成报告...</p>
+            <Card className="p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center animate-pulse">
+                <Activity className="w-8 h-8 text-white" />
+              </div>
+              <Spinner className="mx-auto mb-3 w-6 h-6" />
+              <p className="text-sm text-zinc-600 font-medium">正在生成财务健康报告...</p>
+              <p className="text-xs text-zinc-400 mt-1">AI 正在分析您的财务数据</p>
             </Card>
           )}
 
           {healthReportQuery.isError && (
-            <Card className="p-4 bg-red-50 border-red-200">
-              <p className="text-sm text-red-700">
-                生成失败：{(healthReportQuery.error as Error).message}
-              </p>
+            <Card className="p-6 bg-gradient-to-br from-red-50 to-red-50/50 border-red-200">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-900 mb-1">报告生成失败</h3>
+                  <p className="text-sm text-red-700">
+                    {(healthReportQuery.error as Error).message}
+                  </p>
+                </div>
+              </div>
             </Card>
           )}
 
@@ -371,71 +667,88 @@ export function ErrorCorrectionPanel() {
             <>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-zinc-900">
-                    财务健康度报告
-                  </h2>
-                  <span className="text-sm text-zinc-500">
-                    {healthReportQuery.data.period}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-zinc-900">
+                        财务健康度报告
+                      </h2>
+                      <p className="text-sm text-zinc-500">
+                        {healthReportQuery.data.period}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className={`px-4 py-1.5 text-sm font-medium ${
+                    healthReportQuery.data.summary.healthLevel === '优秀' ? "bg-green-100 text-green-700" :
+                    healthReportQuery.data.summary.healthLevel === '良好' ? "bg-amber-100 text-amber-700" :
+                    "bg-red-100 text-red-700"
+                  }`}>
+                    {healthReportQuery.data.summary.healthLevel}
+                  </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-zinc-50 rounded-lg">
-                    <p className="text-2xl font-bold text-zinc-900">
-                      {healthReportQuery.data.summary.totalVouchers}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <div className="text-center p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 rounded-xl border border-zinc-200">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center">
+                      <FileBadge className="w-6 h-6 text-zinc-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-zinc-900">
+                      {healthReportQuery.data.summary.totalVoucherEntries}
                     </p>
-                    <p className="text-xs text-zinc-600">凭证总数</p>
+                    <p className="text-sm text-zinc-600 mt-1">分录总数</p>
                   </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <p className="text-2xl font-bold text-red-600">
-                      {healthReportQuery.data.summary.errorVouchers}
+                  <div className="text-center p-5 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-200 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-red-600">
+                      {healthReportQuery.data.summary.errorEntries}
                     </p>
-                    <p className="text-xs text-red-600">异常凭证</p>
+                    <p className="text-sm text-red-600 mt-1">异常分录</p>
                   </div>
-                  <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <p className="text-2xl font-bold text-amber-600">
+                  <div className="text-center p-5 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border border-amber-200">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-200 flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-amber-600">
                       {healthReportQuery.data.summary.errorRate}
                     </p>
-                    <p className="text-xs text-amber-600">异常率</p>
+                    <p className="text-sm text-amber-600 mt-1">异常率</p>
                   </div>
-                  <div className="text-center p-4 rounded-lg"
-                    style={{
-                      backgroundColor: healthReportQuery.data.summary.healthLevel === '优秀' ? '#dcfce7' : 
-                        healthReportQuery.data.summary.healthLevel === '良好' ? '#fef3c7' : '#fecaca'
-                    }}
-                  >
-                    <p className="text-2xl font-bold"
-                      style={{
-                        color: healthReportQuery.data.summary.healthLevel === '优秀' ? '#16a34a' : 
-                          healthReportQuery.data.summary.healthLevel === '良好' ? '#d97706' : '#dc2626'
-                      }}
-                    >
+                  <div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-200 flex items-center justify-center">
+                      <Activity className="w-6 h-6 text-green-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-green-600">
                       {healthReportQuery.data.summary.healthLevel}
                     </p>
-                    <p className="text-xs text-zinc-600">健康等级</p>
+                    <p className="text-sm text-green-600 mt-1">健康等级</p>
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-zinc-900 mb-3">
+                <div className="mb-8">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-purple-500" />
                     问题分类统计
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {Object.entries(healthReportQuery.data.errorCategories).map(
                       ([category, count]) => (
-                        <div key={category} className="flex items-center gap-3">
-                          <span className="text-xs text-zinc-600 w-24 truncate">
+                        <div key={category} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
+                          <span className="text-sm text-zinc-700 w-32 truncate font-medium">
                             {category}
                           </span>
-                          <div className="flex-1 h-2 bg-zinc-200 rounded-full overflow-hidden">
+                          <div className="flex-1 h-3 bg-zinc-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-blue-500 transition-all"
+                              className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
                               style={{
                                 width: `${(count / Math.max(...Object.values(healthReportQuery.data.errorCategories))) * 100}%`,
                               }}
                             />
                           </div>
-                          <span className="text-xs text-zinc-600 w-8 text-right">
+                          <span className="text-sm text-zinc-600 w-10 text-right font-medium">
                             {count}
                           </span>
                         </div>
@@ -445,20 +758,28 @@ export function ErrorCorrectionPanel() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-900 mb-3">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-amber-500" />
                     主要问题 TOP5
                   </h3>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {healthReportQuery.data.topIssues.map(([issue, count], index) => (
                       <li
                         key={index}
-                        className="flex items-center gap-2 text-sm text-zinc-700"
+                        className="flex items-center gap-4 p-4 bg-zinc-50 rounded-lg hover:bg-zinc-100 transition-colors"
                       >
-                        <span className="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center text-xs">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          index === 0 ? "bg-red-500 text-white" :
+                          index === 1 ? "bg-amber-500 text-white" :
+                          index === 2 ? "bg-yellow-500 text-white" :
+                          "bg-zinc-300 text-zinc-700"
+                        }`}>
                           {index + 1}
                         </span>
-                        <span className="flex-1">{issue}</span>
-                        <span className="text-zinc-500">{count} 次</span>
+                        <span className="flex-1 text-sm text-zinc-700 font-medium">{issue}</span>
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                          {count} 次
+                        </Badge>
                       </li>
                     ))}
                   </ul>
@@ -469,52 +790,66 @@ export function ErrorCorrectionPanel() {
         </div>
       )}
 
-      {/* 纠错建议弹窗 */}
+      {/* 纠错建议 */}
       {selectedVoucherId && suggestionsQuery.data && suggestionsQuery.data.length > 0 && (
-        <Card className="p-4 bg-amber-50 border-amber-200">
-          <h3 className="font-medium text-amber-900 mb-3">
-            凭证 #{selectedVoucherId} 的纠错建议
-          </h3>
-          <div className="space-y-2 mb-4">
-            {suggestionsQuery.data.map((suggestion, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-2 p-3 bg-white rounded-lg border"
-              >
-                <Badge className={getPriorityColor(suggestion.priority)}>
-                  {getPriorityName(suggestion.priority)}
-                </Badge>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-zinc-900">{suggestion.error}</p>
-                  <p className="text-xs text-zinc-600">{suggestion.action}</p>
+        <Dialog open={true} onOpenChange={() => setSelectedVoucherId(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
+                  <Lightbulb className="w-4 h-4 text-white" />
                 </div>
-                {suggestion.autoFixable && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      autoFixMutation.mutate(selectedVoucherId);
-                    }}
-                    disabled={autoFixMutation.status === 'pending'}
-                  >
-                    {autoFixMutation.status === 'pending' ? (
-                      <>
-                        <Spinner className="w-3 h-3 mr-1" />
-                        修复中
-                      </>
-                    ) : (
-                      "一键修复"
-                    )}
-                  </Button>
-                )}
+                凭证 #{selectedVoucherId} 的纠错建议
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {suggestionsQuery.data.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-100"
+                >
+                  <Badge className={`mt-0.5 ${getPriorityColor(suggestion.priority)}`}>
+                    {getPriorityName(suggestion.priority)}
+                  </Badge>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-900">{suggestion.error}</p>
+                    <p className="text-xs text-zinc-600 mt-1">{suggestion.action}</p>
+                  </div>
+                  {suggestion.autoFixable && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        autoFixMutation.mutate(selectedVoucherId);
+                      }}
+                      disabled={autoFixMutation.status === 'pending'}
+                      className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+                    >
+                      {autoFixMutation.status === 'pending' ? (
+                        <>
+                          <Spinner className="w-3 h-3 mr-1" />
+                          修复中
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-3 h-3 mr-1" />
+                          一键修复
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {autoFixMutation.isSuccess && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-700 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {autoFixMutation.data?.message}
+                </p>
               </div>
-            ))}
-          </div>
-          {autoFixMutation.isSuccess && (
-            <p className="text-sm text-green-700">
-              ✓ {autoFixMutation.data?.message}
-            </p>
-          )}
-        </Card>
+            )}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

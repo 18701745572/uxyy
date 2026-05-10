@@ -12,12 +12,20 @@ import {
   approvePurchaseOrder,
   cancelPurchaseOrder,
 } from "@/lib/api/purchase-orders";
+import { createSupplierPayment } from "@/lib/api/supplier-payments";
 import { fetchAllSuppliers } from "@/lib/api/suppliers";
 import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const selectCls =
   "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
@@ -345,6 +353,9 @@ export function PurchaseOrdersPanel() {
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
   const [editing, setEditing] = useState<PurchaseOrderResponseDto | null>(null);
   const [creating, setCreating] = useState(false);
+  const [payingOrder, setPayingOrder] = useState<PurchaseOrderResponseDto | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState<"cash" | "bank" | "alipay" | "wechat">("bank");
   const pageSize = 10;
 
   const qc = useQueryClient();
@@ -370,6 +381,36 @@ export function PurchaseOrdersPanel() {
     mutationFn: submitPurchaseOrder,
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["inventory", "purchase-orders"] }),
+  });
+
+  const payMutation = useMutation({
+    mutationFn: ({
+      orderId,
+      supplierId,
+      amount,
+      paymentMethod,
+      orderNo,
+    }: {
+      orderId: number;
+      supplierId: number;
+      amount: string;
+      paymentMethod: string;
+      orderNo: string;
+    }) =>
+      createSupplierPayment({
+        supplierId,
+        orderId,
+        amount,
+        paymentMethod: paymentMethod as "cash" | "bank" | "alipay" | "wechat",
+        paymentDate: new Date().toISOString().split("T")[0],
+        remark: `采购订单 ${orderNo} 付款`,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", "purchase-orders"] });
+      qc.invalidateQueries({ queryKey: ["inventory", "supplier-payments"] });
+      setPayingOrder(null);
+      setPayAmount("");
+    },
   });
 
   const approveMutation = useMutation({
@@ -411,7 +452,10 @@ export function PurchaseOrdersPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-zinc-900">采购订单</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建采购订单</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="purchase_orders" filename="purchase-orders" />
+          <Button onClick={() => setCreating(true)}>+ 新建采购订单</Button>
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -539,6 +583,18 @@ export function PurchaseOrdersPanel() {
                           取消
                         </Button>
                       )}
+                      {row.status === "approved" && (
+                        <Button
+                          variant="secondary"
+                          className="text-xs px-2.5 py-1 text-green-600 hover:text-green-700"
+                          onClick={() => {
+                            setPayingOrder(row);
+                            setPayAmount(row.totalAmount);
+                          }}
+                        >
+                          付款
+                        </Button>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -567,6 +623,93 @@ export function PurchaseOrdersPanel() {
           </>
         )}
       </Card>
+
+      <Dialog
+        open={!!payingOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPayingOrder(null);
+            setPayAmount("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              采购付款 · {payingOrder?.orderNo}
+            </DialogTitle>
+          </DialogHeader>
+          {payingOrder && (
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-zinc-600">
+                <p>
+                  供应商：{payingOrder.supplierName}
+                </p>
+                <p>
+                  订单金额：¥{payingOrder.totalAmount}
+                </p>
+              </div>
+
+              <Input
+                label="付款金额 *"
+                type="number"
+                step="0.01"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+              />
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-zinc-700">
+                  付款方式
+                </label>
+                <select
+                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                  value={payMethod}
+                  onChange={(e) =>
+                    setPayMethod(e.target.value as typeof payMethod)
+                  }
+                >
+                  <option value="bank">银行转账</option>
+                  <option value="cash">现金</option>
+                  <option value="alipay">支付宝</option>
+                  <option value="wechat">微信支付</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPayingOrder(null);
+                    setPayAmount("");
+                  }}
+                >
+                  取消
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!payAmount || parseFloat(payAmount) <= 0) return;
+                    payMutation.mutate({
+                      orderId: payingOrder.id,
+                      supplierId: payingOrder.supplierId,
+                      amount: payAmount,
+                      paymentMethod: payMethod,
+                      orderNo: payingOrder.orderNo,
+                    });
+                  }}
+                  disabled={
+                    payMutation.isPending ||
+                    !payAmount ||
+                    parseFloat(payAmount) <= 0
+                  }
+                >
+                  {payMutation.isPending ? "付款中..." : "确认付款"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

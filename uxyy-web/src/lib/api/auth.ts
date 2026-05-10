@@ -54,6 +54,18 @@ export async function fetchProfile(): Promise<ProfilePayload> {
   return apiFetch<ProfilePayload>("/auth/profile");
 }
 
+export interface AuthPermissionsDto {
+  roleRaw: string;
+  canonicalRole: string | null;
+  permissions: string[];
+  permissionCatalog?: string[];
+  validRoleCodes?: string[];
+}
+
+export async function fetchAuthPermissions(): Promise<AuthPermissionsDto> {
+  return apiFetch<AuthPermissionsDto>("/auth/permissions");
+}
+
 export interface SwitchEnterpriseResponse {
   access_token: string;
   refresh_token: string;

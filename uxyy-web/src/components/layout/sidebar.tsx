@@ -2,16 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/auth/auth-context";
-
-const navItems = [
-  { href: "/dashboard", label: "首页", icon: "🏠" },
-  { href: "/dashboard/crm", label: "客户管理", icon: "👥" },
-  { href: "/dashboard/inventory", label: "进销存", icon: "📦" },
-  { href: "/dashboard/finance", label: "财务", icon: "💰" },
-  { href: "/dashboard/oa", label: "OA 办公", icon: "📋" },
-  { href: "/dashboard/ai", label: "AI 智能", icon: "🤖" },
-];
+import { useAuthStore } from "@/stores/auth-store";
+import { visibleSidebarItems } from "@/lib/permissions/nav-access";
 
 const bottomItems = [
   { href: "/dashboard/profile", label: "用户资料", icon: "⚙️" },
@@ -24,7 +16,10 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const permissions = useAuthStore((s) => s.permissions);
+  const userDisplay = useAuthStore((s) => s.user?.sub);
+  const logout = useAuthStore((s) => s.logout);
+  const navItems = visibleSidebarItems(permissions);
 
   const nav = (
     <nav className="flex flex-col gap-1 px-3">
@@ -44,7 +39,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
             }`}
           >
-            <span aria-hidden className="text-base">{item.icon}</span>
+            <span aria-hidden className="text-base">
+              {item.icon}
+            </span>
             {item.label}
           </Link>
         );
@@ -52,28 +49,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     </nav>
   );
 
-  const footer = (
-    <div className="border-t border-zinc-200 px-4 py-3">
-      <Link
-        href="/dashboard/profile"
-        onClick={onClose}
-        className="text-sm font-medium text-zinc-900 truncate hover:text-zinc-700 transition-colors block"
-      >
-        {user?.sub ?? "未登录"}
-      </Link>
-      <button
-        type="button"
-        onClick={logout}
-        className="mt-1 text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
-      >
-        退出登录
-      </button>
-    </div>
-  );
-
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -81,7 +58,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col bg-white border-r border-zinc-200 transition-transform md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -110,14 +86,32 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                   }`}
                 >
-                  <span aria-hidden className="text-base">{item.icon}</span>
+                  <span aria-hidden className="text-base">
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               );
             })}
           </div>
         </div>
-        {footer}
+
+        <div className="border-t border-zinc-200 px-4 py-3">
+          <Link
+            href="/dashboard/profile"
+            onClick={onClose}
+            className="text-sm font-medium text-zinc-900 truncate hover:text-zinc-700 transition-colors block"
+          >
+            {userDisplay ?? "未登录"}
+          </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-1 text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+          >
+            退出登录
+          </button>
+        </div>
       </aside>
     </>
   );

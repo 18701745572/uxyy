@@ -1,6 +1,7 @@
 /**
  * PRD · 基础能力层：五种预设企业内角色 + 细粒度权限码。
- * 数据库存储可为历史别名（owner→boss, admin→oa），对外统一规范码见 {@link UxyyRole}。
+ * `user_enterprises.role` 仅存五种规范码（库 CHECK）；读侧仍可兼容 JWT/遗留 JSON 中的 owner/admin 别名，
+ * 见 {@link normalizeEnterpriseRole}。
  */
 
 export const UxyyRole = {
@@ -134,7 +135,32 @@ export const PRESET_ENTERPRISE_ROLES: ReadonlyArray<{
 export const KNOWN_ENTERPRISE_ROLE_CODES: readonly UxyyRoleCode[] =
   Object.values(UxyyRole);
 
-const KNOWN_ROLE_SET = new Set<string>(KNOWN_ENTERPRISE_ROLE_CODES);
+/** 后台「添加/调整成员」可分配的角色（不含 boss；企业主由注册或另行转让流程处理） */
+export const ASSIGNABLE_ENTERPRISE_MEMBER_ROLES: readonly Exclude<
+  UxyyRoleCode,
+  typeof UxyyRole.BOSS
+>[] = [
+  UxyyRole.FINANCE,
+  UxyyRole.SALES,
+  UxyyRole.WAREHOUSE,
+  UxyyRole.OA,
+];
+
+export const KNOWN_ROLE_SET = new Set<string>(KNOWN_ENTERPRISE_ROLE_CODES);
+
+/** 服务端写入数据库、审批步骤等：仅允许五种规范码，禁止 owner/admin。 */
+export function assertPersistEnterpriseRole(input: unknown): UxyyRoleCode {
+  if (typeof input !== 'string') {
+    throw new TypeError(`企业角色必须为字符串`);
+  }
+  const t = input.trim().toLowerCase();
+  if (!KNOWN_ROLE_SET.has(t)) {
+    throw new TypeError(
+      `无效的企业角色代码：${JSON.stringify(input)}，允许值为 ${KNOWN_ENTERPRISE_ROLE_CODES.join(', ')}`,
+    );
+  }
+  return t as UxyyRoleCode;
+}
 
 /**
  * 将 user_enterprises.role 规范为五种角色之一。
@@ -150,6 +176,19 @@ export function normalizeEnterpriseRole(
   if (r === 'admin') return UxyyRole.OA;
   if (KNOWN_ROLE_SET.has(r)) return r as UxyyRoleCode;
   return undefined;
+}
+
+/**
+ * 对外 API / JWT：`owner`/`admin` 归一为五种规范码；未知值 trim+lower 原样透出（不推荐持久化）。
+ */
+export function canonicalEnterpriseRoleForApi(
+  stored: string | undefined,
+): string | undefined {
+  if (stored == null || typeof stored !== 'string') return undefined;
+  const t = stored.trim();
+  if (t === '') return undefined;
+  const c = normalizeEnterpriseRole(t);
+  return c ?? t.toLowerCase();
 }
 
 export function getPermissionsForRole(role: string | undefined): string[] {

@@ -6,17 +6,26 @@ export interface ExportOptions {
   filters?: Record<string, string>;
 }
 
+const endpointMap: Record<ExportOptions["type"], string> = {
+  customers: "/export/customers",
+  products: "/export/products",
+  sales_orders: "/export/sales-orders",
+  purchase_orders: "/export/purchase-orders",
+  invoices: "/export/invoices",
+  vouchers: "/export/vouchers",
+};
+
 export async function exportData(options: ExportOptions): Promise<Blob> {
   const params = new URLSearchParams();
   params.set("format", options.format);
-  params.set("type", options.type);
   if (options.filters) {
     for (const [key, value] of Object.entries(options.filters)) {
       params.set(key, value);
     }
   }
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/common/export?${params.toString()}`, {
+  const endpoint = endpointMap[options.type];
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}?${params.toString()}`, {
     method: "GET",
     headers: {
       "Authorization": `Bearer ${localStorage.getItem("access_token")}`,

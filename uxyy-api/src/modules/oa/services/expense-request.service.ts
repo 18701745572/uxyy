@@ -24,10 +24,11 @@ export class ExpenseRequestService {
   ) {}
 
   async create(enterpriseId: number, userId: number, dto: CreateExpenseRequestDto) {
-    // 查找报销审批流程
-    const flow = await this.approvalFlowService.findFlowByType('reimbursement', enterpriseId);
+    const flow = await this.approvalFlowService.ensureActiveFlowOrDefault(
+      enterpriseId,
+      'reimbursement',
+    );
 
-    // 创建报销申请
     const [expense] = await this.db
       .insert(schema.expenseRequests)
       .values({
@@ -37,33 +38,27 @@ export class ExpenseRequestService {
         amount: dto.amount,
         description: dto.description,
         attachments: dto.attachments || [],
-        status: flow ? 'pending' : 'approved', // 无流程则自动通过
+        status: 'pending',
       })
       .returning();
 
     if (!expense) throw new NotFoundException('创建报销申请失败');
 
-    // 如果有审批流程，创建审批记录
-    if (flow) {
-      const record = await this.approvalFlowService.createApprovalRecord(
-        flow.id,
-        'expense',
-        expense.id,
-        `${dto.type}报销 - ¥${dto.amount}`,
-        userId,
-        dto.description
-      );
+    const record = await this.approvalFlowService.createApprovalRecord(
+      flow.id,
+      'expense',
+      expense.id,
+      `${dto.type}报销 - ¥${dto.amount}`,
+      userId,
+      dto.description,
+    );
 
-      // 更新报销记录的审批记录ID
-      await this.db
-        .update(schema.expenseRequests)
-        .set({ approvalRecordId: record.id })
-        .where(eq(schema.expenseRequests.id, expense.id));
+    await this.db
+      .update(schema.expenseRequests)
+      .set({ approvalRecordId: record.id })
+      .where(eq(schema.expenseRequests.id, expense.id));
 
-      return { ...expense, approvalRecordId: record.id };
-    }
-
-    return expense;
+    return { ...expense, approvalRecordId: record.id };
   }
 
   async findAll(enterpriseId: number, query: ExpenseRequestQueryDto) {

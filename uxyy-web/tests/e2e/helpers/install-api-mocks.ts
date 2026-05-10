@@ -10,11 +10,49 @@ function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
+/** 与 `uxyy-api` 中老板角色权限集合一致（mock 全量） */
+const BOSS_PERMISSION_MOCK = [
+  "crm:read",
+  "crm:write",
+  "crm:delete",
+  "inventory:read",
+  "inventory:write",
+  "inventory:stock",
+  "inventory:purchase",
+  "inventory:sales_order",
+  "finance:read",
+  "finance:write",
+  "finance:voucher",
+  "finance:report",
+  "oa:read",
+  "oa:approve",
+  "oa:manage",
+  "system:backup",
+  "system:member",
+  "system:audit_log",
+] as const;
+
+/** 与 `ROLE_PERMISSIONS.finance` 对齐 */
+const FINANCE_PERMISSION_MOCK = [
+  "finance:read",
+  "finance:write",
+  "finance:voucher",
+  "finance:report",
+  "crm:read",
+  "inventory:read",
+  "oa:read",
+] as const;
+
+export type ApiMockRolePreset = "boss" | "finance";
+
 /**
  * 拦截浏览器发往 `/api/v1/...`（Playwright glob `** /api/v1/**`）的请求，返回与前端最小兼容的 JSON，
  * 使登录后路由在无 Nest 的环境下仍可跑 UI 级 E2E（见 `fixture.ts`）。
  */
-export async function installApiMocks(page: Page): Promise<void> {
+export async function installApiMocks(
+  page: Page,
+  preset: ApiMockRolePreset = "boss",
+): Promise<void> {
   await page.route("**/api/v1/**", async (route: Route) => {
     const req = route.request();
     const url = req.url();
@@ -43,14 +81,64 @@ export async function installApiMocks(page: Page): Promise<void> {
           status: "active",
           createdAt: iso,
           enterprises: [
-            { id: 1, name: "Mock 企业", role: "boss", isDefault: true },
+            {
+              id: 1,
+              name: "Mock 企业",
+              role: preset === "finance" ? "finance" : "boss",
+              isDefault: true,
+            },
           ],
+        });
+      }
+      if (sub === "/auth/permissions" || sub.startsWith("/auth/permissions?")) {
+        const role = preset === "finance" ? "finance" : "boss";
+        const permissions =
+          preset === "finance"
+            ? [...FINANCE_PERMISSION_MOCK]
+            : [...BOSS_PERMISSION_MOCK];
+        return fulfillJson(route, {
+          roleRaw: role,
+          canonicalRole: role,
+          permissions,
+          permissionCatalog: [],
+          validRoleCodes: [],
+          presets: [],
         });
       }
       if (sub === "/auth/enterprises" || sub.startsWith("/auth/enterprises?")) {
         return fulfillJson(route, [
-          { id: 1, name: "Mock 企业", industry: "零售", role: "boss", isDefault: true },
+          {
+            id: 1,
+            name: "Mock 企业",
+            industry: "零售",
+            role: preset === "finance" ? "finance" : "boss",
+            isDefault: true,
+          },
         ]);
+      }
+      if (
+        sub.startsWith("/invitations/preview") ||
+        sub.startsWith("/invitations/preview?")
+      ) {
+        return fulfillJson(route, {
+          valid: true,
+          enterpriseName: "Mock 企业邀请",
+          inviteePhoneMasked: "138****8000",
+          presetRole: "finance",
+          expiresAt: iso,
+        });
+      }
+      if (
+        sub.startsWith("/oa/approval-flows/pending/list") ||
+        sub.startsWith("/oa/approval-flows/pending/list?")
+      ) {
+        return fulfillJson(route, []);
+      }
+      if (
+        sub === "/oa/attendance/make-up-requests/mine" ||
+        sub.startsWith("/oa/attendance/make-up-requests/mine?")
+      ) {
+        return fulfillJson(route, []);
       }
       if (sub.startsWith("/crm/customers")) {
         return fulfillJson(route, {
@@ -218,6 +306,18 @@ export async function installApiMocks(page: Page): Promise<void> {
       if (sub === "/ai/tasks" || sub.startsWith("/ai/tasks?")) {
         return fulfillJson(route, { items: [], total: 0, page: 1, pageSize: 20 });
       }
+      if (sub === "/enterprise/members" || sub.startsWith("/enterprise/members?")) {
+        return fulfillJson(route, [
+          {
+            userId: 1,
+            phone: "13800138000",
+            nickname: "E2E Mock",
+            role: preset === "finance" ? "finance" : "boss",
+            isDefault: true,
+            isOwner: preset !== "finance",
+          },
+        ]);
+      }
       /** 兜底：前端若新增 GET，至少拿到空数组而非 JSON 报错 */
       return fulfillJson(route, []);
     };
@@ -227,6 +327,24 @@ export async function installApiMocks(page: Page): Promise<void> {
 
     if (method === "GET") {
       return GET();
+    }
+    if (
+      method === "POST" &&
+      (sub === "/invitations/accept" || sub === "/auth/register-invite")
+    ) {
+      return fulfillJson(route, {
+        access_token: "e2e-mock-invite-at",
+        refresh_token: "e2e-mock-invite-rt",
+        token_type: "Bearer",
+        user: { id: 1, phone: "13800138000", nickname: "E2E Mock" },
+        enterprise: { id: 1 },
+      });
+    }
+    if (method === "POST" && sub === "/enterprise/members/invitations") {
+      return fulfillJson(route, {
+        joinRelativePath: `/join?t=${"e".repeat(40)}`,
+        expiresAt: iso,
+      });
     }
     if (method === "POST" && sub === "/finance/invoices/ocr") {
       return fulfillJson(route, {
@@ -269,6 +387,20 @@ export async function installApiMocks(page: Page): Promise<void> {
         createdBy: null,
         createdAt: iso,
       });
+    }
+    if (
+      preset === "finance" &&
+      method === "POST" &&
+      (sub === "/crm/customers" || sub.startsWith("/crm/customers?"))
+    ) {
+      return fulfillJson(
+        route,
+        {
+          statusCode: 403,
+          message: "缺少权限，需要其一: crm:write",
+        },
+        403,
+      );
     }
     if (method === "POST" && sub === "/ai/tasks") {
       return fulfillJson(route, {

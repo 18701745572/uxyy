@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, type StrategyOptions } from 'passport-jwt';
 import { resolveJwtAccessSecret } from '../jwt-access-secret';
+import { canonicalEnterpriseRoleForApi } from '../role-permissions';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -28,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       userId,
       enterpriseId: payload.enterpriseId,
-      role: payload.role,
+      role: canonicalEnterpriseRoleForApi(payload.role),
     } satisfies Express.UserPayload;
   }
 }

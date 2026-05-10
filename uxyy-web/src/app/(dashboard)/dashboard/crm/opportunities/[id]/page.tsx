@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const statusLabels: Record<OpportunityStatus, string> = {
   potential: "潜在",
@@ -70,6 +71,7 @@ const AI_SCRIPT_SCENES = [
 ] as const;
 
 export default function OpportunityDetailPage() {
+  const crm = useCrmCaps();
   const params = useParams();
   const router = useRouter();
   const rawId = params?.id;
@@ -193,7 +195,19 @@ export default function OpportunityDetailPage() {
         </CardContent>
       </Card>
 
-      <AiScriptSection customerId={opp.customerId} />
+      {crm.write ? (
+        <AiScriptSection customerId={opp.customerId} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">AI 话术推荐</CardTitle>
+            <CardDescription>
+              需要 <code className="text-xs bg-zinc-100 px-1 rounded">crm:write</code>{" "}
+              权限后方可生成跟进话术。
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
     </div>
   );
 }

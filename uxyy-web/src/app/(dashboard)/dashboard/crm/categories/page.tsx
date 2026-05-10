@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchCustomerCategories,
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const typeLabels: Record<CustomerCategoryType, string> = {
   status: "成交状态",
@@ -63,6 +64,7 @@ export default function CategoriesPage() {
 }
 
 function CategoriesPanel() {
+  const crm = useCrmCaps();
   const [editing, setEditing] = useState<CustomerCategoryResponseDto | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -97,26 +99,37 @@ function CategoriesPanel() {
     },
   });
 
+  useEffect(() => {
+    if (!crm.write) {
+      setCreating(false);
+      setEditing(null);
+    }
+  }, [crm.write]);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Dialog open={creating} onOpenChange={setCreating}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              新增分类
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>新增客户分类</DialogTitle>
-            </DialogHeader>
-            <CategoryForm
-              onSubmit={(data) => createM.mutate(data)}
-              isSubmitting={createM.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+        {crm.write ? (
+          <Dialog open={creating} onOpenChange={setCreating}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                新增分类
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>新增客户分类</DialogTitle>
+              </DialogHeader>
+              <CategoryForm
+                onSubmit={(data) => createM.mutate(data)}
+                isSubmitting={createM.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <p className="text-xs text-zinc-500">仅查看；需要 crm:write 管理分类</p>
+        )}
       </div>
 
       <div className="border rounded-lg">
@@ -166,24 +179,28 @@ function CategoriesPanel() {
                   <TableCell>{item.sortOrder}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditing(item)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("确定删除该分类吗？")) {
-                            deleteM.mutate(item.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {crm.write ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditing(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                      {crm.delete ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm("确定删除该分类吗？")) {
+                              deleteM.mutate(item.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -193,7 +210,12 @@ function CategoriesPanel() {
         </Table>
       </div>
 
-      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+      <Dialog
+        open={!!editing && crm.write}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>编辑客户分类</DialogTitle>

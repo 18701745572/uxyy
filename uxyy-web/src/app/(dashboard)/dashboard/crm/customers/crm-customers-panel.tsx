@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomerDto,
@@ -22,6 +22,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
+import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const CUSTOMER_TYPES = [
   { value: "enterprise", label: "企业客户" },
@@ -319,6 +321,7 @@ function CustomerForm({
 }
 
 export function CrmCustomersPanel() {
+  const crm = useCrmCaps();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<CustomerDto | null>(null);
   const [creating, setCreating] = useState(false);
@@ -342,9 +345,16 @@ export function CrmCustomersPanel() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm", "customers"] }),
   });
 
+  useEffect(() => {
+    if (!crm.write) {
+      setCreating(false);
+      setEditing(null);
+    }
+  }, [crm.write]);
+
   const totalPages = Math.max(1, Math.ceil((q.data?.total ?? 0) / pageSize));
 
-  if (creating) {
+  if (creating && crm.write) {
     return (
       <Card>
         <h2 className="font-medium text-zinc-900 mb-4">新建客户</h2>
@@ -353,7 +363,7 @@ export function CrmCustomersPanel() {
     );
   }
 
-  if (editing) {
+  if (editing && crm.write) {
     return (
       <Card>
         <h2 className="font-medium text-zinc-900 mb-4">
@@ -369,9 +379,18 @@ export function CrmCustomersPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <h1 className="text-lg font-semibold text-zinc-900">客户列表</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建客户</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="customers" filename="customers" />
+          {crm.write ? (
+            <Button onClick={() => setCreating(true)}>+ 新建客户</Button>
+          ) : (
+            <p className="text-xs text-zinc-500">
+              无 crm:write，仅可浏览列表
+            </p>
+          )}
+        </div>
       </div>
 
       <Card className="p-0 overflow-hidden">
@@ -447,25 +466,29 @@ export function CrmCustomersPanel() {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          className="text-xs px-2.5 py-1"
-                          onClick={() => setEditing(row)}
-                        >
-                          编辑
-                        </Button>
-                        <Button
-                          variant="danger"
-                          className="text-xs px-2.5 py-1"
-                          loading={deleteMutation.isPending}
-                          onClick={() => {
-                            if (window.confirm("确定删除该客户？")) {
-                              deleteMutation.mutate(row.id);
-                            }
-                          }}
-                        >
-                          删除
-                        </Button>
+                        {crm.write ? (
+                          <Button
+                            variant="secondary"
+                            className="text-xs px-2.5 py-1"
+                            onClick={() => setEditing(row)}
+                          >
+                            编辑
+                          </Button>
+                        ) : null}
+                        {crm.delete ? (
+                          <Button
+                            variant="danger"
+                            className="text-xs px-2.5 py-1"
+                            loading={deleteMutation.isPending}
+                            onClick={() => {
+                              if (window.confirm("确定删除该客户？")) {
+                                deleteMutation.mutate(row.id);
+                              }
+                            }}
+                          >
+                            删除
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   </li>

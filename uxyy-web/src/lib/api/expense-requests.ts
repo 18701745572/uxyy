@@ -52,3 +52,8 @@ export async function fetchExpenseRequest(
 ): Promise<ExpenseRequestRow> {
   return apiFetch<ExpenseRequestRow>(`/oa/expense-requests/${id}`);
 }
+
+/** 当前用户在本企业的报销记录（OA 首页统计用） */
+export async function fetchMyExpenseRequests(): Promise<ExpenseRequestRow[]> {
+  return apiFetch<ExpenseRequestRow[]>("/oa/expense-requests/my");
+}

@@ -1,56 +1,48 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { submitOcrTask, getOcrTask, type InvoiceOcrResult } from "@/lib/api/invoice-ocr";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { postInvoiceOcr } from "@/lib/api/invoices";
+import type { InvoiceItem, InvoiceOcrResult } from "@/lib/api/invoice-ocr";
+import {
+  INVOICE_OCR_PREFILL_STORAGE_KEY,
+  type StoredInvoiceOcrPrefillV1,
+} from "@/lib/invoice-ocr-prefill";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Input } from "@/components/ui/input";
 
 export function InvoiceOcrPanel() {
   const [imageUrl, setImageUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const queryClient = useQueryClient();
+  /** 用户在「编辑信息」里保存后的覆盖数据（校验 OCR 结果） */
+  const [ocrResult, setOcrResult] = useState<InvoiceOcrResult | null>(null);
+  const [savedEdits, setSavedEdits] = useState<InvoiceOcrResult | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<InvoiceOcrResult | null>(null);
+  const router = useRouter();
 
-  // 提交OCR任务
   const submitMutation = useMutation({
-    mutationFn: (url: string) => submitOcrTask(url),
+    mutationFn: (file: File) => postInvoiceOcr(file),
     onSuccess: (data) => {
-      setCurrentTaskId(data.id);
+      setOcrResult(data as unknown as InvoiceOcrResult);
       setShowResult(true);
     },
-  });
-
-  // 查询任务状态
-  const taskQuery = useQuery({
-    queryKey: ["ocr-task", currentTaskId],
-    queryFn: () => getOcrTask(currentTaskId!),
-    enabled: currentTaskId !== null,
-    refetchInterval: (data) => {
-      if (!data) return false;
-      const task = data as { status?: string };
-      return task.status === "pending" || task.status === "processing" ? 2000 : false;
+    onError: (error: Error) => {
+      toast.error(error.message || "识别失败，请重试");
     },
   });
 
-  // 监听任务完成
-  useEffect(() => {
-    if (taskQuery.data?.status === "completed") {
-      queryClient.cancelQueries({ queryKey: ["ocr-task"] });
-    }
-  }, [taskQuery.data?.status, queryClient]);
-
-  // 处理文件上传
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      // 模拟上传到服务器，这里直接使用base64
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -59,19 +51,56 @@ export function InvoiceOcrPanel() {
     }
   };
 
-  // 提交识别
   const handleSubmit = () => {
-    if (!imageUrl) return;
-    setUploading(true);
-    // 模拟上传到服务器后获取URL
-    setTimeout(() => {
-      // 使用mock URL或实际上传后的URL
-      submitMutation.mutate(imageUrl);
-      setUploading(false);
-    }, 500);
+    if (!selectedFile) return;
+    submitMutation.mutate(selectedFile);
   };
 
-  const ocrResult = taskQuery.data?.outputPayload as InvoiceOcrResult | null;
+  const mergedResult = savedEdits ?? ocrResult;
+  const viewResult: InvoiceOcrResult | null =
+    editing && draft ? draft : mergedResult;
+
+  const startEdit = () => {
+    const base = savedEdits ?? ocrResult;
+    if (!base) return;
+    setDraft(cloneInvoiceResult(base));
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    if (!draft) return;
+    setSavedEdits(draft);
+    setEditing(false);
+    setDraft(null);
+    toast.success("已保存修改");
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft(null);
+  };
+
+  const handleConfirmEntry = () => {
+    const data = savedEdits ?? ocrResult;
+    if (!data) {
+      toast.error("暂无识别结果");
+      return;
+    }
+    try {
+      const body: StoredInvoiceOcrPrefillV1 = {
+        v: 1,
+        payload: structuredClone(data),
+      };
+      sessionStorage.setItem(
+        INVOICE_OCR_PREFILL_STORAGE_KEY,
+        JSON.stringify(body),
+      );
+    } catch {
+      toast.error("无法写入预填数据，请确认未禁用浏览器存储");
+      return;
+    }
+    router.push("/dashboard/finance/invoices");
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,12 +171,12 @@ export function InvoiceOcrPanel() {
           <div className="mt-4 flex justify-center">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedFile || uploading || submitMutation.status === 'pending'}
+              disabled={!selectedFile || submitMutation.isPending}
             >
-              {uploading || submitMutation.status === 'pending' ? (
+              {submitMutation.isPending ? (
                 <>
                   <Spinner className="w-4 h-4 mr-2" />
-                  {uploading ? "上传中..." : "识别中..."}
+                  识别中...
                 </>
               ) : (
                 "开始识别"
@@ -156,168 +185,352 @@ export function InvoiceOcrPanel() {
           </div>
 
           <p className="mt-4 text-xs text-center text-zinc-500">
-            支持 JPG、PNG、PDF 格式，建议分辨率不低于 300dpi
+            支持 JPG、PNG 格式，建议分辨率不低于 300dpi，单个文件不超过 5MB
           </p>
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          <Button variant="secondary" onClick={() => setShowResult(false)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowResult(false);
+              setOcrResult(null);
+              setSavedEdits(null);
+              setEditing(false);
+              setDraft(null);
+            }}
+          >
             返回上传
           </Button>
 
-          {/* 识别状态 */}
+          {/* 识别结果 */}
           <Card className="p-4">
-            {taskQuery.isLoading && (
-              <div className="flex items-center justify-center gap-2">
-                <Spinner className="w-5 h-5" />
-                <span className="text-sm text-zinc-600">AI 正在识别中...</span>
-              </div>
+            {submitMutation.isError && (
+              <p className="text-sm text-red-700">
+                {(submitMutation.error as Error).message || "识别失败"}
+              </p>
             )}
 
-            {taskQuery.data?.status === "completed" && ocrResult && (
+            {mergedResult && viewResult && (
               <>
                 <div className="flex items-center gap-2 mb-4">
                   <Badge className="bg-green-100 text-green-700">识别完成</Badge>
-                  <span className="text-xs text-zinc-500">
-                    置信度：{(ocrResult.confidence * 100).toFixed(0)}%
-                  </span>
+                  {viewResult.confidence > 0 && (
+                    <span className="text-xs text-zinc-500">
+                      置信度：{(viewResult.confidence * 100).toFixed(0)}%
+                    </span>
+                  )}
+                  {savedEdits && !editing && (
+                    <span className="text-xs text-amber-700">（已人工校对）</span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 发票基本信息 */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-zinc-900">发票信息</h4>
-                    <InfoRow label="发票类型" value={ocrResult.invoiceType} />
-                    <InfoRow label="发票代码" value={ocrResult.invoiceCode} />
-                    <InfoRow label="发票号码" value={ocrResult.invoiceNumber} />
-                    <InfoRow label="开票日期" value={ocrResult.invoiceDate} />
-                  </div>
-
-                  {/* 购买方信息 */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-zinc-900">购买方</h4>
-                    <InfoRow label="名称" value={ocrResult.buyerName} />
-                    <InfoRow label="税号" value={ocrResult.buyerTaxId} />
-                    <InfoRow label="地址电话" value={ocrResult.buyerAddress} />
-                    <InfoRow label="开户行" value={ocrResult.buyerBank} />
-                  </div>
-
-                  {/* 销售方信息 */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-zinc-900">销售方</h4>
-                    <InfoRow label="名称" value={ocrResult.sellerName} />
-                    <InfoRow label="税号" value={ocrResult.sellerTaxId} />
-                    <InfoRow label="地址电话" value={ocrResult.sellerAddress} />
-                    <InfoRow label="开户行" value={ocrResult.sellerBank} />
-                  </div>
-
-                  {/* 金额信息 */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-zinc-900">金额信息</h4>
-                    <InfoRow label="不含税金额" value={`¥${ocrResult.amount.toFixed(2)}`} />
-                    <InfoRow label="税率" value={ocrResult.taxRate} />
-                    <InfoRow label="税额" value={`¥${ocrResult.taxAmount.toFixed(2)}`} />
-                    <InfoRow
-                      label="价税合计"
-                      value={`¥${ocrResult.totalAmount.toFixed(2)}`}
-                      highlight
+                {editing && draft ? (
+                  <>
+                    <OcrInvoiceEditForm
+                      value={draft}
+                      onPatch={(p) => setDraft((d: InvoiceOcrResult | null) => (d ? { ...d, ...p } : null))}
                     />
-                  </div>
-                </div>
+                    {draft.items.length > 0 && (
+                      <p className="mt-2 text-xs text-zinc-500">
+                        商品明细仍以识别结果为准；若需改明细请保存后到「发票管理」新建发票时核对。
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-zinc-900">发票信息</h4>
+                        <InfoRow label="发票类型" value={viewResult.invoiceType} />
+                        <InfoRow label="发票代码" value={viewResult.invoiceCode} />
+                        <InfoRow label="发票号码" value={viewResult.invoiceNumber} />
+                        <InfoRow label="开票日期" value={viewResult.invoiceDate} />
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-zinc-900">购买方</h4>
+                        <InfoRow label="名称" value={viewResult.buyerName} />
+                        <InfoRow label="税号" value={viewResult.buyerTaxId} />
+                        <InfoRow label="地址电话" value={viewResult.buyerAddress} />
+                        <InfoRow label="开户行" value={viewResult.buyerBank} />
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-zinc-900">销售方</h4>
+                        <InfoRow label="名称" value={viewResult.sellerName} />
+                        <InfoRow label="税号" value={viewResult.sellerTaxId} />
+                        <InfoRow label="地址电话" value={viewResult.sellerAddress} />
+                        <InfoRow label="开户行" value={viewResult.sellerBank} />
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-zinc-900">金额信息</h4>
+                        <InfoRow label="不含税金额" value={`¥${viewResult.amount.toFixed(2)}`} />
+                        <InfoRow label="税率" value={viewResult.taxRate} />
+                        <InfoRow label="税额" value={`¥${viewResult.taxAmount.toFixed(2)}`} />
+                        <InfoRow
+                          label="价税合计"
+                          value={`¥${viewResult.totalAmount.toFixed(2)}`}
+                          highlight
+                        />
+                      </div>
+                    </div>
 
-                {/* 商品明细 */}
-                {ocrResult.items && ocrResult.items.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium text-zinc-900 mb-3">商品明细</h4>
-                    <Card className="p-0 overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-zinc-50">
-                            <th className="px-4 py-2 text-left text-xs font-medium text-zinc-600">
-                              名称
-                            </th>
-                            <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
-                              数量
-                            </th>
-                            <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
-                              单价
-                            </th>
-                            <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
-                              金额
-                            </th>
-                            <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
-                              税率
-                            </th>
-                            <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
-                              税额
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100">
-                          {ocrResult.items.map((item, index) => (
-                            <tr key={index}>
-                              <td className="px-4 py-2 text-zinc-700">{item.name}</td>
-                              <td className="px-4 py-2 text-right text-zinc-600">
-                                {item.quantity}
-                              </td>
-                              <td className="px-4 py-2 text-right text-zinc-600">
-                                {item.price?.toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2 text-right text-zinc-600">
-                                {item.amount?.toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2 text-right text-zinc-600">
-                                {item.taxRate}
-                              </td>
-                              <td className="px-4 py-2 text-right text-zinc-600">
-                                {item.taxAmount?.toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </Card>
+                    {viewResult.items && viewResult.items.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-zinc-900 mb-3">商品明细</h4>
+                        <Card className="p-0 overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-zinc-50">
+                                <th className="px-4 py-2 text-left text-xs font-medium text-zinc-600">
+                                  名称
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                  数量
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                  单价
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                  金额
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                  税率
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                  税额
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {viewResult.items.map((item: InvoiceItem, index: number) => (
+                                <tr key={index}>
+                                  <td className="px-4 py-2 text-zinc-700">{item.name}</td>
+                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                    {item.quantity}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                    {item.price != null ? item.price.toFixed(2) : "—"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                    {item.amount != null ? item.amount.toFixed(2) : "—"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                    {item.taxRate}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                    {item.taxAmount != null ? item.taxAmount.toFixed(2) : "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </Card>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {!editing &&
+                  (viewResult.remarks ||
+                    viewResult.drawer ||
+                    viewResult.reviewer ||
+                    viewResult.payee) && (
+                    <div className="mt-4 space-y-2">
+                      <InfoRow label="备注" value={viewResult.remarks} />
+                      <InfoRow label="开票人" value={viewResult.drawer} />
+                      <InfoRow label="复核人" value={viewResult.reviewer} />
+                      <InfoRow label="收款人" value={viewResult.payee} />
+                    </div>
+                  )}
+
+                {editing && draft && (
+                  <div className="mt-4 space-y-3 rounded-md border border-zinc-200 p-3">
+                    <p className="text-xs font-medium text-zinc-700">其他信息</p>
+                    <Input
+                      label="备注"
+                      value={draft.remarks ?? ""}
+                      onChange={(e) =>
+                        setDraft((d: InvoiceOcrResult | null) =>
+                          d ? { ...d, remarks: e.target.value } : null,
+                        )
+                      }
+                    />
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <Input
+                        label="开票人"
+                        value={draft.drawer ?? ""}
+                        onChange={(e) =>
+                          setDraft((d: InvoiceOcrResult | null) =>
+                            d ? { ...d, drawer: e.target.value } : null,
+                          )
+                        }
+                      />
+                      <Input
+                        label="复核人"
+                        value={draft.reviewer ?? ""}
+                        onChange={(e) =>
+                          setDraft((d: InvoiceOcrResult | null) =>
+                            d ? { ...d, reviewer: e.target.value } : null,
+                          )
+                        }
+                      />
+                      <Input
+                        label="收款人"
+                        value={draft.payee ?? ""}
+                        onChange={(e) =>
+                          setDraft((d: InvoiceOcrResult | null) =>
+                            d ? { ...d, payee: e.target.value } : null,
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* 其他信息 */}
-                {(ocrResult.remarks || ocrResult.drawer || ocrResult.reviewer || ocrResult.payee) && (
-                  <div className="mt-4 space-y-2">
-                    <InfoRow label="备注" value={ocrResult.remarks} />
-                    <InfoRow label="开票人" value={ocrResult.drawer} />
-                    <InfoRow label="复核人" value={ocrResult.reviewer} />
-                    <InfoRow label="收款人" value={ocrResult.payee} />
-                  </div>
-                )}
-
-                <div className="mt-4 flex gap-2">
-                  <Button>确认入账</Button>
-                  <Button variant="secondary">编辑信息</Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!editing ? (
+                    <>
+                      <Button type="button" onClick={handleConfirmEntry}>
+                        确认入账
+                      </Button>
+                      <Button variant="secondary" type="button" onClick={startEdit}>
+                        编辑信息
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button type="button" onClick={saveEdit}>
+                        保存修改
+                      </Button>
+                      <Button variant="secondary" type="button" onClick={cancelEdit}>
+                        取消
+                      </Button>
+                    </>
+                  )}
                 </div>
               </>
-            )}
-
-            {taskQuery.data?.status === "failed" && (
-              <div className="text-center py-8">
-                <p className="text-sm text-red-700 mb-2">识别失败</p>
-                <p className="text-xs text-zinc-500">
-                  {taskQuery.data.errorMessage || "请重试或检查图片质量"}
-                </p>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowResult(false);
-                    setCurrentTaskId(null);
-                  }}
-                  className="mt-4"
-                >
-                  重新上传
-                </Button>
-              </div>
             )}
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+function cloneInvoiceResult(r: InvoiceOcrResult): InvoiceOcrResult {
+  return structuredClone(r);
+}
+
+function OcrInvoiceEditForm({
+  value,
+  onPatch,
+}: {
+  value: InvoiceOcrResult;
+  onPatch: (p: Partial<InvoiceOcrResult>) => void;
+}) {
+  const patchNum = (key: "amount" | "taxAmount" | "totalAmount", raw: string) => {
+    const v = parseFloat(raw.replace(/,/g, ""));
+    onPatch({ [key]: Number.isFinite(v) ? v : 0 } as Partial<InvoiceOcrResult>);
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-900">发票信息</h4>
+        <Input
+          label="发票类型"
+          value={value.invoiceType}
+          onChange={(e) => onPatch({ invoiceType: e.target.value })}
+        />
+        <Input
+          label="发票代码"
+          value={value.invoiceCode}
+          onChange={(e) => onPatch({ invoiceCode: e.target.value })}
+        />
+        <Input
+          label="发票号码"
+          value={value.invoiceNumber}
+          onChange={(e) => onPatch({ invoiceNumber: e.target.value })}
+        />
+        <Input
+          label="开票日期"
+          placeholder="YYYY-MM-DD"
+          value={value.invoiceDate}
+          onChange={(e) => onPatch({ invoiceDate: e.target.value })}
+        />
+      </div>
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-900">购买方</h4>
+        <Input
+          label="名称"
+          value={value.buyerName}
+          onChange={(e) => onPatch({ buyerName: e.target.value })}
+        />
+        <Input
+          label="税号"
+          value={value.buyerTaxId}
+          onChange={(e) => onPatch({ buyerTaxId: e.target.value })}
+        />
+        <Input
+          label="地址电话"
+          value={value.buyerAddress ?? ""}
+          onChange={(e) => onPatch({ buyerAddress: e.target.value })}
+        />
+        <Input
+          label="开户行"
+          value={value.buyerBank ?? ""}
+          onChange={(e) => onPatch({ buyerBank: e.target.value })}
+        />
+      </div>
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-900">销售方</h4>
+        <Input
+          label="名称"
+          value={value.sellerName}
+          onChange={(e) => onPatch({ sellerName: e.target.value })}
+        />
+        <Input
+          label="税号"
+          value={value.sellerTaxId}
+          onChange={(e) => onPatch({ sellerTaxId: e.target.value })}
+        />
+        <Input
+          label="地址电话"
+          value={value.sellerAddress ?? ""}
+          onChange={(e) => onPatch({ sellerAddress: e.target.value })}
+        />
+        <Input
+          label="开户行"
+          value={value.sellerBank ?? ""}
+          onChange={(e) => onPatch({ sellerBank: e.target.value })}
+        />
+      </div>
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-900">金额信息</h4>
+        <Input
+          label="不含税金额"
+          inputMode="decimal"
+          value={String(value.amount)}
+          onChange={(e) => patchNum("amount", e.target.value)}
+        />
+        <Input
+          label="税率"
+          value={value.taxRate ?? ""}
+          onChange={(e) => onPatch({ taxRate: e.target.value })}
+        />
+        <Input
+          label="税额"
+          inputMode="decimal"
+          value={String(value.taxAmount)}
+          onChange={(e) => patchNum("taxAmount", e.target.value)}
+        />
+        <Input
+          label="价税合计"
+          inputMode="decimal"
+          value={String(value.totalAmount)}
+          onChange={(e) => patchNum("totalAmount", e.target.value)}
+        />
+      </div>
     </div>
   );
 }

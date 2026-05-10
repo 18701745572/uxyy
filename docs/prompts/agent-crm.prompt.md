@@ -30,7 +30,7 @@
 
 - [ ] CRM REST API 完整、Swagger 可用。
 - [ ] `customers` 等本域 Drizzle schema + migration 可追溯。
-- [ ] `@uxyy/shared` 中与 CRM 请求/响应相关的 Zod 与运行时一致。
+- [ ] 写/删类路由已挂 **`PermissionsGuard`**，与 **`crm:read|write|delete`** 及 PRD **§9.7.1 / §15.2.1** 一致；缺权返回 **403**。
 - [ ] 多租户：`enterprise_id` 等约束在查询与写入中一致 enforced。
 
 ## 禁止事项

@@ -84,6 +84,8 @@ export class CrmController {
 
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: '未登录或未绑定企业上下文' })
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('customers')
   @ApiOperation({ summary: '客户分页列表（支持筛选与搜索）' })
   async listCustomers(
@@ -111,6 +113,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('customers')
   @ApiOperation({ summary: '创建客户（含重复检测，传 force=true 可跳过）' })
   async createCustomer(
@@ -121,9 +125,9 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
-  @Post('customers/import')
   @UseGuards(PermissionsGuard)
   @Permissions(Permission.CRM_WRITE)
+  @Post('customers/import')
   @ApiOperation({
     summary:
       'Excel/CSV 导入客户（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
@@ -158,6 +162,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('customers/:id')
   @ApiOperation({ summary: '客户详情' })
   async getCustomer(
@@ -168,6 +174,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Patch('customers/:id')
   @ApiOperation({ summary: '更新客户（部分字段）' })
   async patchCustomer(
@@ -179,6 +187,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('customers/:id')
   @ApiOperation({ summary: '删除客户（软删除，标记 isDeleted）' })
   async deleteCustomer(
@@ -191,6 +201,8 @@ export class CrmController {
   // ─── Follow-up records ──────────────────────────────────────────
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('customers/:id/follow-ups')
   @ApiOperation({ summary: '客户跟进记录分页列表' })
   async listFollowUps(
@@ -215,6 +227,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('customers/:id/follow-ups')
   @ApiOperation({ summary: '创建跟进记录' })
   async createFollowUp(
@@ -231,6 +245,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Patch('customers/:id/follow-ups/:fid')
   @ApiOperation({ summary: '更新跟进记录' })
   async patchFollowUp(
@@ -243,6 +259,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('customers/:id/follow-ups/:fid')
   @ApiOperation({ summary: '删除跟进记录' })
   async deleteFollowUp(
@@ -256,6 +274,8 @@ export class CrmController {
   // ─── Stats ──────────────────────────────────────────────────────
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('customers/:id/stats')
   @ApiOperation({ summary: '客户行为统计（跟进次数、最近跟进等）' })
   async getCustomerStats(
@@ -266,6 +286,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('stats')
   @ApiOperation({ summary: '企业客户概览统计（总数、本月新增、分布）' })
   async getOverviewStats(@Req() req: Express.Request) {
@@ -301,6 +323,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('opportunities')
   @ApiOperation({ summary: '创建商机' })
   async createOpportunity(
@@ -311,6 +335,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('opportunities/:id')
   @ApiOperation({ summary: '商机详情' })
   async getOpportunity(
@@ -321,6 +347,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Patch('opportunities/:id')
   @ApiOperation({ summary: '更新商机' })
   async patchOpportunity(
@@ -332,6 +360,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('opportunities/:id')
   @ApiOperation({ summary: '删除商机（软删除）' })
   async deleteOpportunity(
@@ -344,6 +374,8 @@ export class CrmController {
   // ─── Customer Categories ────────────────────────────────────────
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('categories')
   @ApiOperation({ summary: '客户分类列表' })
   async listCategories(
@@ -357,6 +389,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('categories')
   @ApiOperation({ summary: '创建客户分类' })
   async createCategory(
@@ -367,6 +401,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_READ)
   @Get('categories/:id')
   @ApiOperation({ summary: '客户分类详情' })
   async getCategory(
@@ -377,6 +413,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Patch('categories/:id')
   @ApiOperation({ summary: '更新客户分类' })
   async patchCategory(
@@ -388,6 +426,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_DELETE)
   @Delete('categories/:id')
   @ApiOperation({ summary: '删除客户分类' })
   async deleteCategory(
@@ -410,6 +450,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Post('customers/:id/categories/:categoryId')
   @ApiOperation({ summary: '将客户分配到分类' })
   async assignCustomerToCategory(
@@ -425,6 +467,8 @@ export class CrmController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
   @Delete('customers/:id/categories/:categoryId')
   @ApiOperation({ summary: '从分类中移除客户' })
   async removeCustomerFromCategory(

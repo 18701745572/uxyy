@@ -8,12 +8,14 @@ import {
   fetchCashFlow,
   fetchDashboard,
   fetchIncomeStatement,
-  formatReportError,
   type BalanceSheetData,
   type CashFlowData,
   type IncomeStatementData,
   type ReportLineItem,
 } from "@/lib/api/reports";
+import { ApiErrorCallout } from "@/components/ui/api-error-callout";
+import { DashboardOperationCharts } from "@/components/finance/dashboard-operation-charts";
+import { IncomeStatementStructureChart } from "@/components/finance/income-statement-structure-chart";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -114,6 +116,7 @@ function IncomeStatementView({ data }: { data: IncomeStatementData }) {
         会计期间：<strong>{data.period}</strong> · 营业收入取收入类科目的贷方；成本/费用区分见 PRD
         §2.5.5
       </p>
+      <IncomeStatementStructureChart data={data} />
       <LineItemsTable
         title="营业收入"
         items={data.revenue}
@@ -231,19 +234,27 @@ export function ReportsPanel() {
     { key: "ar-ap" as const, label: "应收应付" },
   ];
 
-  function renderLoadingOrError(q: {
-    isLoading: boolean;
-    isError: boolean;
-    error: unknown;
-  }): ReactNode {
+  function renderLoadingOrError(
+    q: {
+      isLoading: boolean;
+      isError: boolean;
+      error: unknown;
+      isFetching: boolean;
+      refetch: () => unknown;
+    },
+    title?: string,
+  ): ReactNode {
     if (q.isLoading) {
       return <p className="text-sm text-zinc-600">加载中…</p>;
     }
     if (q.isError) {
       return (
-        <pre className="whitespace-pre-wrap text-sm text-red-700">
-          {formatReportError(q.error)}
-        </pre>
+        <ApiErrorCallout
+          title={title ?? "加载失败"}
+          error={q.error}
+          onRetry={() => void q.refetch()}
+          retrying={q.isFetching}
+        />
       );
     }
     return null;
@@ -316,9 +327,11 @@ export function ReportsPanel() {
             {dashboardQuery.isLoading ? (
               <p className="text-sm text-zinc-600">加载中…</p>
             ) : dashboardQuery.isError ? (
-              <pre className="whitespace-pre-wrap text-sm text-red-700">
-                {formatReportError(dashboardQuery.error)}
-              </pre>
+              <ApiErrorCallout
+                error={dashboardQuery.error}
+                onRetry={() => void dashboardQuery.refetch()}
+                retrying={dashboardQuery.isFetching}
+              />
             ) : dashboardQuery.data ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -359,6 +372,9 @@ export function ReportsPanel() {
                     </p>
                   </div>
                 </div>
+
+                <DashboardOperationCharts data={dashboardQuery.data} />
+
                 {(dashboardQuery.data.lowStockProducts?.length ?? 0) > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-zinc-900 mb-2">
@@ -430,7 +446,7 @@ export function ReportsPanel() {
 
         {activeTab === "balance-sheet" && (
           <>
-            {renderLoadingOrError(balanceQuery)}
+            {renderLoadingOrError(balanceQuery, "资产负债表加载失败")}
             {balanceQuery.data ? (
               <BalanceSheetView data={balanceQuery.data} />
             ) : null}
@@ -439,7 +455,7 @@ export function ReportsPanel() {
 
         {activeTab === "income-statement" && (
           <>
-            {renderLoadingOrError(incomeQuery)}
+            {renderLoadingOrError(incomeQuery, "利润表加载失败")}
             {incomeQuery.data ? (
               <IncomeStatementView data={incomeQuery.data} />
             ) : null}
@@ -448,7 +464,7 @@ export function ReportsPanel() {
 
         {activeTab === "cash-flow" && (
           <>
-            {renderLoadingOrError(cashFlowQuery)}
+            {renderLoadingOrError(cashFlowQuery, "现金流量表加载失败")}
             {cashFlowQuery.data ? (
               <CashFlowView data={cashFlowQuery.data} />
             ) : null}
@@ -460,9 +476,12 @@ export function ReportsPanel() {
             {arApQuery.isLoading ? (
               <p className="text-sm text-zinc-600">加载中…</p>
             ) : arApQuery.isError ? (
-              <pre className="whitespace-pre-wrap text-sm text-red-700">
-                {formatReportError(arApQuery.error)}
-              </pre>
+              <ApiErrorCallout
+                error={arApQuery.error}
+                title="应收应付加载失败"
+                onRetry={() => void arApQuery.refetch()}
+                retrying={arApQuery.isFetching}
+              />
             ) : arApQuery.data ? (
               <div className="space-y-6">
                 <p className="text-xs text-zinc-500 rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">

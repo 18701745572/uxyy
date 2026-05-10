@@ -8,6 +8,8 @@ import { fetchExpenseRequest } from "@/lib/api/expense-requests";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DocumentApprovalActions } from "@/components/oa/document-approval-actions";
+import { OaDocumentDetailSkeleton } from "@/components/oa/oa-document-detail-skeleton";
 
 export default function ExpenseRequestDetailPage() {
   const params = useParams();
@@ -38,27 +40,36 @@ export default function ExpenseRequestDetailPage() {
         <h1 className="text-xl font-semibold text-zinc-900">报销详情 #{id}</h1>
       </div>
 
-      {q.isLoading && (
-        <p className="text-sm text-zinc-500">加载中…</p>
-      )}
+      {q.isLoading && <OaDocumentDetailSkeleton />}
       {q.isError && (
         <pre className="text-sm text-red-700 whitespace-pre-wrap">
           {q.error instanceof ApiError ? q.error.message : String(q.error)}
         </pre>
       )}
       {q.data && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-zinc-700">
-            <p>金额：<span className="font-semibold">¥{q.data.amount}</span></p>
-            <p>说明：{q.data.description ?? "—"}</p>
-            <p className="text-xs text-zinc-500 pt-2">
-              创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-zinc-700">
+              <p>金额：<span className="font-semibold">¥{q.data.amount}</span></p>
+              <p>说明：{q.data.description ?? "—"}</p>
+              <p className="text-xs text-zinc-500 pt-2">
+                创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}
+              </p>
+            </CardContent>
+          </Card>
+          <DocumentApprovalActions
+            approvalRecordId={q.data.approvalRecordId}
+            documentStatus={q.data.status}
+            invalidateQueryKeys={[
+              ["oa", "pending-approvals"],
+              ["oa", "expense-requests"],
+            ]}
+            detailQueryKey={["oa", "expense-requests", id]}
+          />
+        </>
       )}
     </div>
   );

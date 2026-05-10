@@ -7,7 +7,8 @@ export interface AttendanceRecord {
   checkIn?: string;
   checkOut?: string;
   status: 'normal' | 'late' | 'early_leave' | 'absent' | 'leave' | 'overtime';
-  workHours: number;
+  /** 后端 decimal；JSON 常为 string */
+  workHours: number | string;
   lateMinutes: number;
   earlyMinutes: number;
   location?: string;
@@ -21,7 +22,7 @@ export interface AttendanceStats {
   absentDays: number;
   leaveDays: number;
   overtimeDays: number;
-  totalWorkHours: number;
+  totalWorkHours: number | string;
   totalLateMinutes: number;
   totalEarlyMinutes: number;
 }
@@ -77,6 +78,11 @@ export interface MakeUpRequest {
   createdAt: string;
 }
 
+/** GET make-up-requests：含申请人展示名 */
+export interface MakeUpRequestListItem extends MakeUpRequest {
+  applicantName: string;
+}
+
 export async function checkIn(type: 'in' | 'out', location?: string): Promise<CheckInResponse> {
   return apiFetch<CheckInResponse>('/oa/attendance/check-in', {
     method: 'POST',
@@ -108,6 +114,22 @@ export async function requestMakeUp(date: string, type: 'in' | 'out', reason: st
     method: 'POST',
     body: JSON.stringify({ date, type, reason }),
   });
+}
+
+export async function fetchMakeUpRequests(
+  status?: 'pending' | 'approved' | 'rejected',
+): Promise<MakeUpRequestListItem[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const qs = params.toString();
+  return apiFetch<MakeUpRequestListItem[]>(
+    `/oa/attendance/make-up-requests${qs ? `?${qs}` : ''}`,
+  );
+}
+
+/** 当前用户在本企业的补卡申请（无需 OA 审批权限） */
+export async function fetchMyMakeUpRequests(): Promise<MakeUpRequestListItem[]> {
+  return apiFetch<MakeUpRequestListItem[]>("/oa/attendance/make-up-requests/mine");
 }
 
 export async function approveMakeUp(requestId: number, approved: boolean, remark?: string): Promise<MakeUpRequest> {

@@ -17,6 +17,8 @@ import type {
 } from '../dto/purchase-order.dto';
 import { addStock, writeInventoryLog } from './inventory-mutation';
 import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
+import { SupplierPaymentService } from './supplier-payment.service';
+import { PriceAnomalyService } from './price-anomaly.service';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -75,6 +77,8 @@ export class PurchaseOrdersService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
     private readonly autoAccountingService: AutoAccountingService,
+    private readonly supplierPaymentService: SupplierPaymentService,
+    private readonly priceAnomalyService: PriceAnomalyService,
   ) {}
 
   async findPage(params: {
@@ -180,6 +184,12 @@ export class PurchaseOrdersService {
       throw new BadRequestException('采购明细不能为空');
     }
 
+    const priceValidation = await this.priceAnomalyService.validatePurchaseOrder(
+      eid,
+      dto.supplierId,
+      dto.items,
+    );
+
     let totalAmount = 0;
     for (const item of dto.items) {
       totalAmount += item.quantity * item.unitPrice;
@@ -214,7 +224,11 @@ export class PurchaseOrdersService {
       .values(itemValues)
       .returning();
 
-    return mapOrderRow(order, insertedItems.map(mapItemRow));
+    const result = mapOrderRow(order, insertedItems.map(mapItemRow));
+    return {
+      ...result,
+      priceAnomalies: priceValidation.anomalies,
+    };
   }
 
   async findOne(id: number, enterpriseId: number | undefined) {
@@ -417,30 +431,39 @@ export class PurchaseOrdersService {
       }
 
       if (allFullyReceived) {
-        await tx
-          .update(schema.purchaseOrders)
-          .set({
-            status: 'completed',
-            completedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.purchaseOrders.id, id));
+        // 检查付款是否完成
+        const paymentStats = await this.supplierPaymentService.getOrderPaymentStats(id, enterpriseId);
+        if (paymentStats.isFullyPaid) {
+          await tx
+            .update(schema.purchaseOrders)
+            .set({
+              status: 'completed',
+              completedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.purchaseOrders.id, id));
+
+          // 自动记账：采购入库完成且付款完成时生成凭证
+          try {
+            const order = await this.findOne(id, enterpriseId);
+            await this.autoAccountingService.autoAccountPurchaseInbound(order, eid, userId);
+          } catch (err) {
+            console.error('采购入库自动记账失败:', err);
+          }
+        } else {
+          await tx
+            .update(schema.purchaseOrders)
+            .set({
+              status: 'approved',
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.purchaseOrders.id, id));
+        }
       } else {
         await tx
           .update(schema.purchaseOrders)
           .set({ updatedAt: new Date() })
           .where(eq(schema.purchaseOrders.id, id));
-      }
-
-      // 自动记账：采购单完成时生成凭证
-      if (allFullyReceived) {
-        try {
-          const order = await this.findOne(id, enterpriseId);
-          await this.autoAccountingService.autoAccountPurchaseOrder(order, eid, userId);
-        } catch (err) {
-          // 记账失败不影响业务流程，记录日志即可
-          console.error('采购单自动记账失败:', err);
-        }
       }
 
       return {

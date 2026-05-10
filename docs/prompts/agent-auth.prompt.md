@@ -12,6 +12,7 @@
 
 - Monorepo：`pnpm` + Turborepo；后端在 `uxyy-api`（包名 `@uxyy/api`），共享契约在 `uxyy-shared`（`@uxyy/shared`，Zod 等）。
 - 认证：**Passport JWT**、`JwtStrategy`、`AuthGuard`、`@nestjs/jwt`（Access/Refresh 等以指南与 PRD 为准）。
+- **权限码（MVP）**：五种企业角色映射为 **`crm:*`、`finance:*`、`inventory:*`、`oa:*`、`system:*`** 等字符串；**`GET /api/v1/auth/permissions`** 对外返回当前企业上下文下的 `permissions[]`（与 **`role-permissions.ts`** 中 `ROLE_PERMISSIONS` 一致）。业务模块在写路由时使用 **`PermissionsGuard` + `@Permissions(...)`**（OR 语义），缺权 **403**——见 PRD **§15.2.1**。
 - 数据库：**Drizzle** + migration；表结构变更走独立 PR / migration 分支，勿在业务 PR 里夹带无关表结构大改。
 - 契约：HTTP 变更需与 **Swagger DTO**、`@uxyy/shared` 中 Zod（若已建立）对齐（指南 §2.2、§6.4）。
 
@@ -30,7 +31,7 @@
 ## 交付物检查清单
 
 - [ ] 注册/登录/刷新令牌等 API 与错误语义清晰，Swagger 文档完整。
-- [ ] JWT、Guard、RBAC、企业切换等行为与 PRD 一致。
+- [ ] JWT、Guard、**`PermissionsGuard` 与 `@Permissions`**、**`/auth/permissions`**、企业切换等行为与 PRD **§15.2、§15.2.1** 一致。
 - [ ] 涉及共享表的 Drizzle schema 与 migration 可回溯、可评审。
 - [ ] `@uxyy/shared` 中与 auth 相关的契约（若有）与后端一致。
 - [ ] 不泄露密钥；环境变量文档说明齐备。

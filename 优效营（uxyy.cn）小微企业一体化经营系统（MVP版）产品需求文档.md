@@ -4,6 +4,17 @@
 
 ## 版本更新记录
 
+### v1.0.3（2026-05-09）
+
+**产品与实现对齐（权限与 OA 工作台）**
+
+- ✅ **细粒度权限码**：在五种预设企业角色基础上，服务端与前端统一使用形如 **`module:action`** 的权限字符串（CRM：`crm:read|write|delete`；OA：`oa:read|approve|manage`；财务 `finance:*`；进销存 `inventory:*`；系统 `system:*`）。权威映射见后端 **`role-permissions.ts`**（`/api/v1/auth/permissions` 返回的数组与其对齐）。
+- ✅ **权限裁决**：JWT 通过后，业务控制器对敏感路由叠加 **`PermissionsGuard`**；不满足时 **`403 Forbidden`**。**CRM 全套 REST**（含子域报价、会员、AI 话术/跟进等控制器）已与 `crm:*` 校验对齐；仅靠前端隐藏按钮不构成安全措施。
+- ✅ **前端工作台**：`/auth/permissions` 拉取后驱动侧栏、路由守卫与「无权访问」页；与 CRM/OA 等模块的写操作入口互锁。
+- ✅ **OA 首页语义**：区分 **「本人的申请进度」**（本人请假、报销、补卡 `mine` 类接口汇总）与 **「待您审批」**（具备 `oa:approve` 时展示：审批实例队列 + 待处理补卡数量，并链到待审批中心 / 补卡审批页）。审批相关 UI 是否可操作以 **`permissions` 含 `oa:approve`** 为准（与 JWT 角色别名 `owner`/`admin` 在 hydrate 前兜底一致）。
+
+**文档**：`docs/api-documentation.md` 增补权限查询说明；`docs/开发-五角色purge种子说明.md` 指向本版 §15.2.1 做联调验收。
+
 ### v1.0.1（2026-05-07）
 
 **新增功能**：
@@ -175,6 +186,8 @@
 
 * 预设 5 种角色（老板、财务、销售、仓管、行政），权限默认配置，支持自定义调整；
 
+* **细粒度权限码（MVP 已实现）**：上述角色在 `user_enterprises.role` 中仅存五种规范码；接口与菜单以 **`crm:*`、`finance:*`、`inventory:*`、`oa:*`、`system:*`** 等字符串判定（OR 语义由装饰器声明，老板角色视为拥有全部码）。登录后前端调用 **`GET /api/v1/auth/permissions`** 获取当前企业上下文下的权限列表并与 JWT 内嵌角色推导结果对齐；**后端写操作必须再次校验**，避免绕过。
+
 * 支持多门店 / 多部门数据隔离，员工仅能查看权限范围内的数据；
 
 * 操作日志自动记录（如登录、修改权限、删除数据），日志保存≥6 个月，可通过 [uxyy.cn](https://uxyy.cn) 后台导出审计。
@@ -214,6 +227,8 @@
 * 垂直行业扩展：零售行业支持 “会员等级、积分余额”，汽配行业支持 “车型适配”，餐饮供应链支持 “配送地址、收货时间窗”；
 
 * 客户分类管理：支持按 “成交状态、行业、区域” 筛选，快速定位目标客户，筛选结果支持导出至本地。
+
+* **权限与接口（CRM，已实现）**：CRM 域 REST（`/api/v1/crm/**` 及报价、会员、AI 话术/跟进等子路径）按 **`crm:read`**（列表、详情、统计、只读类 GET）、**`crm:write`**（创建/更新、分类挂靠、导入、报价与会员等写操作）、**`crm:delete`**（删除客户、商机、跟进、分类等）由 **`PermissionsGuard`** 校验；**财务**预设仅 **`crm:read`**（便于对账查看客户）；**销售**具备读/写/删；**仓管/行政**预设为 **`crm:read`**。完整矩阵见 **§15.2.1**。
 
 #### 2.3.2 商机跟进
 
@@ -444,6 +459,13 @@
 * 报销管理：支持上传报销凭证（OCR 识别金额），选择报销科目，自动关联审批流程，报销结果同步至财务模块；
 
 * 员工通讯录：支持员工信息录入、部门分类，支持手机号一键拨打、企业微信快速联系，通讯录数据同步至 [uxyy.cn](https://uxyy.cn) 组织架构模块。
+
+#### 2.6.4 工作台展示与审批语义（MVP 已实现）
+
+* **路径**：`/dashboard/oa`（OA 办公首页）。
+* **本人的申请进度**：数字与「最近动态」来自当前用户在本企业的 **请假 `…/leave-requests/my`、报销 `…/expense-requests/my`、补卡 `…/make-up-requests/mine`**；**不是**「您作为审批人尚未处理的件数」。
+* **待您审批**（仅当权限含 **`oa:approve`**，如老板、行政）：展示 **审批实例待办条数**（`GET /api/v1/oa/approval-flows/pending/list`）与 **待处理补卡条数**（`GET /api/v1/oa/attendance/make-up-requests?status=pending`），并提供进入 **待审批中心**、**补卡审批** 的入口。
+* **与 PRD 旧表述的对齐**：历史上若将「待审批」统计误解为审批人队列，以本条为准；审批人视角以 **待审批中心** 与本节「待您审批」卡为准。
 
 ### 2.7 优效营・AI 智能层
 
@@ -1064,7 +1086,7 @@ export const userEnterprises = pgTable('user_enterprises', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id).notNull(),
   enterpriseId: integer('enterprise_id').references(() => enterprises.id).notNull(),
-  role: varchar('role', { length: 20 }).notNull(), // boss, finance, sales, warehouse, admin
+  role: varchar('role', { length: 20 }).notNull(), // boss, finance, sales, warehouse, oa （库表 CHECK 仅存此五种规范码）
   isDefault: boolean('is_default').default(false),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 });
@@ -1302,7 +1324,7 @@ CREATE INDEX idx_vouchers_source ON voucher_entries(source_type, source_id);
 | 模块 | 接口数量 | 核心功能 |
 |------|---------|---------|
 | 认证授权 | 5个 | 登录、注册、Token刷新、登出、权限查询 |
-| 企业管理 | 4个 | 创建企业、查询企业、更新企业、成员管理 |
+| 企业管理 | 4个 | 创建企业（含注册链路）、查询/更新企业及 **成员全生命周期**：列表、入会、变更角色、移出——见 **§9.26**。 |
 | 客户管理 | 5个 | CRUD + 导入导出 |
 | 商品管理 | 6个 | CRUD + 分类管理 + 库存查询 |
 | 销售订单 | 6个 | 创建、查询、审批、出库、作废 |
@@ -1404,6 +1426,54 @@ Authorization: Bearer <refresh_token>
   }
 }
 ```
+
+### 9.26 企业与成员生命周期（企业管理 · 成员管理闭环）
+
+本小节将 §9.1 中的「企业管理 / **成员管理**」从产品与接口两层落实为可追溯规格，与 **五种企业内预设角色规范码、`user_enterprises` 库表 CHECK、`enterprises.owner_id`（企业主用户 id）** 一致。
+
+#### 业务原则
+
+| 条目 | 说明 |
+|------|------|
+| 谁可操作 | **`boss`（老板）与 `oa`（行政）**：对应权限点为 **`system:member`**（`SYS_MEMBER`），由后端在进入接口前校验。 |
+| MVP 入会方式 | **两种方式统一为邀请模型**：① **直接入库**：管理员输入手机号并选角色，后端将**已注册用户**写入 **`user_enterprises`**（`POST /enterprise/members`）。② **生成邀请链接**：写入 **`enterprise_invitations`** 并下发 `/join?t=…`（`POST /enterprise/members/invitations`）；受邀手机号为唯一绑定；未注册用户经 **`POST /auth/register-invite`** 受限注册并入会（不经客户端自定手机号）；已注册用户登录后经 **`POST /invitations/accept`** 入会。邀请令牌仅存 **哈希**，默认可配置有效期。**不提供**独立于邀请的随机开户入企。 |
+| 不可指派角色 | **`boss`** 仅通过与注册链路绑定的 **`enterprises.owner_id`** 语义体现；成员管理不支持将普通成员设为 `boss`。**企业主变更 / 转让** 不在本节范围内。 |
+| 席位 | 受 **`enterprises.max_users`**（含企业主在内）约束；超员返回业务错误提示。 |
+| 审计 | 「成员加入 / 角色变更 / 移出」属敏感治理操作，记入操作审计日志（对齐 §15.3「权限变更」范围）。 |
+
+#### 与 OA 通讯录的边界
+
+* **本节 API**：写入 **`user_enterprises`**，决定某人是否属于本企业及 **租户内预设角色**。  
+* **员工通讯录**：在 **已是成员** 的前提下写入 **`employee_profiles`** 扩展信息；不能替代本节「加成员」。  
+**推荐**：先入会（本节）再在通讯录补全档案字段。
+
+#### 接口清单（基线路径前缀 `/api/v1`，JWT Bearer，租户取自 Access Token）
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| `GET` | `/enterprise/members` | `system:member` | 列出当前企业成员（含是否为 `owner_id` 对应用户之标记）。 |
+| `POST` | `/enterprise/members` | `system:member` | 请求体：`{ "phone","role" }`。`role` ∈ `finance` \| `sales` \| `warehouse` \| `oa`。手机号须已在平台注册。 |
+| `PATCH` | `/enterprise/members/:userId` | `system:member` | 在四种子角色之间调整；不可变更企业主。 |
+| `DELETE` | `/enterprise/members/:userId` | `system:member` | 移出企业与成员关系；不可移除企业主。 |
+| `POST` | `/enterprise/members/invitations` | `system:member` | 请求体：`{ "phone","role" }`。创建邀请；响应含 `joinRelativePath`（如 `/join?t=…`）、`expiresAt`。 |
+| `GET` | `/invitations/preview?t=` | 公开 | 邀请预览（脱敏；无效请求统一弱化返回）。 |
+| `POST` | `/invitations/accept` | JWT | Body：`invitationToken`；JWT 所载用户手机号须与邀请一致。 |
+| `POST` | `/auth/register-invite` | 公开 | Body：`invitationToken`、`password`、可选 `nickname`。 |
+
+#### 前端入口
+
+「用户资料 → **企业成员**」路由；仅在当前 JWT 满足 **`system:member`**（即老板或行政等有该权限预设的角色）时可进入管理表单。**受邀人**可通过管理员下发的 **`/join?t=…`** 完成预览与注册/接受邀请（站点须部署对应页面）。
+
+#### MVP 已实现与暂未实现（避免与后续需求混淆）
+
+| 状态 | 能力 |
+|------|------|
+| **已实现（代码对齐）** | 成员列表、`POST`/`PATCH`/`DELETE /enterprise/members`；仅 **已注册**手机号可走直接入库路径；统一邀请表 **`enterprise_invitations`**：`POST /enterprise/members/invitations`、`GET /invitations/preview`、`POST /invitations/accept`、`POST /auth/register-invite`；**不得**变更或移除 **`enterprises.owner_id` 所指企业主**；入会（含受邀注册/接受）受 **`max_users`** 约束。前端：**用户资料 → 企业成员管理**（`/dashboard/profile/enterprise-members`）与 **`/join`**（邀请落地页）。 |
+| **暂未实现（未立项代码）** | **企业主转让**（迁移 `owner_id`、继任者 `user_enterprises.role`/`boss` 规则、多端确认与安全审计全流程）。 |
+
+> 「企业主转让」保留为演进方向；需在 PRD / 版本中单独开立需求与里程碑后再开发。
+
+---
 
 ### 9.3 销售订单接口
 
@@ -1708,6 +1778,16 @@ GET /api/v1/reports/dashboard?period=month&date=2024-01
 | GET /api/v1/inventory | ✅ | ✅ | ✅ | ✅ | ❌ |
 | PUT /api/v1/inventory/adjust | ✅ | ❌ | ❌ | ✅ | ❌ |
 
+#### 9.7.1 CRM（`/api/v1/crm` 及子控制器，已实现 `PermissionsGuard`）
+
+| 能力 | 老板 | 财务 | 销售 | 仓管 | 行政 |
+|------|------|------|------|------|------|
+| 读类（客户/商机/跟进/分类/统计等 **GET**） | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 写类（**POST/PATCH**、导入、分类挂靠、报价/会员等） | ✅ | ❌ | ✅ | ❌ | ❌ |
+| 删类（**DELETE**） | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+> 上表与预设角色默认权限一致；若企业为成员自定义了权限集，以实际 `GET /auth/permissions` 为准。
+
 ### 9.8 OA 模块接口
 
 #### 9.8.1 审批流程管理
@@ -1935,17 +2015,15 @@ GET /api/v1/expenses?page=1&pageSize=20&status=pending
 }
 ```
 
-### 9.9 OA 接口权限矩阵
+### 9.9 OA 接口权限矩阵（与实现路径对齐）
 
-| 接口 | 老板 | 财务 | 销售 | 仓管 | 行政 |
+> **说明**：以下路径以当前 Nest 实现的前缀 **`/api/v1/oa/...`** 为准；§9.8 中历史占位路径（如 `/approvals`）若与 OpenAPI 不一致，以 **`/docs` Swagger** 为准。审批动作使用 **`POST /api/v1/oa/approval-flows/records/{id}/action`**（`approve`/`reject`）。
+
+| 能力 | 老板 | 财务 | 销售 | 仓管 | 行政 |
 |------|------|------|------|------|------|
-| POST /api/v1/approval-flows | ✅ | ❌ | ❌ | ❌ | ✅ |
-| POST /api/v1/approvals | ✅ | ✅ | ✅ | ✅ | ✅ |
-| PUT /api/v1/approvals/{id}/action | ✅ | ✅ | ✅ | ✅ | ✅ |
-| POST /api/v1/leaves | ✅ | ✅ | ✅ | ✅ | ✅ |
-| GET /api/v1/leaves | ✅ | ✅ | ✅ | ✅ | ✅ |
-| POST /api/v1/expenses | ✅ | ✅ | ✅ | ✅ | ✅ |
-| GET /api/v1/expenses | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 配置审批流、员工通讯录维护等（需 **`oa:manage`**） | ✅ | ❌ | ❌ | ❌ | ✅ |
+| 查看 / 提交请假、报销、打卡与补卡申请（**`oa:read`** 等） | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 处理审批实例、补卡审批（需 **`oa:approve`**） | ✅ | ❌ | ❌ | ❌ | ✅ |
 
 ## 十、关键业务流程图
 
@@ -3508,13 +3586,37 @@ API_BASE_URL=https://api.uxyy.cn
 
 ### 15.2 RBAC 权限矩阵
 
+> **表 1（业务域粗粒度，用于产品沟通）**：“客户管理”在实现上已拆为 **`crm:read` / `crm:write` / `crm:delete`**，见 **表 2**。
+
 | 角色 | 客户管理 | 销售订单 | 采购订单 | 库存 | 财务 | 报表 | 系统设置 |
 |------|---------|---------|---------|------|------|------|---------|
-| **企业主** | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 |
-| **财务** | 查看 | 查看 | 查看 | 查看 | 全部权限 | 全部权限 | 无 |
-| **销售** | 全部权限 | 全部权限 | 无 | 查看 | 无 | 查看个人 | 无 |
-| **仓管** | 无 | 无 | 入库确认 | 全部权限 | 无 | 无 | 无 |
-| **行政** | 无 | 无 | 无 | 无 | 无 | 无 | 审批流程配置 |
+| **企业主（boss）** | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 | 全部权限 |
+| **财务（finance）** | 仅查看※ | 查看 | 查看 | 查看 | 全部权限 | 全部权限 | 无 |
+| **销售（sales）** | 全部权限 | 全部权限 | 无 | 查看 | 无 | 查看个人 | 无 |
+| **仓管（warehouse）** | 仅查看※ | 无 | 入库确认 | 全部权限 | 无 | 无 | 无 |
+| **行政（oa）** | 仅查看※ | 无 | 无 | 查看※ | 无 | 无 | OA 与成员治理※ |
+
+※**仅查看**客户/库存：对应权限码 **`crm:read`** / **`inventory:read`**，**不可**改删客户或写报价等（无 `crm:write`）。**行政**另具 **`oa:approve`（审批）**、**`oa:manage`（流程与通讯录）**、**`system:member`**、**`system:backup`**、**`system:audit_log`** 等，见表 2。
+
+#### 15.2.1 预设角色 → 权限码（MVP 实现，与代码一致）
+
+以下与后端 **`ROLE_PERMISSIONS`**（`uxyy-api/src/modules/auth/role-permissions.ts`）一致，前端 **`GET /api/v1/auth/permissions`** 返回的 `permissions` 数组与其对齐（老板为全集，不逐条列举）。
+
+| 权限码 | 含义（摘要） |
+|--------|----------------|
+| `crm:read` / `crm:write` / `crm:delete` | 客户及 CRM 子能力读、写、删 |
+| `inventory:read` / `inventory:write` / `inventory:stock` / `inventory:purchase` / `inventory:sales_order` | 进销存读与各类操作权 |
+| `finance:read` / `finance:write` / `finance:voucher` / `finance:report` | 财务读、写、凭证、报表 |
+| `oa:read` / `oa:approve` / `oa:manage` | OA 读、审批、流程与通讯录管理 |
+| `system:backup` / `system:member` / `system:audit_log` | 备份、企业成员、审计日志 |
+
+| 角色 | 权限码集合（摘要） |
+|------|---------------------|
+| **boss** | 上表全部 |
+| **finance** | `finance:read`、`finance:write`、`finance:voucher`、`finance:report`、`crm:read`、`inventory:read`、`oa:read` |
+| **sales** | `crm:read`、`crm:write`、`crm:delete`、`inventory:read`、`inventory:sales_order`、`oa:read` |
+| **warehouse** | `inventory:read`、`inventory:write`、`inventory:stock`、`inventory:purchase`、`crm:read`、`oa:read` |
+| **oa** | `oa:read`、`oa:approve`、`oa:manage`、`system:backup`、`system:member`、`system:audit_log`、`crm:read`、`inventory:read` |
 
 ### 15.3 审计日志规范
 

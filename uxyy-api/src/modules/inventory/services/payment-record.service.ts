@@ -9,6 +9,7 @@ import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
+import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
 
 function requireEnterpriseId(enterpriseId: number | undefined): number {
   if (enterpriseId == null || Number.isNaN(enterpriseId)) {
@@ -37,7 +38,10 @@ export interface UpdatePaymentRecordDto {
 
 @Injectable()
 export class PaymentRecordService {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
+  constructor(
+    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
+    private readonly autoAccountingService: AutoAccountingService,
+  ) {}
 
   async findPage(params: {
     enterpriseId?: number;
@@ -228,7 +232,20 @@ export class PaymentRecordService {
       })
       .returning();
 
-    return this.findOne(record.id, enterpriseId);
+    const result = await this.findOne(record.id, enterpriseId);
+
+    // 自动生成收款凭证：借 银行存款 / 贷 应收账款
+    try {
+      await this.autoAccountingService.autoAccountPaymentReceived(
+        { ...result, customerName: customer.name },
+        eid,
+        userId,
+      );
+    } catch (err) {
+      console.error('回款自动记账失败:', err);
+    }
+
+    return result;
   }
 
   async update(

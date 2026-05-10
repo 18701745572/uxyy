@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
@@ -15,10 +16,11 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
+import { ApprovalFlowService } from '../oa/services/approval-flow.service';
 import { resolveJwtRefreshSecret } from './jwt-access-secret';
 import {
-  isBossRole,
-  normalizeEnterpriseRole,
+  assertPersistEnterpriseRole,
+  canonicalEnterpriseRoleForApi,
   UxyyRole,
 } from './role-permissions';
 
@@ -49,6 +51,8 @@ export class AuthService {
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @Inject(forwardRef(() => ApprovalFlowService))
+    private readonly approvalFlows: ApprovalFlowService,
   ) {}
 
   // ========== 登录 ==========
@@ -89,7 +93,7 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(user.id),
       enterpriseId,
-      role: membership?.role,
+      role: canonicalEnterpriseRoleForApi(membership?.role),
     });
 
     const refreshSecret = resolveJwtRefreshSecret(this.config);
@@ -155,7 +159,7 @@ export class AuthService {
       await this.db.insert(schema.userEnterprises).values({
         userId: user.id,
         enterpriseId: enterprise.id,
-        role: UxyyRole.BOSS,
+        role: assertPersistEnterpriseRole(UxyyRole.BOSS),
         isDefault: true,
       });
     }
@@ -227,7 +231,7 @@ export class AuthService {
       const accessToken = await this.jwt.signAsync({
         sub: String(user.id),
         enterpriseId,
-        role: membership?.role,
+        role: canonicalEnterpriseRoleForApi(membership?.role),
       });
 
       const expiresInRaw =
@@ -301,7 +305,7 @@ export class AuthService {
       id: r.id,
       name: r.name,
       industry: r.industry ?? null,
-      role: r.role,
+      role: canonicalEnterpriseRoleForApi(r.role) ?? '',
       isDefault: Boolean(r.isDefault),
     }));
   }
@@ -371,7 +375,7 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: String(userId),
       enterpriseId,
-      role: membership.role,
+      role: canonicalEnterpriseRoleForApi(membership.role),
     });
 
     const secret = resolveJwtRefreshSecret(this.config);
@@ -399,13 +403,27 @@ export class AuthService {
     },
     enterpriseId: number,
   ) {
+    let stepsValidated: typeof dto.steps;
+    try {
+      stepsValidated = dto.steps.map((s) => ({
+        step: s.step,
+        role: assertPersistEnterpriseRole(s.role),
+        condition: s.condition,
+      }));
+    } catch (err) {
+      if (err instanceof TypeError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+
     const [flow] = await this.db
       .insert(schema.approvalFlows)
       .values({
         enterpriseId,
         name: dto.name,
         type: dto.type as typeof schema.approvalFlows.$inferSelect.type,
-        steps: dto.steps,
+        steps: stepsValidated,
         status: 'active',
       })
       .returning();
@@ -640,107 +658,11 @@ export class AuthService {
     userRole: string,
     dto: { action: string; comment?: string },
   ) {
-    const [record] = await this.db
-      .select()
-      .from(schema.approvalRecords)
-      .where(eq(schema.approvalRecords.id, approvalId))
-      .limit(1);
-
-    if (!record) throw new NotFoundException('审批单不存在');
-    if (record.status !== 'pending') {
-      throw new BadRequestException('审批单状态不允许操作');
-    }
-
-    const [flow] = await this.db
-      .select()
-      .from(schema.approvalFlows)
-      .where(eq(schema.approvalFlows.id, record.flowId))
-      .limit(1);
-
-    if (!flow || flow.status !== 'active') {
-      throw new NotFoundException('审批流程不存在或已停用');
-    }
-
-    const steps = flow.steps as { step: number; role: string }[];
-    const currentStepDef = steps.find((s) => s.step === record.currentStep);
-    if (!currentStepDef) {
-      throw new BadRequestException('审批流程步骤异常');
-    }
-
-    const userCanonical = normalizeEnterpriseRole(userRole);
-    const stepCanonical = normalizeEnterpriseRole(currentStepDef.role);
-    const stepMatches =
-      userCanonical != null &&
-      stepCanonical != null &&
-      userCanonical === stepCanonical;
-    const bossOverride = isBossRole(userRole);
-    if (!stepMatches && !bossOverride) {
-      throw new ForbiddenException(
-        '当前审批步骤需要角色: ' + currentStepDef.role,
-      );
-    }
-
-    if (dto.action === 'approve') {
-      const nextStep = steps.find((s) => s.step === record.currentStep + 1);
-      const newStatus = nextStep ? 'pending' : 'approved';
-
-      await this.db
-        .update(schema.approvalRecords)
-        .set({
-          status: newStatus,
-          currentStep: nextStep ? nextStep.step : record.currentStep,
-          approvedBy: userId,
-          comment: dto.comment ?? null,
-          approvedAt: new Date(),
-        })
-        .where(eq(schema.approvalRecords.id, approvalId));
-
-      return {
-        approvalId,
-        status: newStatus,
-        approvedBy: userId,
-        approvedAt: new Date().toISOString(),
-        nextStep: nextStep?.step ?? null,
-      };
-    }
-
-    if (dto.action === 'reject') {
-      await this.db
-        .update(schema.approvalRecords)
-        .set({
-          status: 'rejected',
-          approvedBy: userId,
-          comment: dto.comment ?? null,
-          approvedAt: new Date(),
-        })
-        .where(eq(schema.approvalRecords.id, approvalId));
-
-      return {
-        approvalId,
-        status: 'rejected',
-        approvedBy: userId,
-        approvedAt: new Date().toISOString(),
-        nextStep: null,
-      };
-    }
-
-    // cancel
-    await this.db
-      .update(schema.approvalRecords)
-      .set({
-        status: 'cancelled',
-        approvedBy: userId,
-        comment: dto.comment ?? null,
-        approvedAt: new Date(),
-      })
-      .where(eq(schema.approvalRecords.id, approvalId));
-
-    return {
+    return this.approvalFlows.processLegacyAuthAction(
       approvalId,
-      status: 'cancelled',
-      approvedBy: userId,
-      approvedAt: new Date().toISOString(),
-      nextStep: null,
-    };
+      userId,
+      userRole,
+      dto,
+    );
   }
 }

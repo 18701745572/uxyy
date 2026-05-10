@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   CreateInvoiceDto,
@@ -32,6 +32,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { toastSaved } from "@/lib/ui/toast-feedback";
+import {
+  INVOICE_OCR_PREFILL_STORAGE_KEY,
+  webOcrResultToInvoiceFormData,
+  type StoredInvoiceOcrPrefillV1,
+} from "@/lib/invoice-ocr-prefill";
+import {
+  normalizeOptionalInvoiceDecimalField,
+  normalizeRequiredInvoiceDecimalField,
+} from "@/lib/invoice-create-field-normalize";
 
 const statusMap: Record<InvoiceStatus, string> = {
   unverified: "未核验",
@@ -85,14 +95,16 @@ function invoiceFormToWriteDto(form: InvoiceFormData): CreateInvoiceDto {
       ? { invoiceCode: form.invoiceCode.trim() }
       : {}),
     type: form.type,
-    amount: form.amount.trim(),
-    ...(form.taxRate?.trim()
-      ? { taxRate: form.taxRate.trim() }
-      : {}),
-    ...(form.taxAmount?.trim()
-      ? { taxAmount: form.taxAmount.trim() }
-      : {}),
-    totalAmount: form.totalAmount.trim(),
+    amount: normalizeRequiredInvoiceDecimalField(form.amount),
+    ...(() => {
+      const taxRate = normalizeOptionalInvoiceDecimalField(form.taxRate);
+      return taxRate !== undefined ? { taxRate } : {};
+    })(),
+    ...(() => {
+      const taxAmount = normalizeOptionalInvoiceDecimalField(form.taxAmount);
+      return taxAmount !== undefined ? { taxAmount } : {};
+    })(),
+    totalAmount: normalizeRequiredInvoiceDecimalField(form.totalAmount),
     ...(form.buyerName?.trim()
       ? { buyerName: form.buyerName.trim() }
       : {}),
@@ -218,16 +230,23 @@ function mergeOcrFillEmpty(
 
 function InvoiceForm({
   init,
+  initialForm,
   onDone,
 }: {
   init?: InvoiceResponseDto;
+  /** 来自 OCR「确认入账」预填（新建模式） */
+  initialForm?: InvoiceFormData;
   onDone: () => void;
 }) {
   const isEdit = !!init;
 
-  const [formData, setFormData] = useState<InvoiceFormData>(() =>
-    buildFormFromInit(init),
-  );
+  const [formData, setFormData] = useState<InvoiceFormData>(() => {
+    if (init) return buildFormFromInit(init);
+    if (initialForm) {
+      return { ...buildFormFromInit(), ...initialForm };
+    }
+    return buildFormFromInit();
+  });
   const [error, setError] = useState("");
 
   const [ocrStatus, setOcrStatus] = useState<
@@ -246,6 +265,7 @@ function InvoiceForm({
         : createInvoice(invoiceFormToWriteDto(formData)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["finance", "invoices"] });
+      toastSaved(isEdit ? "发票信息已更新" : "发票已保存");
       onDone();
     },
     onError: (err) =>
@@ -585,7 +605,26 @@ export function InvoicesPanel() {
   const [status, setStatus] = useState<InvoiceStatus | undefined>(undefined);
   const [editing, setEditing] = useState<InvoiceResponseDto | null>(null);
   const [creating, setCreating] = useState(false);
+  /** 自 OCR「确认入账」写入 sessionStorage 后解析得到，仅用于一次新建预填 */
+  const [ocrPrefill, setOcrPrefill] = useState<InvoiceFormData | null>(null);
   const pageSize = 10;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem(INVOICE_OCR_PREFILL_STORAGE_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(INVOICE_OCR_PREFILL_STORAGE_KEY);
+    try {
+      const j = JSON.parse(raw) as StoredInvoiceOcrPrefillV1;
+      if (j.v !== 1 || !j.payload) return;
+      const form = webOcrResultToInvoiceFormData(j.payload);
+      setOcrPrefill(form);
+      setCreating(true);
+      toast.success("已带入 OCR 识别结果，请核对后保存");
+    } catch {
+      /* 忽略损坏数据 */
+    }
+  }, []);
 
   const qc = useQueryClient();
 
@@ -630,7 +669,13 @@ export function InvoicesPanel() {
     return (
       <Card>
         <h2 className="font-medium text-zinc-900 mb-4">新建发票</h2>
-        <InvoiceForm onDone={() => setCreating(false)} />
+        <InvoiceForm
+          initialForm={ocrPrefill ?? undefined}
+          onDone={() => {
+            setCreating(false);
+            setOcrPrefill(null);
+          }}
+        />
       </Card>
     );
   }

@@ -29,7 +29,7 @@
 
 - [ ] 页面与路由符合 PRD 优先级（MVP 范围）。
 - [ ] 关键列表/表单有加载、错误与空状态。
-- [ ] 鉴权态与 `enterprise` 切换等依赖 Auth 接口的行为与后端一致。
+- [ ] **`GET /auth/permissions`**（及登录/切企业后的刷新）与侧栏、`DashboardRouteGate` / 无权页、`useXxxCaps` 等守卫一致。
 - [ ] 不将密钥写入前端代码或 public 配置。
 
 ## 禁止事项

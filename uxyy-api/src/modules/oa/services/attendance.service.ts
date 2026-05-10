@@ -1,5 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq, and, gte, lte, lt, sql } from 'drizzle-orm';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { eq, and, gte, lte, lt, sql, asc, desc, inArray } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
@@ -150,7 +156,7 @@ export class AttendanceService {
       .select()
       .from(schema.attendanceRecords)
       .where(and(...conditions))
-      .orderBy(schema.attendanceRecords.date);
+      .orderBy(asc(schema.attendanceRecords.date));
 
     // 统计
     const stats = this.calculateStats(records);
@@ -177,7 +183,16 @@ export class AttendanceService {
         ),
       );
 
-    const userIds = employees.map(e => e.userId);
+    const userIds = employees.map((e) => e.userId);
+
+    if (userIds.length === 0) {
+      return {
+        month,
+        departmentId,
+        employeeCount: 0,
+        userStats: {},
+      };
+    }
 
     // 获取考勤记录
     const records = await this.db
@@ -189,7 +204,7 @@ export class AttendanceService {
       .leftJoin(schema.users, eq(schema.attendanceRecords.userId, schema.users.id))
       .where(
         and(
-          sql`${schema.attendanceRecords.userId} IN (${sql.join(userIds)})`,
+          inArray(schema.attendanceRecords.userId, userIds),
           gte(schema.attendanceRecords.date, startDate),
           lt(schema.attendanceRecords.date, endDate),
         ),
@@ -226,7 +241,7 @@ export class AttendanceService {
 
     // 获取企业员工总数
     const [employeeCount] = await this.db
-      .select({ count: sql<number>`COUNT(*)` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(schema.employeeProfiles)
       .where(eq(schema.employeeProfiles.enterpriseId, enterpriseId));
 
@@ -248,16 +263,17 @@ export class AttendanceService {
     const checkedIn = todayRecords.filter(r => r.record.checkIn).length;
     const checkedOut = todayRecords.filter(r => r.record.checkOut).length;
     const late = todayRecords.filter(r => r.record.status === 'late').length;
-    const absent = (employeeCount?.count || 0) - checkedIn;
+    const totalEmp = Number(employeeCount?.count ?? 0);
+    const absent = Math.max(0, totalEmp - checkedIn);
 
     return {
       date: targetDate,
-      totalEmployees: employeeCount?.count || 0,
+      totalEmployees: totalEmp,
       checkedIn,
       checkedOut,
       late,
       absent,
-      checkInRate: employeeCount?.count ? ((checkedIn / employeeCount.count) * 100).toFixed(2) : '0',
+      checkInRate: totalEmp ? ((checkedIn / totalEmp) * 100).toFixed(2) : '0',
       details: todayRecords.map(({ record, user }) => ({
         userId: record.userId,
         userName: user?.nickname || user?.phone,
@@ -294,9 +310,88 @@ export class AttendanceService {
   }
 
   /**
-   * 审批补卡申请
+   * 补卡申请列表（本企业）。
+   * - 审批端：不传 applicantUserId，可选 status。
+   * - 个人端：`applicantUserId` 限定为本人，不传 status 则返回各状态。
    */
-  async approveMakeUp(requestId: number, approverId: number, approved: boolean, remark?: string) {
+  async listMakeUpRequests(
+    enterpriseId: number,
+    status?: 'pending' | 'approved' | 'rejected',
+    options?: { applicantUserId?: number },
+  ) {
+    const conditions = [
+      eq(schema.attendanceMakeUpRequests.enterpriseId, enterpriseId),
+    ];
+    if (status) {
+      conditions.push(eq(schema.attendanceMakeUpRequests.status, status));
+    }
+    if (options?.applicantUserId != null) {
+      conditions.push(
+        eq(schema.attendanceMakeUpRequests.userId, options.applicantUserId),
+      );
+    }
+
+    const rows = await this.db
+      .select({
+        request: schema.attendanceMakeUpRequests,
+        applicantNickname: schema.users.nickname,
+        applicantPhone: schema.users.phone,
+      })
+      .from(schema.attendanceMakeUpRequests)
+      .leftJoin(
+        schema.users,
+        eq(schema.attendanceMakeUpRequests.userId, schema.users.id),
+      )
+      .where(and(...conditions))
+      .orderBy(desc(schema.attendanceMakeUpRequests.createdAt));
+
+    return rows.map((r) => ({
+      id: r.request.id,
+      userId: r.request.userId,
+      enterpriseId: r.request.enterpriseId,
+      date: r.request.date.toISOString(),
+      type: r.request.type,
+      reason: r.request.reason,
+      status: r.request.status,
+      approverId: r.request.approverId,
+      approvedAt: r.request.approvedAt?.toISOString() ?? null,
+      remark: r.request.remark,
+      createdAt: r.request.createdAt.toISOString(),
+      applicantName:
+        r.applicantNickname?.trim() ||
+        r.applicantPhone?.trim() ||
+        `用户${r.request.userId}`,
+    }));
+  }
+
+  /**
+   * 审批补卡申请（须与本企业数据一致）
+   */
+  async approveMakeUp(
+    enterpriseId: number,
+    requestId: number,
+    approverId: number,
+    approved: boolean,
+    remark?: string,
+  ) {
+    const [existing] = await this.db
+      .select()
+      .from(schema.attendanceMakeUpRequests)
+      .where(
+        and(
+          eq(schema.attendanceMakeUpRequests.id, requestId),
+          eq(schema.attendanceMakeUpRequests.enterpriseId, enterpriseId),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundException('补卡申请不存在或无权操作');
+    }
+    if (existing.status !== 'pending') {
+      throw new BadRequestException('该申请已处理');
+    }
+
     const status = approved ? 'approved' : 'rejected';
 
     const [updated] = await this.db
@@ -307,40 +402,38 @@ export class AttendanceService {
         approvedAt: new Date(),
         remark,
       })
-      .where(eq(schema.attendanceMakeUpRequests.id, requestId))
+      .where(
+        and(
+          eq(schema.attendanceMakeUpRequests.id, requestId),
+          eq(schema.attendanceMakeUpRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     // 如果审批通过，更新考勤记录
-    if (approved) {
-      const [request] = await this.db
+    if (approved && existing) {
+      const dateStr = existing.date.toISOString().split('T')[0];
+      const [record] = await this.db
         .select()
-        .from(schema.attendanceMakeUpRequests)
-        .where(eq(schema.attendanceMakeUpRequests.id, requestId));
+        .from(schema.attendanceRecords)
+        .where(
+          and(
+            eq(schema.attendanceRecords.userId, existing.userId),
+            sql`DATE(${schema.attendanceRecords.date}) = ${dateStr}`,
+          ),
+        );
 
-      if (request) {
-        const dateStr = request.date.toISOString().split('T')[0];
-        const [record] = await this.db
-          .select()
-          .from(schema.attendanceRecords)
-          .where(
-            and(
-              eq(schema.attendanceRecords.userId, request.userId),
-              sql`DATE(${schema.attendanceRecords.date}) = ${dateStr}`,
-            ),
-          );
-
-        if (record) {
-          const updateData: any = {};
-          if (request.type === 'in') {
-            updateData.checkIn = request.date;
-          } else {
-            updateData.checkOut = request.date;
-          }
-          await this.db
-            .update(schema.attendanceRecords)
-            .set(updateData)
-            .where(eq(schema.attendanceRecords.id, record.id));
+      if (record) {
+        const updateData: Record<string, unknown> = {};
+        if (existing.type === 'in') {
+          updateData.checkIn = existing.date;
+        } else {
+          updateData.checkOut = existing.date;
         }
+        await this.db
+          .update(schema.attendanceRecords)
+          .set(updateData)
+          .where(eq(schema.attendanceRecords.id, record.id));
       }
     }
 

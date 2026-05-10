@@ -114,11 +114,11 @@ describe('AuthController', () => {
       expect(res.presets.length).toBe(Object.values(UxyyRole).length);
     });
 
-    it('should normalize historical owner to boss', () => {
+    it('should normalize historical JWT owner alias to canonical boss string', () => {
       const res = controller.authPermissions(
         mockReq({ user: { userId: 1, enterpriseId: 10, role: 'owner' } }),
       );
-      expect(res.roleRaw).toBe('owner');
+      expect(res.roleRaw).toBe('boss');
       expect(res.canonicalRole).toBe('boss');
     });
 

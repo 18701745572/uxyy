@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useEnterpriseStore } from "@/stores/enterprise-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();
@@ -113,6 +114,26 @@ export default function ProfilePage() {
             })}
           </ul>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="font-medium text-zinc-900 mb-3">企业与成员</h2>
+        <p className="text-sm text-zinc-500 mb-4">
+          老板或行政可将<strong>已注册</strong>手机号加入当前企业并分配角色。
+        </p>
+        <Button variant="secondary" asChild>
+          <Link href="/dashboard/profile/enterprise-members">企业成员管理</Link>
+        </Button>
+      </Card>
+
+      <Card>
+        <h2 className="font-medium text-zinc-900 mb-3">数据备份</h2>
+        <p className="text-sm text-zinc-500 mb-4">
+          管理企业数据备份，确保数据安全。支持自动备份、手动备份和数据导出。
+        </p>
+        <Button variant="secondary" asChild>
+          <Link href="/dashboard/profile/backup">备份管理</Link>
+        </Button>
       </Card>
 
       <div className="flex justify-end">

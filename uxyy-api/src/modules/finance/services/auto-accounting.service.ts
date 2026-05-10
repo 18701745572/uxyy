@@ -57,14 +57,14 @@ export class AutoAccountingService {
         summary: `销售订单 ${data.orderNo} 成本结转`,
       }),
     },
-    // 采购单记账规则
+    // 采购单记账规则 - 审批时：在途物资增加
     {
       sourceType: 'purchase_order',
       generateVoucher: (order: any) => ({
-        debitAccount: '库存商品',
+        debitAccount: '在途物资',
         creditAccount: '应付账款',
         amount: order.totalAmount,
-        summary: `采购订单 ${order.orderNo} 商品入库`,
+        summary: `采购订单 ${order.orderNo} 采购确认`,
       }),
     },
     // 采购单（现付）记账规则
@@ -116,6 +116,36 @@ export class AutoAccountingService {
         creditAccount: '应交税费-应交增值税-销项税额',
         amount: invoice.taxAmount,
         summary: `发票 ${invoice.invoiceNo} 销项税额`,
+      }),
+    },
+    // 回款记账规则：借 银行存款 / 贷 应收账款
+    {
+      sourceType: 'payment_received',
+      generateVoucher: (payment: any) => ({
+        debitAccount: '银行存款',
+        creditAccount: '应收账款',
+        amount: payment.amount,
+        summary: `客户回款 ${payment.customerName || ''} ${payment.referenceNo || ''}`,
+      }),
+    },
+    // 付款记账规则：借 应付账款 / 贷 银行存款
+    {
+      sourceType: 'payment_made',
+      generateVoucher: (payment: any) => ({
+        debitAccount: '应付账款',
+        creditAccount: '银行存款',
+        amount: payment.amount,
+        summary: `供应商付款 ${payment.supplierName || ''} ${payment.referenceNo || ''}`,
+      }),
+    },
+    // 采购入库记账规则：借 库存商品 / 贷 在途物资
+    {
+      sourceType: 'purchase_inbound',
+      generateVoucher: (inbound: any) => ({
+        debitAccount: '库存商品',
+        creditAccount: '在途物资',
+        amount: inbound.totalAmount,
+        summary: `采购入库 ${inbound.orderNo || ''}`,
       }),
     },
   ];
@@ -277,6 +307,45 @@ export class AutoAccountingService {
     return this.autoGenerateVoucher({
       sourceType,
       sourceData: invoice,
+      enterpriseId,
+      userId,
+    });
+  }
+
+  /**
+   * 回款自动记账
+   * 借 银行存款 / 贷 应收账款
+   */
+  async autoAccountPaymentReceived(payment: any, enterpriseId: number, userId: number) {
+    return this.autoGenerateVoucher({
+      sourceType: 'payment_received',
+      sourceData: payment,
+      enterpriseId,
+      userId,
+    });
+  }
+
+  /**
+   * 付款自动记账
+   * 借 应付账款 / 贷 银行存款
+   */
+  async autoAccountPaymentMade(payment: any, enterpriseId: number, userId: number) {
+    return this.autoGenerateVoucher({
+      sourceType: 'payment_made',
+      sourceData: payment,
+      enterpriseId,
+      userId,
+    });
+  }
+
+  /**
+   * 采购入库自动记账
+   * 借 库存商品 / 贷 在途物资
+   */
+  async autoAccountPurchaseInbound(inbound: any, enterpriseId: number, userId: number) {
+    return this.autoGenerateVoucher({
+      sourceType: 'purchase_inbound',
+      sourceData: inbound,
       enterpriseId,
       userId,
     });
