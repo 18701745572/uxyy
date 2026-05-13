@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Users, Phone, Mail, Building2, Briefcase } from "lucide-react";
+import { MagnifyingGlass, Users, Phone, Envelope, Building, ClipboardText } from "@/components/icons";
 import {
   canManageEmployeeProfiles,
   createEmployeeProfile,
@@ -146,8 +146,8 @@ export default function EmployeeProfilesPage() {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">员工通讯录</h1>
-          <p className="text-zinc-500 mt-1">
+          <h1 className="text-2xl font-bold text-text-primary">员工通讯录</h1>
+          <p className="text-text-tertiary mt-1">
             关联本企业成员的 OA 扩展信息；数据来源 users + employee_profiles
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function EmployeeProfilesPage() {
       </div>
 
       {!canManage && (
-        <p className="text-sm text-zinc-600 bg-zinc-100 rounded-md px-3 py-2">
+        <p className="text-sm text-text-secondary bg-bg-tertiary rounded-md px-3 py-2">
           当前账号仅能查看通讯录。建档、修改、移除档案需<strong>老板</strong>
           或<strong>行政</strong>等有「通讯录管理」（oa:manage）权限的成员操作。
         </p>
@@ -192,23 +192,23 @@ export default function EmployeeProfilesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">列表人数</p>
-            <p className="text-2xl font-bold text-zinc-900">{rows.length}</p>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-sm text-text-tertiary">列表人数</p>
+            <p className="text-2xl font-bold text-text-primary">{rows.length}</p>
+            <p className="text-xs text-text-muted mt-1">
               （含关键字与部门筛选）
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">部门（去重）</p>
-            <p className="text-2xl font-bold text-zinc-900">{uniqueDeptCount}</p>
+            <p className="text-sm text-text-tertiary">部门（去重）</p>
+            <p className="text-2xl font-bold text-text-primary">{uniqueDeptCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">接口状态</p>
-            <p className="text-sm font-medium text-zinc-700 pt-1 break-words leading-snug">
+            <p className="text-sm text-text-tertiary">接口状态</p>
+            <p className="text-sm font-medium text-text-secondary pt-1 break-words leading-snug">
               {listQ.isLoading
                 ? "加载中…"
                 : listQ.isError
@@ -221,8 +221,8 @@ export default function EmployeeProfilesPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">筛选</p>
-            <p className="text-sm text-zinc-600 pt-1">
+            <p className="text-sm text-text-tertiary">筛选</p>
+            <p className="text-sm text-text-secondary pt-1">
               {filterDept === "全部" ? "全部部门" : filterDept}
             </p>
           </CardContent>
@@ -231,7 +231,7 @@ export default function EmployeeProfilesPage() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <Input
             placeholder="搜索姓名、手机、部门、职位（走后端 keyword）"
             value={searchQuery}
@@ -259,12 +259,12 @@ export default function EmployeeProfilesPage() {
         </CardHeader>
         <CardContent>
           {listQ.isLoading ? (
-            <p className="text-sm text-zinc-500 py-12 text-center">加载中…</p>
+            <p className="text-sm text-text-tertiary py-12 text-center">加载中…</p>
           ) : rows.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-text-muted">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>暂无员工档案</p>
-              <p className="text-sm mt-1 max-w-md mx-auto text-zinc-500">
+              <p className="text-sm mt-1 max-w-md mx-auto text-text-tertiary">
                 {canManage
                   ? '请点击右上角「添加员工」，为本企业已在成员列表中的账号建立档案（每人仅一份档案）；亦可运行后端 pnpm db:seed 写入演示数据。'
                   : "请让具备通讯录管理权限的管理员为员工建档。"}
@@ -289,37 +289,37 @@ export default function EmployeeProfilesPage() {
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="w-12 h-12">
-                        <AvatarFallback className="bg-zinc-200 text-zinc-700">
+                        <AvatarFallback className="bg-bg-tertiary text-text-secondary">
                           {name.slice(0, 1)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-zinc-900">{name}</h3>
+                          <h3 className="font-semibold text-text-primary">{name}</h3>
                           <Badge variant="secondary" className="text-xs">
                             {no}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-zinc-500 mt-1">
-                          <Building2 className="w-3 h-3 shrink-0" />
+                        <div className="flex items-center gap-1 text-sm text-text-tertiary mt-1">
+                          <Building className="w-3 h-3 shrink-0" />
                           {dept}
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-zinc-500">
-                          <Briefcase className="w-3 h-3 shrink-0" />
+                        <div className="flex items-center gap-1 text-sm text-text-tertiary">
+                          <ClipboardText className="w-3 h-3 shrink-0" />
                           {pos}
                         </div>
-                        <p className="text-xs text-zinc-400 mt-1">入职 {join}</p>
+                        <p className="text-xs text-text-muted mt-1">入职 {join}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 space-y-2 flex-1">
                       <div className="flex items-center gap-2 text-sm">
-                        <Phone className="w-4 h-4 text-zinc-400 shrink-0" />
-                        <span className="text-zinc-600">{phone}</span>
+                        <Phone className="w-4 h-4 text-text-muted shrink-0" />
+                        <span className="text-text-secondary">{phone}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Mail className="w-4 h-4 text-zinc-400 shrink-0" />
-                        <span className="text-zinc-600 truncate">{email}</span>
+                        <Envelope className="w-4 h-4 text-text-muted shrink-0" />
+                        <span className="text-text-secondary truncate">{email}</span>
                       </div>
                     </div>
 

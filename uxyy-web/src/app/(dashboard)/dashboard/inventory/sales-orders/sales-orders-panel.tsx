@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash } from "@/components/icons";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 
 const selectCls =
-  "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
+  "rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20 bg-white";
 
 const statusMap: Record<OrderStatus, string> = {
   draft: "草稿",
@@ -39,7 +39,7 @@ const statusMap: Record<OrderStatus, string> = {
 };
 
 const statusColorMap: Record<OrderStatus, string> = {
-  draft: "text-zinc-500",
+  draft: "text-text-tertiary",
   pending: "text-yellow-600",
   approved: "text-blue-600",
   completed: "text-green-600",
@@ -197,9 +197,9 @@ function SalesOrderForm({
       {!isEdit && (
         <>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-zinc-700">客户 *</label>
+            <label className="text-sm font-medium text-text-secondary">客户 *</label>
             {customersQ.isLoading ? (
-              <p className="text-sm text-zinc-500">加载客户…</p>
+              <p className="text-sm text-text-tertiary">加载客户…</p>
             ) : customers.length === 0 ? (
               <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
                 暂无客户，请先在「客户管理 → 客户列表」中新建客户后再建销售单。
@@ -227,7 +227,7 @@ function SalesOrderForm({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-zinc-700">交付方式</label>
+            <label className="text-sm font-medium text-text-secondary">交付方式</label>
             <select
               className={selectCls}
               value={formData.deliveryType}
@@ -245,7 +245,7 @@ function SalesOrderForm({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium text-zinc-700">
+              <label className="text-sm font-medium text-text-secondary">
                 销售明细 *
               </label>
               <Button
@@ -260,20 +260,20 @@ function SalesOrderForm({
               </Button>
             </div>
             {productsQ.isLoading ? (
-              <p className="text-sm text-zinc-500">加载商品…</p>
+              <p className="text-sm text-text-tertiary">加载商品…</p>
             ) : products.length === 0 ? (
               <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
                 暂无商品，请先在「进销存 → 商品」中建档后再添加明细。
               </p>
             ) : (
-              <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
+              <div className="space-y-2 rounded-lg border border-border-primary p-3">
                 {formData.items.map((row, idx) => (
                   <div
                     key={idx}
                     className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap"
                   >
                     <div className="flex flex-col gap-1 min-w-[180px] flex-1">
-                      <span className="text-xs text-zinc-500">商品</span>
+                      <span className="text-xs text-text-tertiary">商品</span>
                       <select
                         className={selectCls}
                         value={row.productId > 0 ? String(row.productId) : ""}
@@ -326,7 +326,7 @@ function SalesOrderForm({
                       onClick={() => removeItemRow(idx)}
                       aria-label="删除本行"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -339,12 +339,12 @@ function SalesOrderForm({
       {isEdit ? (
         <div className="flex flex-col gap-4">
           {init?.items?.length ? (
-            <div className="rounded-lg border border-zinc-200 p-3 space-y-2">
-              <p className="text-sm font-medium text-zinc-700">销售明细（只读）</p>
-              <p className="text-xs text-zinc-500">
+            <div className="rounded-lg border border-border-primary p-3 space-y-2">
+              <p className="text-sm font-medium text-text-secondary">销售明细（只读）</p>
+              <p className="text-xs text-text-tertiary">
                 草稿仅支持修改备注与交付方式；若要调整商品，请删除本单后重新创建。
               </p>
-              <ul className="text-sm text-zinc-600 space-y-1">
+              <ul className="text-sm text-text-secondary space-y-1">
                 {init.items.map((it) => (
                   <li key={it.id}>
                     {it.productName ? `${it.productName} ` : ""}#
@@ -355,7 +355,7 @@ function SalesOrderForm({
             </div>
           ) : null}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-zinc-700">交付方式</label>
+            <label className="text-sm font-medium text-text-secondary">交付方式</label>
             <select
               className={selectCls}
               value={formData.deliveryType}
@@ -374,9 +374,9 @@ function SalesOrderForm({
       ) : null}
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">备注</label>
+        <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={3}
           value={formData.remark}
           onChange={(e) =>
@@ -487,7 +487,7 @@ export function SalesOrdersPanel() {
   if (creating) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建销售订单</h2>
+        <h2 className="font-medium text-text-primary mb-4">新建销售订单</h2>
         <SalesOrderForm onDone={() => setCreating(false)} />
       </Card>
     );
@@ -496,7 +496,7 @@ export function SalesOrdersPanel() {
   if (editing) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">
+        <h2 className="font-medium text-text-primary mb-4">
           编辑销售订单 · {editing.orderNo}
         </h2>
         <SalesOrderForm init={editing} onDone={() => setEditing(null)} />
@@ -507,7 +507,7 @@ export function SalesOrdersPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">销售订单</h1>
+        <h1 className="text-lg font-semibold text-text-primary">销售订单</h1>
         <div className="flex items-center gap-2">
           <ExportMenu type="sales_orders" filename="sales-orders" />
           <Button onClick={() => setCreating(true)}>+ 新建销售订单</Button>
@@ -516,7 +516,7 @@ export function SalesOrdersPanel() {
 
       <div className="flex gap-2">
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={status ?? ""}
           onChange={(e) => {
             setStatus((e.target.value as OrderStatus) || undefined);
@@ -534,14 +534,14 @@ export function SalesOrdersPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -549,18 +549,18 @@ export function SalesOrdersPanel() {
             </div>
 
             {!q.data?.list?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无销售订单数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {(q.data?.list ?? []).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium text-zinc-900">
+                      <div className="font-medium text-text-primary">
                         {row.orderNo}
                         <span
                           className={`ml-2 text-xs ${statusColorMap[row.status]}`}
@@ -568,7 +568,7 @@ export function SalesOrdersPanel() {
                           {statusMap[row.status]}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         <span className="mr-3">
                           客户: {row.customerName ?? `ID:${row.customerId}`}
                         </span>
@@ -645,7 +645,7 @@ export function SalesOrdersPanel() {
                           className="text-xs px-2.5 py-1 text-green-600 hover:text-green-700"
                           onClick={() => {
                             setReceivingOrder(row);
-                            setReceiveAmount(row.totalAmount);
+                            setReceiveAmount(String(row.totalAmount));
                           }}
                         >
                           回款
@@ -657,7 +657,7 @@ export function SalesOrdersPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -665,7 +665,7 @@ export function SalesOrdersPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button
@@ -697,7 +697,7 @@ export function SalesOrdersPanel() {
           </DialogHeader>
           {receivingOrder && (
             <div className="flex flex-col gap-3">
-              <div className="text-sm text-zinc-600">
+              <div className="text-sm text-text-secondary">
                 <p>
                   客户：{receivingOrder.customerName}
                 </p>
@@ -715,11 +715,11 @@ export function SalesOrdersPanel() {
               />
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-zinc-700">
+                <label className="text-sm font-medium text-text-secondary">
                   回款方式
                 </label>
                 <select
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
                   value={receiveMethod}
                   onChange={(e) =>
                     setReceiveMethod(e.target.value as typeof receiveMethod)

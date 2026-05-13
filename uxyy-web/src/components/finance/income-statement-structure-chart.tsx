@@ -31,9 +31,9 @@ export function IncomeStatementStructureChart({
   ];
 
   return (
-    <Card className="mb-6 p-4 border-zinc-100">
-      <h3 className="text-sm font-medium text-zinc-900">期间结构（汇总）</h3>
-      <p className="mt-0.5 text-xs text-zinc-500">
+    <Card className="mb-6 p-4 border-border-secondary">
+      <h3 className="text-sm font-medium text-text-primary">期间结构（汇总）</h3>
+      <p className="mt-0.5 text-xs text-text-tertiary">
         与下方明细表口径一致，便于快速对齐收、本、费体量
       </p>
       <div className="mt-4 h-52 w-full min-w-0">

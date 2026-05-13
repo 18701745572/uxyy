@@ -13,6 +13,7 @@ const HINT: Record<PermissionCode, string> = {
   [Permission.FIN_WRITE]: "录入发票、凭证等财务写操作",
   [Permission.FIN_VOUCHER]: "编制与管理记账凭证（凭证链路）",
   [Permission.FIN_REPORT]: "财务报表与经营分析",
+  [Permission.FIN_CONFIG]: "财务配置与会计科目管理",
   [Permission.OA_READ]: "查看 OA 与本人申请",
   [Permission.OA_APPROVE]: "处理请假、报销、补卡等审批",
   [Permission.OA_MANAGE]: "配置审批流程与员工通讯录等",

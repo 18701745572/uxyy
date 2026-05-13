@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, Spinner } from "@/components/icons";
 import { toast } from "sonner";
 import { toastSubmitted } from "@/lib/ui/toast-feedback";
 import { createLeaveRequest } from "@/lib/api/leave-requests";
@@ -98,8 +98,8 @@ export default function NewLeaveRequestPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">请假申请</h1>
-          <p className="text-zinc-500 mt-1">填写请假信息并提交审批</p>
+          <h1 className="text-2xl font-bold text-text-primary">请假申请</h1>
+          <p className="text-text-tertiary mt-1">填写请假信息并提交审批</p>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default function NewLeaveRequestPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-zinc-500" />
+              <Calendar className="w-5 h-5 text-text-tertiary" />
               请假信息
             </CardTitle>
           </CardHeader>
@@ -183,7 +183,7 @@ export default function NewLeaveRequestPage() {
                 placeholder="系统自动计算，也可手动调整"
                 required
               />
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-text-tertiary">
                 支持0.5天为单位，如请假半天请输入0.5
               </p>
             </div>
@@ -212,7 +212,7 @@ export default function NewLeaveRequestPage() {
               <Button type="submit" className="flex-1" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Spinner className="w-4 h-4 mr-2 animate-spin" />
                     提交中...
                   </>
                 ) : (

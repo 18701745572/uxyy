@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { fetchExpenseRequest } from "@/lib/api/expense-requests";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function ExpenseRequestDetailPage() {
             返回
           </Button>
         </Link>
-        <h1 className="text-xl font-semibold text-zinc-900">报销详情 #{id}</h1>
+        <h1 className="text-xl font-semibold text-text-primary">报销详情 #{id}</h1>
       </div>
 
       {q.isLoading && <OaDocumentDetailSkeleton />}
@@ -52,10 +52,10 @@ export default function ExpenseRequestDetailPage() {
             <CardHeader>
               <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-zinc-700">
+            <CardContent className="space-y-2 text-sm text-text-secondary">
               <p>金额：<span className="font-semibold">¥{q.data.amount}</span></p>
               <p>说明：{q.data.description ?? "—"}</p>
-              <p className="text-xs text-zinc-500 pt-2">
+              <p className="text-xs text-text-tertiary pt-2">
                 创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}
               </p>
             </CardContent>

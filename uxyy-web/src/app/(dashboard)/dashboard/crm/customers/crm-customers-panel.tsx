@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import type {
   CustomerDto,
   CreateCustomerInput,
@@ -17,13 +18,20 @@ import {
   fetchCustomerCategories,
   assignCustomerToCategory,
   getCustomerCategories,
+  createCustomerMember,
+  fetchMemberLevels,
+  getMemberLevelColor,
   type CustomerCategoryResponseDto,
+  type MemberLevelCode,
+  type MemberLevelResponseDto,
 } from "@/lib/api/crm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Crown } from "@/components/icons";
 
 const CUSTOMER_TYPES = [
   { value: "enterprise", label: "企业客户" },
@@ -47,6 +55,15 @@ type CustomerEntityType = CustomerDto["type"];
 type CustomerLevel = CustomerDto["level"];
 type CustomerSource = CustomerDto["source"];
 
+// 扩展客户类型，包含后端返回的会员信息
+interface CustomerWithMemberInfo extends CustomerDto {
+  memberInfo?: {
+    levelCode?: string;
+    levelName?: string;
+    availablePoints?: number;
+  };
+}
+
 function CategorySelect({
   selectedIds,
   onChange,
@@ -66,7 +83,7 @@ function CategorySelect({
 
   if (categories.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">暂无可用分类，请先至「客户分类」创建</p>
+      <p className="text-sm text-text-tertiary">暂无可用分类，请先至「客户分类」创建</p>
     );
   }
 
@@ -81,8 +98,8 @@ function CategorySelect({
             onClick={() => handleToggle(cat.id)}
             className={`px-3 py-1.5 text-sm rounded-full border transition-all ${
               isSelected
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400"
+                ? "border-text-primary bg-text-primary text-white"
+                : "border-border-primary bg-bg-primary text-text-secondary hover:border-border-tertiary"
             }`}
           >
             <span
@@ -205,9 +222,9 @@ function CustomerForm({
           placeholder="零售"
         />
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-zinc-700">客户类型</label>
+          <label className="text-sm font-medium text-text-secondary">客户类型</label>
           <select
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
             value={type}
             onChange={(e) => setType(e.target.value as CustomerEntityType)}
           >
@@ -219,9 +236,9 @@ function CustomerForm({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-zinc-700">客户等级</label>
+          <label className="text-sm font-medium text-text-secondary">客户等级</label>
           <select
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
             value={level}
             onChange={(e) => setLevel(e.target.value as CustomerLevel)}
           >
@@ -233,9 +250,9 @@ function CustomerForm({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-zinc-700">来源</label>
+          <label className="text-sm font-medium text-text-secondary">来源</label>
           <select
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
             value={source}
             onChange={(e) => setSource(e.target.value as CustomerSource)}
           >
@@ -276,9 +293,9 @@ function CustomerForm({
       />
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-zinc-700">客户分类</label>
+        <label className="text-sm font-medium text-text-secondary">客户分类</label>
         {categoriesQuery.isLoading ? (
-          <p className="text-sm text-zinc-500">加载中...</p>
+          <p className="text-sm text-text-tertiary">加载中...</p>
         ) : (
           <CategorySelect
             selectedIds={isEdit ? assignedCategoryIds : selectedCategoryIds}
@@ -286,15 +303,15 @@ function CustomerForm({
             categories={categories}
           />
         )}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-text-tertiary">
           点击选择分类，可多选。分类用于按成交状态、行业、区域等维度管理客户
         </p>
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">备注</label>
+        <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={3}
           value={remark}
           onChange={(e) => setRemark(e.target.value)}
@@ -320,11 +337,84 @@ function CustomerForm({
   );
 }
 
+// 开通会员表单组件
+function CreateMemberForm({
+  customer,
+  levels,
+  onSubmit,
+  onCancel,
+  isLoading,
+}: {
+  customer: CustomerDto;
+  levels: MemberLevelResponseDto[];
+  onSubmit: (data: { customerId: number; levelId?: number; memberNo?: string }) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    levelId: levels.find((l) => l.isDefault)?.id ?? (levels[0]?.id || undefined),
+    memberNo: "",
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit({
+      customerId: customer.id,
+      levelId: formData.levelId,
+      memberNo: formData.memberNo || undefined,
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="bg-bg-secondary p-3 rounded-lg">
+        <p className="text-sm text-text-tertiary">为客户开通会员</p>
+        <p className="font-medium text-text-primary">{customer.name}</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-text-secondary">会员等级</label>
+        <select
+          className="rounded-md border border-border-primary px-3 py-2 text-sm"
+          value={formData.levelId ?? ""}
+          onChange={(e) =>
+            setFormData({ ...formData, levelId: e.target.value ? parseInt(e.target.value) : undefined })
+          }
+        >
+          {levels.map((level) => (
+            <option key={level.id} value={level.id}>
+              {level.name}
+              {level.isDefault ? " (默认)" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <Input
+        label="会员卡号（可选）"
+        value={formData.memberNo}
+        onChange={(e) => setFormData({ ...formData, memberNo: e.target.value })}
+        placeholder="留空自动生成"
+      />
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          取消
+        </Button>
+        <Button type="submit" loading={isLoading}>
+          开通会员
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function CrmCustomersPanel() {
   const crm = useCrmCaps();
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<CustomerDto | null>(null);
   const [creating, setCreating] = useState(false);
+  const [memberCustomer, setMemberCustomer] = useState<CustomerDto | null>(null);
   const pageSize = 10;
 
   const qc = useQueryClient();
@@ -340,9 +430,22 @@ export function CrmCustomersPanel() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: levels } = useQuery({
+    queryKey: ["crm", "member-levels"],
+    queryFn: fetchMemberLevels,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteCustomer,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm", "customers"] }),
+  });
+
+  const createMemberMutation = useMutation({
+    mutationFn: createCustomerMember,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm", "members"] });
+      setMemberCustomer(null);
+    },
   });
 
   useEffect(() => {
@@ -357,7 +460,7 @@ export function CrmCustomersPanel() {
   if (creating && crm.write) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建客户</h2>
+        <h2 className="font-medium text-text-primary mb-4">新建客户</h2>
         <CustomerForm onDone={() => setCreating(false)} />
       </Card>
     );
@@ -366,7 +469,7 @@ export function CrmCustomersPanel() {
   if (editing && crm.write) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">
+        <h2 className="font-medium text-text-primary mb-4">
           编辑客户 · {editing.name}
         </h2>
         <CustomerForm
@@ -380,13 +483,13 @@ export function CrmCustomersPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">客户列表</h1>
+        <h1 className="text-lg font-semibold text-text-primary">客户列表</h1>
         <div className="flex items-center gap-2">
           <ExportMenu type="customers" filename="customers" />
           {crm.write ? (
             <Button onClick={() => setCreating(true)}>+ 新建客户</Button>
           ) : (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-text-tertiary">
               无 crm:write，仅可浏览列表
             </p>
           )}
@@ -395,14 +498,14 @@ export function CrmCustomersPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -410,12 +513,12 @@ export function CrmCustomersPanel() {
             </div>
 
             {!q.data?.items?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无客户数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
-                {(q.data?.items ?? []).map((row) => (
+              <ul className="divide-y divide-border-secondary">
+                {(q.data?.items ?? []).map((row: CustomerWithMemberInfo) => (
                   <li
                     key={row.id}
                     className="px-4 py-4"
@@ -423,17 +526,17 @@ export function CrmCustomersPanel() {
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium text-zinc-900">
+                          <span className="font-medium text-text-primary">
                             {row.name}
                           </span>
-                          <span className="text-xs text-zinc-500">#{row.id}</span>
+                          <span className="text-xs text-text-tertiary">#{row.id}</span>
                           {row.level === "VIP" && (
                             <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                               VIP
                             </span>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-zinc-600">
+                        <div className="flex flex-wrap gap-3 text-xs text-text-secondary">
                           {row.contactPerson && (
                             <span>联系人: {row.contactPerson}</span>
                           )}
@@ -447,6 +550,24 @@ export function CrmCustomersPanel() {
                             <span>行业: {row.industry}</span>
                           )}
                         </div>
+                        {row.memberInfo && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Link
+                              href={`/dashboard/crm/members?search=${encodeURIComponent(row.name)}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                                row.memberInfo.levelCode
+                                  ? getMemberLevelColor(row.memberInfo.levelCode as MemberLevelCode)
+                                  : "bg-bg-tertiary text-text-secondary"
+                              }`}
+                            >
+                              <Crown className="w-3 h-3" />
+                              {row.memberInfo.levelName || "会员"}
+                              {row.memberInfo.availablePoints !== undefined && (
+                                <span className="ml-1">· {row.memberInfo.availablePoints}积分</span>
+                              )}
+                            </Link>
+                          </div>
+                        )}
                         {row.tags && row.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {row.tags.map((tag, idx) => (
@@ -460,20 +581,32 @@ export function CrmCustomersPanel() {
                           </div>
                         )}
                         {row.remark && (
-                          <div className="text-sm text-zinc-500 mt-2">
+                          <div className="text-sm text-text-tertiary mt-2">
                             {row.remark}
                           </div>
                         )}
                       </div>
                       <div className="flex gap-2">
                         {crm.write ? (
-                          <Button
-                            variant="secondary"
-                            className="text-xs px-2.5 py-1"
-                            onClick={() => setEditing(row)}
-                          >
-                            编辑
-                          </Button>
+                          <>
+                            {!row.memberInfo && (
+                              <Button
+                                variant="secondary"
+                                className="text-xs px-2.5 py-1 gap-1"
+                                onClick={() => setMemberCustomer(row)}
+                              >
+                                <Crown className="w-3 h-3" />
+                                开通会员
+                              </Button>
+                            )}
+                            <Button
+                              variant="secondary"
+                              className="text-xs px-2.5 py-1"
+                              onClick={() => setEditing(row)}
+                            >
+                              编辑
+                            </Button>
+                          </>
                         ) : null}
                         {crm.delete ? (
                           <Button
@@ -496,7 +629,7 @@ export function CrmCustomersPanel() {
               </ul>
             )}
 
-            <div className="flex gap-3 px-4 py-3 border-t border-zinc-100">
+            <div className="flex gap-3 px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -515,6 +648,24 @@ export function CrmCustomersPanel() {
           </>
         )}
       </Card>
+
+      {/* 开通会员对话框 */}
+      <Dialog open={!!memberCustomer} onOpenChange={() => setMemberCustomer(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>开通会员</DialogTitle>
+          </DialogHeader>
+          {memberCustomer && levels && (
+            <CreateMemberForm
+              customer={memberCustomer}
+              levels={levels}
+              onSubmit={(data) => createMemberMutation.mutate(data)}
+              onCancel={() => setMemberCustomer(null)}
+              isLoading={createMemberMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

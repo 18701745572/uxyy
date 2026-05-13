@@ -58,7 +58,7 @@ export function RegisterForm() {
         <h1 className="text-xl font-semibold tracking-tight text-center">
           注册优效营
         </h1>
-        <p className="text-sm text-zinc-600 text-center">
+        <p className="text-sm text-text-secondary text-center">
           创建企业账号，开始免费使用
         </p>
 
@@ -108,11 +108,11 @@ export function RegisterForm() {
           注册
         </Button>
 
-        <p className="text-center text-sm text-zinc-600">
+        <p className="text-center text-sm text-text-secondary">
           已有账号？{" "}
           <Link
             href="/login"
-            className="text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
+            className="text-text-primary underline underline-offset-4 hover:text-text-secondary"
           >
             去登录
           </Link>

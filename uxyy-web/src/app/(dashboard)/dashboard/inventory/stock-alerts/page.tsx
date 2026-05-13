@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { RefreshCw, CheckCircle, Bell } from "lucide-react";
+import { ArrowsClockwise, CheckCircle, Bell } from "@/components/icons";
 
 const alertTypeMap: Record<string, { label: string; color: string }> = {
   low: { label: "低于下限", color: "bg-red-100 text-red-800" },
@@ -181,7 +181,7 @@ function StockAlertsPanel() {
           onClick={() => checkMutation.mutate()}
           disabled={checkMutation.isPending}
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${checkMutation.isPending ? "animate-spin" : ""}`} />
+          <ArrowsClockwise className={`w-4 h-4 mr-2 ${checkMutation.isPending ? "animate-spin" : ""}`} />
           立即检查
         </Button>
       </div>

@@ -152,7 +152,7 @@ export function JoinByInvitationForm(props: {
         )}
 
         {previewPending && token ? (
-          <p className="text-sm text-zinc-500 text-center">正在校验邀请链接…</p>
+          <p className="text-sm text-text-tertiary text-center">正在校验邀请链接…</p>
         ) : null}
 
         {!previewPending && previewError ? (
@@ -162,20 +162,20 @@ export function JoinByInvitationForm(props: {
         ) : null}
 
         {!previewPending && valid ? (
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm space-y-1">
+          <div className="rounded-lg border border-border-secondary bg-bg-secondary px-4 py-3 text-sm space-y-1">
             <div>
-              <span className="text-zinc-500">企业：</span>
-              <span className="text-zinc-900 font-medium">{enterpriseName}</span>
+              <span className="text-text-tertiary">企业：</span>
+              <span className="text-text-primary font-medium">{enterpriseName}</span>
             </div>
             <div>
-              <span className="text-zinc-500">受邀手机：</span>
-              <span className="font-mono text-zinc-900">{maskedPhone}</span>
+              <span className="text-text-tertiary">受邀手机：</span>
+              <span className="font-mono text-text-primary">{maskedPhone}</span>
             </div>
             <div>
-              <span className="text-zinc-500">预设角色：</span>
-              <span className="text-zinc-900">{presetRole}</span>
+              <span className="text-text-tertiary">预设角色：</span>
+              <span className="text-text-primary">{presetRole}</span>
             </div>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="text-xs text-text-tertiary mt-2">
               受邀手机号以管理员填写为准；
               {!isLoggedIn
                 ? " 请设置登录密码即可完成注册。"
@@ -223,10 +223,10 @@ export function JoinByInvitationForm(props: {
           </form>
         ) : null}
 
-        <p className="text-center text-sm text-zinc-600">
+        <p className="text-center text-sm text-text-secondary">
           <Link
             href="/login"
-            className="text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
+            className="text-text-primary underline underline-offset-4 hover:text-text-secondary"
           >
             去登录（已注册用户使用邀请所载手机号）
           </Link>

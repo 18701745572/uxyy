@@ -5,6 +5,8 @@ import type {
 } from "@uxyy/shared";
 import { apiFetch } from "./client";
 
+export type { CreateAccountSubjectDto, UpdateAccountSubjectDto, AccountSubjectDto };
+
 export async function fetchAccountSubjects(): Promise<AccountSubjectDto[]> {
   return apiFetch<AccountSubjectDto[]>("/finance/account-subjects");
 }

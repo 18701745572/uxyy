@@ -35,6 +35,9 @@ export const Permission = {
   FIN_WRITE: 'finance:write',
   FIN_VOUCHER: 'finance:voucher',
   FIN_REPORT: 'finance:report',
+  FIN_AUDIT: 'finance:audit',      // 凭证审核权限
+  FIN_POST: 'finance:post',         // 凭证过账权限
+  FIN_CONFIG: 'finance:config',    // 财务配置权限（科目映射等）
 
   OA_READ: 'oa:read',
   OA_APPROVE: 'oa:approve',
@@ -64,6 +67,9 @@ export const ROLE_PERMISSIONS: Record<
     P.FIN_WRITE,
     P.FIN_VOUCHER,
     P.FIN_REPORT,
+    P.FIN_AUDIT,
+    P.FIN_POST,
+    P.FIN_CONFIG,
     P.CRM_READ,
     P.INV_READ,
     P.OA_READ,

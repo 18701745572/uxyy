@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  draft: { label: "草稿", className: "bg-zinc-100 text-zinc-600" },
+  draft: { label: "草稿", className: "bg-bg-tertiary text-text-secondary" },
   confirmed: { label: "已确认", className: "bg-green-100 text-green-600" },
 };
 
@@ -44,12 +44,13 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
     queryKey: ["inventory", "sales-orders", "for-outbound"],
     queryFn: () =>
       fetchSalesOrders({
+        page: 1,
         pageSize: 100,
         status: "approved",
       }),
   });
 
-  const selectedOrder = ordersData?.data.find((o) => o.id === formData.orderId);
+  const selectedOrder = ordersData?.list.find((o) => o.id === formData.orderId);
 
   const mutation = useMutation({
     mutationFn: (dto: CreateOutboundDto) => createSalesOutbound(dto),
@@ -70,18 +71,18 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
 
     const items: CreateOutboundDto["items"] = selectedOrder.items.map((item) => ({
       productId: item.productId,
-      productName: item.productName,
-      productCode: item.productCode,
-      unit: item.unit,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: item.amount,
+      productName: item.productName ?? "",
+      productCode: "",
+      unit: "",
+      quantity: String(item.quantity),
+      unitPrice: String(item.unitPrice),
+      amount: String(item.amount),
     }));
 
     mutation.mutate({
       orderId: formData.orderId,
       customerId: selectedOrder.customerId,
-      customerName: selectedOrder.customerName,
+      customerName: selectedOrder.customerName ?? "",
       remark: formData.remark || undefined,
       items,
     });
@@ -90,9 +91,9 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">销售订单 *</label>
+        <label className="text-sm font-medium text-text-secondary">销售订单 *</label>
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={formData.orderId ?? ""}
           onChange={(e) => {
             setFormData((prev) => ({
@@ -102,7 +103,7 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
           }}
         >
           <option value="">请选择销售订单</option>
-          {ordersData?.data.map((o) => (
+          {ordersData?.list.map((o) => (
             <option key={o.id} value={o.id}>
               {o.orderNo} - {o.customerName} - ¥{o.totalAmount}
             </option>
@@ -111,11 +112,11 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
       </div>
 
       {selectedOrder && (
-        <div className="p-3 bg-zinc-50 rounded-md">
+        <div className="p-3 bg-bg-secondary rounded-md">
           <h4 className="text-sm font-medium mb-2">订单商品明细</h4>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200">
+              <tr className="border-b border-border-primary">
                 <th className="text-left py-1">商品</th>
                 <th className="text-right py-1">单价</th>
                 <th className="text-right py-1">数量</th>
@@ -137,9 +138,9 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">备注</label>
+        <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={2}
           value={formData.remark}
           onChange={(e) =>
@@ -197,7 +198,7 @@ export default function SalesOutboundPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">销售出库</h1>
-          <p className="text-sm text-zinc-500">管理销售出库单，扣减库存</p>
+          <p className="text-sm text-text-tertiary">管理销售出库单，扣减库存</p>
         </div>
         <Button onClick={() => setShowForm(true)}>+ 创建出库单</Button>
       </div>
@@ -207,31 +208,31 @@ export default function SalesOutboundPanel() {
           <Spinner />
         </div>
       ) : isError ? (
-        <Card className="p-8 text-center text-zinc-500">加载失败</Card>
+        <Card className="p-8 text-center text-text-tertiary">加载失败</Card>
       ) : orders.length === 0 ? (
-        <Card className="p-8 text-center text-zinc-500">暂无出库单</Card>
+        <Card className="p-8 text-center text-text-tertiary">暂无出库单</Card>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left">
-                  <th className="pb-3 font-medium text-zinc-500">出库单号</th>
-                  <th className="pb-3 font-medium text-zinc-500">客户</th>
-                  <th className="pb-3 font-medium text-zinc-500">关联订单</th>
-                  <th className="pb-3 font-medium text-zinc-500">状态</th>
-                  <th className="pb-3 font-medium text-zinc-500">创建时间</th>
-                  <th className="pb-3 font-medium text-zinc-500">确认时间</th>
-                  <th className="pb-3 font-medium text-zinc-500">操作</th>
+                <tr className="border-b border-border-primary text-left">
+                  <th className="pb-3 font-medium text-text-tertiary">出库单号</th>
+                  <th className="pb-3 font-medium text-text-tertiary">客户</th>
+                  <th className="pb-3 font-medium text-text-tertiary">关联订单</th>
+                  <th className="pb-3 font-medium text-text-tertiary">状态</th>
+                  <th className="pb-3 font-medium text-text-tertiary">创建时间</th>
+                  <th className="pb-3 font-medium text-text-tertiary">确认时间</th>
+                  <th className="pb-3 font-medium text-text-tertiary">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id} className="border-b border-zinc-100">
+                  <tr key={order.id} className="border-b border-border-secondary">
                     <td className="py-3 font-medium">{order.orderNo}</td>
                     <td className="py-3">{order.customerName}</td>
                     <td className="py-3">
-                      <Badge variant="outline">SO{order.orderId}</Badge>
+                      <Badge variant="default">SO{order.orderId}</Badge>
                     </td>
                     <td className="py-3">
                       <Badge className={STATUS_LABELS[order.status]?.className}>
@@ -283,7 +284,7 @@ export default function SalesOutboundPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-500">
+              <span className="text-sm text-text-tertiary">
                 第 {page} / {data.totalPages} 页
               </span>
               <Button
@@ -313,7 +314,7 @@ export default function SalesOutboundPanel() {
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-text-secondary">
             确定要删除这条出库单吗？此操作不可撤销。
           </p>
           <div className="flex justify-end gap-2">
@@ -321,7 +322,7 @@ export default function SalesOutboundPanel() {
               取消
             </Button>
             <Button
-              variant="destructive"
+              variant="danger"
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               disabled={deleteMutation.isPending}
             >

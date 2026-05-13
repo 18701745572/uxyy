@@ -5,13 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowRight,
-  Loader2,
   Plus,
-  Settings,
-  Trash2,
+  Gear,
+  Trash,
   User,
-  PencilLine,
-} from "lucide-react";
+  PencilSimple,
+} from "@/components/icons";
 import { ApiError } from "@/lib/api/client";
 import {
   createApprovalFlow,
@@ -261,8 +260,8 @@ export default function ApprovalFlowsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">审批流程</h1>
-          <p className="text-zinc-500 mt-1">
+          <h1 className="text-2xl font-bold text-text-primary">审批流程</h1>
+          <p className="text-text-tertiary mt-1">
             自定义各级审批角色与金额/请假天数条件，数据保存至服务端
           </p>
         </div>
@@ -275,19 +274,19 @@ export default function ApprovalFlowsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">流程总数</p>
-            <p className="text-2xl font-bold text-zinc-900">{flows.length}</p>
+            <p className="text-sm text-text-tertiary">流程总数</p>
+            <p className="text-2xl font-bold text-text-primary">{flows.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">启用中</p>
+            <p className="text-sm text-text-tertiary">启用中</p>
             <p className="text-2xl font-bold text-green-600">{activeCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">已停用</p>
+            <p className="text-sm text-text-tertiary">已停用</p>
             <p className="text-2xl font-bold text-gray-600">
               {flows.filter((f) => f.status === "inactive").length}
             </p>
@@ -295,8 +294,8 @@ export default function ApprovalFlowsPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">数据</p>
-            <p className="text-sm font-medium text-zinc-700">
+            <p className="text-sm text-text-tertiary">数据</p>
+            <p className="text-sm font-medium text-text-secondary">
               {loading ? "加载中…" : "已同步 API"}
             </p>
           </CardContent>
@@ -304,7 +303,7 @@ export default function ApprovalFlowsPage() {
       </div>
 
       <div className="relative">
-        <Settings className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        <Gear className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
         <Input
           placeholder="搜索流程名称..."
           value={searchQuery}
@@ -319,8 +318,8 @@ export default function ApprovalFlowsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-zinc-500 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex items-center justify-center py-12 text-text-tertiary gap-2">
+              <Gear className="w-5 h-5 animate-spin" />
               加载中…
             </div>
           ) : flowsQuery.isError ? (
@@ -328,8 +327,8 @@ export default function ApprovalFlowsPage() {
               加载失败，请检查登录态与 NEXT_PUBLIC_API_URL
             </p>
           ) : filteredFlows.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400">
-              <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <div className="text-center py-12 text-text-muted">
+              <Gear className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>暂无审批流程</p>
               <p className="text-sm mt-1">点击「新建流程」创建</p>
             </div>
@@ -340,12 +339,12 @@ export default function ApprovalFlowsPage() {
                 return (
                   <div
                     key={flow.id}
-                    className="p-4 border rounded-lg hover:bg-zinc-50/80 transition-colors"
+                    className="p-4 border rounded-lg hover:bg-bg-secondary/80 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-zinc-900">
+                          <h3 className="font-semibold text-text-primary">
                             {flow.name}
                           </h3>
                           <Badge className={t.color}>{t.label}</Badge>
@@ -356,7 +355,7 @@ export default function ApprovalFlowsPage() {
                           >
                             {flow.status === "active" ? "启用" : "停用"}
                           </Badge>
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-text-muted">
                             ID {flow.id}
                           </span>
                         </div>
@@ -365,25 +364,25 @@ export default function ApprovalFlowsPage() {
                             const cond = formatCondition(s.condition);
                             return (
                               <div key={`${flow.id}-${s.step}`} className="flex items-center">
-                                <div className="flex items-center gap-1 bg-zinc-100 px-3 py-1 rounded-full text-sm">
-                                  <User className="w-3 h-3 text-zinc-500" />
+                                <div className="flex items-center gap-1 bg-bg-tertiary px-3 py-1 rounded-full text-sm">
+                                  <User className="w-3 h-3 text-text-tertiary" />
                                   <span>第{s.step}步</span>
                                   <span className="font-medium">
                                     {roleLabel(s.role)}
                                   </span>
                                   {s.userId != null && (
-                                    <span className="text-xs text-zinc-500">
+                                    <span className="text-xs text-text-tertiary">
                                       user #{s.userId}
                                     </span>
                                   )}
                                   {cond && (
-                                    <span className="text-xs text-zinc-500">
+                                    <span className="text-xs text-text-tertiary">
                                       ({cond})
                                     </span>
                                   )}
                                 </div>
                                 {index < flow.steps.length - 1 && (
-                                  <ArrowRight className="w-4 h-4 text-zinc-400 mx-1 shrink-0" />
+                                  <ArrowRight className="w-4 h-4 text-text-muted mx-1 shrink-0" />
                                 )}
                               </div>
                             );
@@ -397,7 +396,7 @@ export default function ApprovalFlowsPage() {
                           size="sm"
                           onClick={() => openEdit(flow)}
                         >
-                          <PencilLine className="w-4 h-4 mr-1" />
+                          <PencilSimple className="w-4 h-4 mr-1" />
                           编辑
                         </Button>
                         <Button
@@ -431,7 +430,7 @@ export default function ApprovalFlowsPage() {
                             deleteMutation.mutate(flow.id);
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -443,11 +442,11 @@ export default function ApprovalFlowsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-50">
+      <Card className="bg-bg-secondary">
         <CardHeader>
           <CardTitle className="text-lg">配置说明</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-zinc-600">
+        <CardContent className="space-y-2 text-sm text-text-secondary">
           <p>
             • <strong>角色</strong>
             与企业成员角色码一致（boss / finance / sales / warehouse /
@@ -525,9 +524,9 @@ export default function ApprovalFlowsPage() {
                 {formRows.map((row, idx) => (
                   <div
                     key={row.id}
-                    className="rounded-lg border border-zinc-200 p-3 space-y-3 bg-white"
+                    className="rounded-lg border border-border-primary p-3 space-y-3 bg-white"
                   >
-                    <div className="flex items-center justify-between text-sm font-medium text-zinc-700">
+                    <div className="flex items-center justify-between text-sm font-medium text-text-secondary">
                       第 {idx + 1} 步
                       {formRows.length > 1 && (
                         <Button
@@ -547,7 +546,7 @@ export default function ApprovalFlowsPage() {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div className="grid gap-1.5">
-                        <span className="text-xs text-zinc-500">审批角色</span>
+                        <span className="text-xs text-text-tertiary">审批角色</span>
                         <Select
                           value={row.role}
                           onValueChange={(v) =>
@@ -571,7 +570,7 @@ export default function ApprovalFlowsPage() {
                         </Select>
                       </div>
                       <div className="grid gap-1.5">
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-text-tertiary">
                           指定用户 ID（可选）
                         </span>
                         <Input
@@ -592,7 +591,7 @@ export default function ApprovalFlowsPage() {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div className="grid gap-1.5">
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-text-tertiary">
                           金额条件（≥ / ≤）
                         </span>
                         <div className="flex gap-2">
@@ -625,7 +624,7 @@ export default function ApprovalFlowsPage() {
                         </div>
                       </div>
                       <div className="grid gap-1.5">
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-text-tertiary">
                           请假天数（≥ / ≤）
                         </span>
                         <div className="flex gap-2">
@@ -679,7 +678,7 @@ export default function ApprovalFlowsPage() {
             >
               {saveMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Gear className="w-4 h-4 mr-2 animate-spin" />
                   保存中…
                 </>
               ) : (

@@ -36,7 +36,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkle } from "@/components/icons";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const statusLabels: Record<OpportunityStatus, string> = {
@@ -89,7 +89,7 @@ export default function OpportunityDetailPage() {
         <p className="text-red-600">无效的商机 ID</p>
         <Button
           variant="ghost"
-          className="h-auto p-0 text-zinc-900 underline underline-offset-2 hover:bg-transparent"
+          className="h-auto p-0 text-text-primary underline underline-offset-2 hover:bg-transparent"
           onClick={() => router.push("/dashboard/crm/opportunities")}
         >
           返回商机列表
@@ -101,7 +101,7 @@ export default function OpportunityDetailPage() {
   if (q.isLoading) {
     return (
       <div className="p-6">
-        <p className="text-zinc-500">加载中...</p>
+        <p className="text-text-tertiary">加载中...</p>
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function OpportunityDetailPage() {
         <p className="text-red-600">无法加载商机，可能已被删除或无权访问。</p>
         <Link
           href="/dashboard/crm/opportunities"
-          className="text-sm text-zinc-700 underline"
+          className="text-sm text-text-secondary underline"
         >
           返回商机列表
         </Link>
@@ -147,10 +147,10 @@ export default function OpportunityDetailPage() {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-zinc-700">
+        <CardContent className="space-y-3 text-sm text-text-secondary">
           {opp.description ? (
             <p>
-              <span className="font-medium text-zinc-900">描述：</span>
+              <span className="font-medium text-text-primary">描述：</span>
               {opp.description}
             </p>
           ) : null}
@@ -188,7 +188,7 @@ export default function OpportunityDetailPage() {
           </div>
           {opp.remark ? (
             <p>
-              <span className="font-medium text-zinc-900">备注：</span>
+              <span className="font-medium text-text-primary">备注：</span>
               {opp.remark}
             </p>
           ) : null}
@@ -202,7 +202,7 @@ export default function OpportunityDetailPage() {
           <CardHeader>
             <CardTitle className="text-base">AI 话术推荐</CardTitle>
             <CardDescription>
-              需要 <code className="text-xs bg-zinc-100 px-1 rounded">crm:write</code>{" "}
+              需要 <code className="text-xs bg-bg-tertiary px-1 rounded">crm:write</code>{" "}
               权限后方可生成跟进话术。
             </CardDescription>
           </CardHeader>
@@ -240,7 +240,7 @@ function AiScriptSection({ customerId }: { customerId: number }) {
         >
           <DialogTrigger asChild>
             <Button className="gap-2" variant="secondary">
-              <Sparkles className="h-4 w-4" />
+              <Sparkle className="h-4 w-4" />
               AI 话术推荐
             </Button>
           </DialogTrigger>
@@ -284,27 +284,27 @@ function AiScriptSection({ customerId }: { customerId: number }) {
                 {scripts.map((s, idx) => (
                   <li
                     key={`${s.title}-${idx}`}
-                    className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-3 space-y-2"
+                    className="rounded-lg border border-border-primary bg-bg-secondary/80 p-3 space-y-2"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-zinc-900">
+                      <span className="font-medium text-text-primary">
                         {s.title}
                       </span>
                       <Badge variant="secondary" className="text-xs">
                         {s.type}
                       </Badge>
                     </div>
-                    <p className="text-sm text-zinc-800 whitespace-pre-wrap">
+                    <p className="text-sm text-text-secondary whitespace-pre-wrap">
                       {s.content}
                     </p>
                     {s.tips?.length ? (
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         <span className="font-medium">技巧：</span>
                         {s.tips.join("；")}
                       </div>
                     ) : null}
                     {s.alternatives?.length ? (
-                      <div className="text-xs text-zinc-600 space-y-1">
+                      <div className="text-xs text-text-secondary space-y-1">
                         <span className="font-medium">备选表述：</span>
                         <ul className="list-disc pl-4">
                           {s.alternatives.map((alt, i) => (

@@ -45,7 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import Link from "next/link";
-import { Search, Plus, Edit, Trash2, FileText } from "lucide-react";
+import { MagnifyingGlass, Plus, PencilSimple, Trash, FileText } from "@/components/icons";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const statusLabels: Record<OpportunityStatus, string> = {
@@ -206,7 +206,7 @@ function OpportunitiesPanel() {
       {/* 筛选和搜索 */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="搜索商机名称..."
             value={search}
@@ -257,7 +257,7 @@ function OpportunitiesPanel() {
             </DialogContent>
           </Dialog>
         ) : (
-          <p className="text-xs text-zinc-500 shrink-0 self-center">
+          <p className="text-xs text-text-tertiary shrink-0 self-center">
             仅查看；需要 crm:write 才可新建商机
           </p>
         )}
@@ -297,7 +297,7 @@ function OpportunitiesPanel() {
                   <TableCell className="font-medium">
                     <Link
                       href={`/dashboard/crm/opportunities/${item.id}`}
-                      className="text-zinc-900 hover:underline"
+                      className="text-text-primary hover:underline"
                     >
                       {item.name}
                     </Link>
@@ -339,7 +339,7 @@ function OpportunitiesPanel() {
                           size="sm"
                           onClick={() => setEditing(item)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <PencilSimple className="h-4 w-4" />
                         </Button>
                       ) : null}
                       {crm.delete ? (
@@ -352,7 +352,7 @@ function OpportunitiesPanel() {
                             }
                           }}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash className="h-4 w-4 text-red-500" />
                         </Button>
                       ) : null}
                     </div>
@@ -494,7 +494,7 @@ function OpportunityForm({
           </SelectContent>
         </Select>
         {mode === "edit" && (
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-text-tertiary mt-1">
             编辑时不可更换关联客户；需调整请新建商机或后续扩展接口。
           </p>
         )}
@@ -619,7 +619,7 @@ function OpportunityForm({
           }}
           placeholder="与「用户资料」中的用户 ID 一致，留空表示不指定"
         />
-        <p className="text-xs text-zinc-500 mt-1">
+        <p className="text-xs text-text-tertiary mt-1">
           与 CRM 客户「归属销售 ID」相同，为企业成员用户的数字 ID。
         </p>
       </div>

@@ -92,9 +92,9 @@ function SupplierForm({
       />
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">地址</label>
+        <label className="text-sm font-medium text-text-secondary">地址</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={2}
           value={formData.address}
           onChange={(e) =>
@@ -105,9 +105,9 @@ function SupplierForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">状态</label>
+        <label className="text-sm font-medium text-text-secondary">状态</label>
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={formData.status}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, status: e.target.value }))
@@ -166,7 +166,7 @@ export function SuppliersPanel() {
   if (creating) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建供应商</h2>
+        <h2 className="font-medium text-text-primary mb-4">新建供应商</h2>
         <SupplierForm onDone={() => setCreating(false)} />
       </Card>
     );
@@ -175,7 +175,7 @@ export function SuppliersPanel() {
   if (editing) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">
+        <h2 className="font-medium text-text-primary mb-4">
           编辑供应商 · {editing.name}
         </h2>
         <SupplierForm init={editing} onDone={() => setEditing(null)} />
@@ -186,20 +186,20 @@ export function SuppliersPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">供应商管理</h1>
+        <h1 className="text-lg font-semibold text-text-primary">供应商管理</h1>
         <Button onClick={() => setCreating(true)}>+ 新建供应商</Button>
       </div>
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{page}</strong> 页
@@ -207,30 +207,30 @@ export function SuppliersPanel() {
             </div>
 
             {!q.data?.items?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无供应商数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {(q.data?.items ?? []).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium text-zinc-900">
+                      <div className="font-medium text-text-primary">
                         {row.name}
                         <span
                           className={`ml-2 text-xs ${
                             row.status === "active"
                               ? "text-green-600"
-                              : "text-zinc-500"
+                              : "text-text-tertiary"
                           }`}
                         >
                           {row.status === "active" ? "正常" : "停用"}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         {row.contactName && (
                           <span className="mr-3">联系人: {row.contactName}</span>
                         )}
@@ -265,7 +265,7 @@ export function SuppliersPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -273,7 +273,7 @@ export function SuppliersPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button

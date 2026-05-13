@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 const selectCls =
-  "rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20 bg-white";
+  "rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20 bg-white";
 
 const statusMap: Record<StocktakingStatus, string> = {
   draft: "草稿",
@@ -25,7 +25,7 @@ const statusMap: Record<StocktakingStatus, string> = {
 };
 
 const statusColorMap: Record<StocktakingStatus, string> = {
-  draft: "text-zinc-500",
+  draft: "text-text-tertiary",
   confirmed: "text-green-600",
 };
 
@@ -143,9 +143,9 @@ function StocktakingForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">仓库 *</label>
+        <label className="text-sm font-medium text-text-secondary">仓库 *</label>
         {warehousesQ.isLoading ? (
-          <p className="text-sm text-zinc-500">加载仓库…</p>
+          <p className="text-sm text-text-tertiary">加载仓库…</p>
         ) : warehousesQ.isError ? (
           <p className="text-sm text-red-700 bg-red-50 rounded-md px-3 py-2">
             仓库列表加载失败：
@@ -208,8 +208,8 @@ function StocktakingForm({
         )}
       </div>
 
-      <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3 bg-zinc-50/80">
-        <span className="text-sm font-medium text-zinc-700">盘点范围</span>
+      <div className="flex flex-col gap-2 rounded-lg border border-border-primary p-3 bg-bg-secondary/80">
+        <span className="text-sm font-medium text-text-secondary">盘点范围</span>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
             type="radio"
@@ -220,9 +220,9 @@ function StocktakingForm({
             }
           />
           <span>
-            <strong className="font-medium text-zinc-800">盘点全部</strong>
+            <strong className="font-medium text-text-primary">盘点全部</strong>
             ：包含<strong>当前所选仓库</strong>里<strong>有一条及以上库存记录</strong>的商品（不传{" "}
-            <code className="text-xs bg-zinc-200/80 px-1 rounded">
+            <code className="text-xs bg-bg-tertiary px-1 rounded text-text-secondary">
               productIds
             </code>
             ，与后端默认行为一致）
@@ -238,9 +238,9 @@ function StocktakingForm({
             }
           />
           <span>
-            <strong className="font-medium text-zinc-800">仅盘点所选商品</strong>
+            <strong className="font-medium text-text-primary">仅盘点所选商品</strong>
             ：提交{" "}
-            <code className="text-xs bg-zinc-200/80 px-1 rounded">
+            <code className="text-xs bg-bg-tertiary px-1 rounded text-text-secondary">
               productIds
             </code>
           </span>
@@ -250,7 +250,7 @@ function StocktakingForm({
       {formData.scope === "subset" && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium text-zinc-700">
+            <span className="text-sm font-medium text-text-secondary">
               勾选商品（{formData.productIds.length}）
             </span>
             <div className="flex gap-2">
@@ -267,7 +267,7 @@ function StocktakingForm({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-zinc-600"
+                className="text-text-secondary"
                 disabled={formData.productIds.length === 0}
                 onClick={clearSubset}
               >
@@ -276,13 +276,13 @@ function StocktakingForm({
             </div>
           </div>
           {productsQ.isLoading ? (
-            <p className="text-sm text-zinc-500">加载商品…</p>
+            <p className="text-sm text-text-tertiary">加载商品…</p>
           ) : products.length === 0 ? (
             <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
               暂无商品，请先在「商品管理」中建档。
             </p>
           ) : (
-            <div className="max-h-52 overflow-y-auto rounded-md border border-zinc-200 bg-white px-3 py-2 space-y-1.5 text-sm">
+            <div className="max-h-52 overflow-y-auto rounded-md border border-border-primary bg-white px-3 py-2 space-y-1.5 text-sm">
               {products.map((p) => (
                 <label
                   key={p.id}
@@ -293,9 +293,9 @@ function StocktakingForm({
                     checked={formData.productIds.includes(p.id)}
                     onChange={() => toggleProduct(p.id)}
                   />
-                  <span className="text-zinc-800">
+                  <span className="text-text-primary">
                     {p.name}{" "}
-                    <span className="text-zinc-500 text-xs">
+                    <span className="text-text-tertiary text-xs">
                       ({p.code}) #{p.id}
                     </span>
                   </span>
@@ -307,9 +307,9 @@ function StocktakingForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">备注</label>
+        <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={2}
           value={formData.remark}
           onChange={(e) =>
@@ -388,10 +388,10 @@ function StocktakingDetail({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-zinc-900">
+          <h2 className="font-medium text-text-primary">
             盘点单 {stocktaking.stocktakingNo}
           </h2>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-text-tertiary">
             状态: <span className={statusColorMap[stocktaking.status]}>{statusMap[stocktaking.status]}</span>
             {stocktaking.remark && ` · 备注: ${stocktaking.remark}`}
           </p>
@@ -413,24 +413,24 @@ function StocktakingDetail({
 
       <Card className="p-0 overflow-hidden">
         {!stocktaking.items?.length ? (
-          <p className="p-8 text-center text-sm text-zinc-500">
+          <p className="p-8 text-center text-sm text-text-tertiary">
             暂无盘点明细
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-100">
+            <thead className="bg-bg-secondary border-b border-border-secondary">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">商品</th>
-                <th className="px-4 py-2 text-right font-medium text-zinc-700">系统库存</th>
-                <th className="px-4 py-2 text-right font-medium text-zinc-700">实盘数量</th>
-                <th className="px-4 py-2 text-right font-medium text-zinc-700">差异</th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">备注</th>
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">商品</th>
+                <th className="px-4 py-2 text-right font-medium text-text-secondary">系统库存</th>
+                <th className="px-4 py-2 text-right font-medium text-text-secondary">实盘数量</th>
+                <th className="px-4 py-2 text-right font-medium text-text-secondary">差异</th>
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">备注</th>
                 {stocktaking.status === "draft" && (
-                  <th className="px-4 py-2 text-center font-medium text-zinc-700">操作</th>
+                  <th className="px-4 py-2 text-center font-medium text-text-secondary">操作</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-border-secondary">
               {stocktaking.items.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-2">
@@ -441,7 +441,7 @@ function StocktakingDetail({
                     {editingItem?.id === item.id ? (
                       <input
                         type="number"
-                        className="w-20 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                        className="w-20 rounded-md border border-border-primary px-2 py-1 text-sm"
                         value={actualQty}
                         onChange={(e) => setActualQty(e.target.value)}
                       />
@@ -456,7 +456,7 @@ function StocktakingDetail({
                     {editingItem?.id === item.id ? (
                       <input
                         type="text"
-                        className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                        className="w-full rounded-md border border-border-primary px-2 py-1 text-sm"
                         value={itemRemark}
                         onChange={(e) => setItemRemark(e.target.value)}
                         placeholder="备注"
@@ -536,8 +536,8 @@ export function StocktakingPanel() {
     return (
       <Card>
         <div className="mb-4 space-y-1">
-          <h2 className="font-medium text-zinc-900">新建盘点单</h2>
-          <p className="text-xs text-zinc-500">
+          <h2 className="font-medium text-text-primary">新建盘点单</h2>
+          <p className="text-xs text-text-tertiary">
             请选择仓库与盘点范围（全盘不传 productIds；抽盘勾选商品）
           </p>
         </div>
@@ -558,13 +558,13 @@ export function StocktakingPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">库存盘点</h1>
+        <h1 className="text-lg font-semibold text-text-primary">库存盘点</h1>
         <Button onClick={() => setCreating(true)}>+ 新建盘点单</Button>
       </div>
 
       <div className="flex gap-2">
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={status ?? ""}
           onChange={(e) => {
             setStatus((e.target.value as StocktakingStatus) || undefined);
@@ -579,14 +579,14 @@ export function StocktakingPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -594,18 +594,18 @@ export function StocktakingPanel() {
             </div>
 
             {!q.data?.list?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无盘点单数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {(q.data?.list ?? []).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium text-zinc-900">
+                      <div className="font-medium text-text-primary">
                         {row.stocktakingNo}
                         <span
                           className={`ml-2 text-xs ${statusColorMap[row.status]}`}
@@ -613,7 +613,7 @@ export function StocktakingPanel() {
                           {statusMap[row.status]}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         <span className="mr-3">仓库ID: {row.warehouseId}</span>
                         <span>商品数: {row.items?.length ?? 0} 项</span>
                       </div>
@@ -632,7 +632,7 @@ export function StocktakingPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -640,7 +640,7 @@ export function StocktakingPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button

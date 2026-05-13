@@ -42,7 +42,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { Plus, Edit, Trash2, MessageSquare, Link2 } from "lucide-react";
+import { Plus, PencilSimple, Trash, ChatText, Link } from "@phosphor-icons/react";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const NON_TEXT_TYPES: FollowUpType[] = ["image", "voice", "file"];
@@ -260,7 +260,7 @@ function FollowUpsPanel() {
             </DialogContent>
           </Dialog>
         ) : selectedCustomerId ? (
-          <p className="text-xs text-zinc-500 mt-8 self-start">
+          <p className="text-xs text-text-tertiary mt-8 self-start">
             仅查看跟进；需要 crm:write 才可新增
           </p>
         ) : null}
@@ -268,7 +268,7 @@ function FollowUpsPanel() {
 
       {!selectedCustomerId ? (
         <div className="text-center py-12 text-gray-500">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <ChatText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p>请先选择客户查看跟进记录</p>
         </div>
       ) : (
@@ -322,12 +322,12 @@ function FollowUpsPanel() {
                                 className="inline-flex items-center gap-1 text-blue-600 hover:underline truncate max-w-[160px]"
                                 title={url}
                               >
-                                <Link2 className="h-3.5 w-3.5 shrink-0" />
+                                <Link className="h-3.5 w-3.5 shrink-0" />
                                 <span className="truncate">{attachmentLinkLabel(url)}</span>
                               </a>
                             ))}
                             {item.attachmentUrls.length > 2 ? (
-                              <span className="text-zinc-500">
+                              <span className="text-text-tertiary">
                                 +{item.attachmentUrls.length - 2}
                               </span>
                             ) : null}
@@ -348,7 +348,7 @@ function FollowUpsPanel() {
                           locale: zhCN,
                         })}
                       </TableCell>
-                      <TableCell className="text-sm text-zinc-600 whitespace-nowrap">
+                      <TableCell className="text-sm text-text-secondary whitespace-nowrap">
                         {item.createdBy != null ? `用户 ${item.createdBy}` : "—"}
                       </TableCell>
                       <TableCell className="text-right">
@@ -359,7 +359,7 @@ function FollowUpsPanel() {
                               size="sm"
                               onClick={() => setEditing(item)}
                             >
-                              <Edit className="h-4 w-4" />
+                              <PencilSimple className="h-4 w-4" />
                             </Button>
                           ) : null}
                           {crm.delete ? (
@@ -375,7 +375,7 @@ function FollowUpsPanel() {
                                 }
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash className="h-4 w-4 text-red-500" />
                             </Button>
                           ) : null}
                         </div>
@@ -513,7 +513,7 @@ function FollowUpForm(props: FollowUpFormProps) {
           </SelectContent>
         </Select>
         {showAttachmentHint ? (
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-text-tertiary mt-1">
             此类跟进建议在下方填写附件链接（图片/录音/文件的可访问 URL）。
           </p>
         ) : null}
@@ -540,7 +540,7 @@ function FollowUpForm(props: FollowUpFormProps) {
             添加一行
           </Button>
         </div>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-text-tertiary">
           支持多个 HTTPS 外链（如 OSS、云盘直链）。当前版本需自行上传文件后粘贴 URL。
         </p>
         <div className="space-y-2">
@@ -581,7 +581,7 @@ function FollowUpForm(props: FollowUpFormProps) {
           value={nextLocal}
           onChange={(e) => setNextLocal(e.target.value)}
         />
-        <p className="text-xs text-zinc-500 mt-1">留空表示不设下次提醒时间。</p>
+        <p className="text-xs text-text-tertiary mt-1">留空表示不设下次提醒时间。</p>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="submit" disabled={isSubmitting}>

@@ -35,6 +35,9 @@ interface AuthState {
   switchEnterprise: (enterpriseId: number) => Promise<void>;
 }
 
+// 全局锁，防止并发权限请求
+let permissionsRequestPromise: Promise<void> | null = null;
+
 /** 从 JWT 写入用户与推导权限；失败返回 false（已清理 token） */
 function syncJwtSession(set: (partial: Partial<AuthState>) => void): boolean {
   const token = readStoredAccessToken();
@@ -80,11 +83,18 @@ function syncJwtSession(set: (partial: Partial<AuthState>) => void): boolean {
   return true;
 }
 
-/** 异步拉取服务端权限矩阵（不改变登录态）；失败静默保留 JWT 推导 */
+/** 异步拉取服务端权限矩阵（不改变登录态）；失败静默保留 JWT 推导
+ * 使用全局锁防止并发请求
+ */
 function schedulePermissionsAlign(
   set: (partial: Partial<AuthState>) => void,
 ): void {
-  void fetchAuthPermissions()
+  // 如果已有正在进行的请求，直接返回，避免重复请求
+  if (permissionsRequestPromise) {
+    return;
+  }
+
+  permissionsRequestPromise = fetchAuthPermissions()
     .then((api) => {
       set({
         permissions: [...api.permissions],
@@ -96,8 +106,15 @@ function schedulePermissionsAlign(
     })
     .catch(() => {
       /* 网络或 403：保留 JWT 推导 */
+    })
+    .finally(() => {
+      // 请求完成后释放锁
+      permissionsRequestPromise = null;
     });
 }
+
+// 登录请求锁
+let isLoggingIn = false;
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -116,9 +133,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (input: LoginInput) => {
-    await loginApi(input);
-    syncJwtSession(set);
-    schedulePermissionsAlign(set);
+    // 防止重复登录请求
+    if (isLoggingIn) {
+      return;
+    }
+    isLoggingIn = true;
+    try {
+      await loginApi(input);
+      syncJwtSession(set);
+      schedulePermissionsAlign(set);
+    } finally {
+      isLoggingIn = false;
+    }
   },
 
   register: async (input: RegisterInput) => {

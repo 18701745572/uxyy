@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, FileSpreadsheet, FileText, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { DownloadSimple, FileXls, FileText, CheckCircle, XCircle, Spinner } from "@phosphor-icons/react";
 
 interface ExportMenuProps {
   type: ExportOptions["type"];
@@ -76,20 +76,20 @@ export function ExportMenu({
             disabled={disabled}
             className="gap-2"
           >
-            <Download className="w-4 h-4" />
+            <DownloadSimple className="w-4 h-4" />
             {iconOnly ? null : label}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => handleSelectFormat("excel")} disabled={disabled}>
-            <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+            <FileXls className="w-4 h-4 mr-2 text-green-600" />
             导出 Excel
-            <Badge variant="outline" className="ml-auto text-xs">.xlsx</Badge>
+            <Badge variant="default" className="ml-auto text-xs">.xlsx</Badge>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleSelectFormat("csv")} disabled={disabled}>
             <FileText className="w-4 h-4 mr-2 text-blue-600" />
             导出 CSV
-            <Badge variant="outline" className="ml-auto text-xs">.csv</Badge>
+            <Badge variant="default" className="ml-auto text-xs">.csv</Badge>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -100,17 +100,17 @@ export function ExportMenu({
             <DialogTitle className="flex items-center gap-2">
               {exportStatus === "idle" || exportStatus === "preparing" ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <Spinner className="w-5 h-5 animate-spin text-blue-600" />
                   准备导出...
                 </>
               ) : exportStatus === "downloading" ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <Spinner className="w-5 h-5 animate-spin text-blue-600" />
                   下载中...
                 </>
               ) : exportStatus === "success" ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                   导出成功
                 </>
               ) : (
@@ -127,11 +127,11 @@ export function ExportMenu({
               <>
                 <div className="relative mb-4">
                   <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
-                    <FileSpreadsheet className="w-8 h-8 text-blue-600" />
+                    <FileXls className="w-8 h-8 text-blue-600" />
                   </div>
                   <div className="absolute inset-0 rounded-full border-2 border-blue-200 animate-pulse" />
                 </div>
-                <p className="text-sm text-zinc-600 text-center">
+                <p className="text-sm text-text-secondary text-center">
                   {exportStatus === "preparing"
                     ? "正在准备数据，请稍候..."
                     : "正在下载文件..."}
@@ -140,9 +140,9 @@ export function ExportMenu({
             ) : exportStatus === "success" ? (
               <>
                 <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                <p className="text-sm text-zinc-600 text-center">
+                <p className="text-sm text-text-secondary text-center">
                   文件已准备好，即将开始下载
                 </p>
               </>

@@ -37,7 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
 const typeLabels: Record<CustomerCategoryType, string> = {
@@ -128,7 +128,7 @@ function CategoriesPanel() {
             </DialogContent>
           </Dialog>
         ) : (
-          <p className="text-xs text-zinc-500">仅查看；需要 crm:write 管理分类</p>
+          <p className="text-xs text-text-tertiary">仅查看；需要 crm:write 管理分类</p>
         )}
       </div>
 
@@ -185,7 +185,7 @@ function CategoriesPanel() {
                           size="sm"
                           onClick={() => setEditing(item)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <PencilSimple className="h-4 w-4" />
                         </Button>
                       ) : null}
                       {crm.delete ? (
@@ -198,7 +198,7 @@ function CategoriesPanel() {
                             }
                           }}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash className="h-4 w-4 text-red-500" />
                         </Button>
                       ) : null}
                     </div>

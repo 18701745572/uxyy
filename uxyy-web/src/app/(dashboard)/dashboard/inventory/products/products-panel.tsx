@@ -211,7 +211,7 @@ export function ProductsPanel() {
   if (creating) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建商品</h2>
+        <h2 className="font-medium text-text-primary mb-4">新建商品</h2>
         <ProductForm onDone={() => setCreating(false)} />
       </Card>
     );
@@ -220,7 +220,7 @@ export function ProductsPanel() {
   if (editing) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">
+        <h2 className="font-medium text-text-primary mb-4">
           编辑商品 · {editing.name}
         </h2>
         <ProductForm init={editing} onDone={() => setEditing(null)} />
@@ -231,7 +231,7 @@ export function ProductsPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">商品管理</h1>
+        <h1 className="text-lg font-semibold text-text-primary">商品管理</h1>
         <div className="flex items-center gap-2">
           <ExportMenu type="products" filename="products" />
           <Button onClick={() => setCreating(true)}>+ 新建商品</Button>
@@ -258,14 +258,14 @@ export function ProductsPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -273,24 +273,24 @@ export function ProductsPanel() {
             </div>
 
             {!q.data?.list?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无商品数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {(q.data?.list ?? []).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium text-zinc-900">
+                      <div className="font-medium text-text-primary">
                         {row.name}
-                        <span className="ml-2 text-xs text-zinc-500">
+                        <span className="ml-2 text-xs text-text-tertiary">
                           ({row.code})
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         <span className="mr-3">规格: {row.spec || "-"}</span>
                         <span className="mr-3">单位: {row.unit}</span>
                         <span className="mr-3">
@@ -324,7 +324,7 @@ export function ProductsPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -332,7 +332,7 @@ export function ProductsPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button

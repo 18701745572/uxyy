@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Receipt, Loader2 } from "lucide-react";
+import { ArrowLeft, Receipt, Spinner } from "@/components/icons";
 import { toast } from "sonner";
 import { toastSubmitted } from "@/lib/ui/toast-feedback";
 import { createExpenseRequest } from "@/lib/api/expense-requests";
@@ -85,8 +85,8 @@ export default function NewExpenseRequestPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">报销申请</h1>
-          <p className="text-zinc-500 mt-1">填写报销信息（附件 URL 上传待对接）</p>
+          <h1 className="text-2xl font-bold text-text-primary">报销申请</h1>
+          <p className="text-text-tertiary mt-1">填写报销信息（附件 URL 上传待对接）</p>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function NewExpenseRequestPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-zinc-500" />
+              <Receipt className="w-5 h-5 text-text-tertiary" />
               报销信息
             </CardTitle>
           </CardHeader>
@@ -128,7 +128,7 @@ export default function NewExpenseRequestPage() {
                 报销金额 <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary">
                   ¥
                 </span>
                 <Input
@@ -160,7 +160,7 @@ export default function NewExpenseRequestPage() {
               />
             </div>
 
-            <div className="rounded-md border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-3 text-xs text-zinc-600">
+            <div className="rounded-md border border-dashed border-border-primary bg-bg-secondary/80 px-3 py-3 text-xs text-text-secondary">
               凭证附件：当前版本提交时<strong>不附带</strong>图片；后端字段已预留，后续可对接对象存储后在此补充。
             </div>
 
@@ -173,7 +173,7 @@ export default function NewExpenseRequestPage() {
               <Button type="submit" className="flex-1" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Spinner className="w-4 h-4 mr-2 animate-spin" />
                     提交中...
                   </>
                 ) : (

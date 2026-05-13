@@ -12,28 +12,28 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  TrendingUp,
+  TrendUp,
   Target,
-  RefreshCw,
-  AlertCircle,
+  ArrowsClockwise,
+  WarningCircle,
   CheckCircle,
   Minus,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 
 const riskLevelConfig = {
   high: {
     label: "高风险",
-    color: "bg-red-100 text-red-800 border-red-200",
-    icon: AlertCircle,
+    color: "bg-error/20 text-error border-error/30",
+    icon: WarningCircle,
   },
   medium: {
     label: "中风险",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    color: "bg-warning/20 text-warning border-warning/30",
     icon: Minus,
   },
   low: {
     label: "低风险",
-    color: "bg-green-100 text-green-800 border-green-200",
+    color: "bg-success/20 text-success border-success/30",
     icon: CheckCircle,
   },
 };
@@ -57,22 +57,22 @@ function SalesFunnelSection({ data }: { data: SalesFunnelPrediction[] }) {
   const totalCount = data.reduce((sum, item) => sum + item.opportunityCount, 0);
 
   return (
-    <Card className="p-4 mb-6">
-      <h3 className="font-medium text-zinc-900 mb-4 flex items-center gap-2">
-        <TrendingUp className="w-5 h-5 text-blue-600" />
+    <Card className="p-4 mb-6 bg-bg-secondary border-border-primary">
+      <h3 className="font-medium text-text-primary mb-4 flex items-center gap-2">
+        <TrendUp className="w-5 h-5 text-accent-blue" />
         销售漏斗预测
       </h3>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="p-3 bg-blue-50 rounded-lg">
-          <p className="text-xs text-blue-600 mb-1">预计成交总额</p>
-          <p className="text-xl font-semibold text-blue-700">
+        <div className="p-3 bg-accent-blue/10 border border-accent-blue/30 rounded-lg">
+          <p className="text-xs text-text-brand mb-1">预计成交总额</p>
+          <p className="text-xl font-semibold text-text-brand">
             ¥{totalPredicted.toLocaleString("zh-CN", { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="p-3 bg-green-50 rounded-lg">
-          <p className="text-xs text-green-600 mb-1">商机总数</p>
-          <p className="text-xl font-semibold text-green-700">{totalCount}</p>
+        <div className="p-3 bg-success/10 border border-success/30 rounded-lg">
+          <p className="text-xs text-text-success mb-1">商机总数</p>
+          <p className="text-xl font-semibold text-text-success">{totalCount}</p>
         </div>
       </div>
 
@@ -84,13 +84,13 @@ function SalesFunnelSection({ data }: { data: SalesFunnelPrediction[] }) {
           const weighted = parseMoney(item.weightedAmount);
           return (
             <div key={item.stage} className="flex items-center gap-4">
-              <div className="w-24 text-sm text-zinc-600">
+              <div className="w-24 text-sm text-text-secondary">
                 {stageLabels[item.stage] || item.stage}
               </div>
               <div className="flex-1">
-                <div className="w-full bg-zinc-100 rounded-full h-6 relative">
+                <div className="w-full bg-bg-tertiary rounded-full h-6 relative">
                   <div
-                    className="h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-end pr-2"
+                    className="h-6 rounded-full bg-gradient-to-r from-accent-blue to-accent-purple flex items-center justify-end pr-2"
                     style={{ width: `${barWidth}%` }}
                   >
                     <span className="text-xs text-white font-medium">
@@ -100,10 +100,10 @@ function SalesFunnelSection({ data }: { data: SalesFunnelPrediction[] }) {
                 </div>
               </div>
               <div className="w-20 text-right text-sm">
-                <span className="font-medium">{item.opportunityCount}</span>
-                <span className="text-zinc-400"> 个</span>
+                <span className="font-medium text-text-primary">{item.opportunityCount}</span>
+                <span className="text-text-muted"> 个</span>
               </div>
-              <div className="w-32 text-right text-sm text-zinc-600">
+              <div className="w-32 text-right text-sm text-text-secondary">
                 ¥{weighted.toLocaleString("zh-CN", { minimumFractionDigits: 0 })}
               </div>
             </div>
@@ -119,21 +119,27 @@ function OpportunityCard({ prediction }: { prediction: OpportunityPrediction }) 
   const Icon = config.icon;
 
   const getProbabilityColor = (prob: number) => {
-    if (prob >= 70) return "text-green-600";
-    if (prob >= 40) return "text-yellow-600";
-    return "text-red-600";
+    if (prob >= 70) return "text-success";
+    if (prob >= 40) return "text-warning";
+    return "text-error";
+  };
+
+  const getProbabilityBgColor = (prob: number) => {
+    if (prob >= 70) return "bg-success";
+    if (prob >= 40) return "bg-warning";
+    return "bg-error";
   };
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 bg-bg-secondary border-border-primary">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${config.color.split(" ")[0]}`}>
-            <Icon className={`w-5 h-5 ${config.color.split(" ")[0].replace("bg-", "text-").replace("-100", "-600")}`} />
+            <Icon className={`w-5 h-5 ${config.color.split(" ")[1]}`} />
           </div>
           <div>
-            <h3 className="font-medium text-zinc-900">{prediction.opportunityName}</h3>
-            <p className="text-xs text-zinc-500">{prediction.customerName}</p>
+            <h3 className="font-medium text-text-primary">{prediction.opportunityName}</h3>
+            <p className="text-xs text-text-muted">{prediction.customerName}</p>
           </div>
         </div>
         <Badge className={config.color}>{config.label}</Badge>
@@ -141,17 +147,14 @@ function OpportunityCard({ prediction }: { prediction: OpportunityPrediction }) 
 
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-1">
-          <span className="text-zinc-500">成单概率</span>
+          <span className="text-text-tertiary">成单概率</span>
           <span className={`font-medium ${getProbabilityColor(prediction.winProbability)}`}>
             {prediction.winProbability}%
           </span>
         </div>
-        <div className="w-full bg-zinc-100 rounded-full h-3">
+        <div className="w-full bg-bg-tertiary rounded-full h-3">
           <div
-            className={`h-3 rounded-full ${
-              prediction.winProbability >= 70 ? "bg-green-500" :
-              prediction.winProbability >= 40 ? "bg-yellow-500" : "bg-red-500"
-            }`}
+            className={`h-3 rounded-full ${getProbabilityBgColor(prediction.winProbability)}`}
             style={{ width: `${prediction.winProbability}%` }}
           />
         </div>
@@ -159,18 +162,18 @@ function OpportunityCard({ prediction }: { prediction: OpportunityPrediction }) 
 
       {prediction.predictionFactors.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-zinc-500 mb-2">影响因素</p>
+          <p className="text-xs text-text-tertiary mb-2">影响因素</p>
           <div className="space-y-2">
             {prediction.predictionFactors.slice(0, 3).map((factor, idx) => (
               <div key={idx} className="flex items-start gap-2 text-xs">
                 <span className={
-                  factor.impact === "positive" ? "text-green-500" :
-                  factor.impact === "negative" ? "text-red-500" : "text-zinc-400"
+                  factor.impact === "positive" ? "text-success" :
+                  factor.impact === "negative" ? "text-error" : "text-text-muted"
                 }>
                   {factor.impact === "positive" ? "↑" :
                    factor.impact === "negative" ? "↓" : "—"}
                 </span>
-                <span className="text-zinc-700">{factor.description}</span>
+                <span className="text-text-secondary">{factor.description}</span>
               </div>
             ))}
           </div>
@@ -179,11 +182,11 @@ function OpportunityCard({ prediction }: { prediction: OpportunityPrediction }) 
 
       {prediction.recommendedActions.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-zinc-500 mb-1">AI建议</p>
-          <ul className="text-xs text-zinc-700 space-y-1">
+          <p className="text-xs text-text-tertiary mb-1">AI建议</p>
+          <ul className="text-xs text-text-secondary space-y-1">
             {prediction.recommendedActions.map((suggestion, idx) => (
               <li key={idx} className="flex items-start gap-1">
-                <span className="text-blue-500">•</span>
+                <span className="text-accent-blue">•</span>
                 {suggestion}
               </li>
             ))}
@@ -192,7 +195,7 @@ function OpportunityCard({ prediction }: { prediction: OpportunityPrediction }) 
       )}
 
       {prediction.expectedCloseDate ? (
-        <div className="flex items-center gap-2 text-xs text-zinc-500 pt-2 border-t border-zinc-100">
+        <div className="flex items-center gap-2 text-xs text-text-tertiary pt-2 border-t border-border-primary">
           <Target className="w-4 h-4" />
           预计成交日：{prediction.expectedCloseDate}
         </div>
@@ -218,12 +221,12 @@ export function OpportunityPredictionPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900">商机成单预测</h2>
-          <p className="text-sm text-zinc-500">基于商机信息分析，预测成单概率并提供跟进建议</p>
+          <h2 className="text-lg font-semibold text-text-primary">商机成单预测</h2>
+          <p className="text-sm text-text-secondary">基于商机信息分析，预测成单概率并提供跟进建议</p>
         </div>
         <div className="flex gap-2">
           <select
-            className="px-3 py-1.5 text-sm border border-zinc-300 rounded-md"
+            className="px-3 py-1.5 text-sm border border-border-primary bg-bg-tertiary text-text-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-blue/20 focus:border-accent-blue"
             value={stageFilter || ""}
             onChange={(e) => setStageFilter(e.target.value || undefined)}
           >
@@ -242,27 +245,30 @@ export function OpportunityPredictionPanel() {
               funnelQuery.refetch();
               predictionsQuery.refetch();
             }}
+            className="h-9 px-3 border-border-secondary hover:border-accent-blue/50 hover:bg-accent-blue/5 transition-all duration-200"
           >
-            <RefreshCw className="w-4 h-4 mr-1" />
-            刷新
+            <div className="flex items-center gap-1.5">
+              <ArrowsClockwise className="w-4 h-4 text-text-tertiary" weight="regular" />
+              <span className="text-text-secondary">刷新</span>
+            </div>
           </Button>
         </div>
       </div>
 
       {funnelQuery.isLoading ? (
-        <Card className="p-8 text-center text-zinc-500">加载中...</Card>
+        <Card className="p-8 text-center text-text-secondary bg-bg-secondary border-border-primary">加载中...</Card>
       ) : funnelQuery.data ? (
         <SalesFunnelSection data={funnelQuery.data} />
       ) : null}
 
       {predictionsQuery.isLoading ? (
-        <Card className="p-8 text-center text-zinc-500">加载中...</Card>
+        <Card className="p-8 text-center text-text-secondary bg-bg-secondary border-border-primary">加载中...</Card>
       ) : predictionsQuery.error ? (
-        <Card className="p-8 text-center text-red-600">
+        <Card className="p-8 text-center text-error bg-bg-secondary border-border-primary">
           {predictionsQuery.error instanceof Error ? predictionsQuery.error.message : "加载失败"}
         </Card>
       ) : predictionsQuery.data?.length === 0 ? (
-        <Card className="p-8 text-center text-zinc-500">
+        <Card className="p-8 text-center text-text-secondary bg-bg-secondary border-border-primary">
           暂无商机数据
         </Card>
       ) : (

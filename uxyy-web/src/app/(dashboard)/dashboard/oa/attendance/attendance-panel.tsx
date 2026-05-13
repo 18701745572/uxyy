@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, MapPin, AlertCircle, CheckCircle2, XCircle, Clock4, Briefcase, Users, TrendingUp, RefreshCw } from "lucide-react";
+import { Calendar, Clock, MapPin, WarningCircle, CheckCircle, XCircle, ClipboardText, Users, TrendUp, ArrowsClockwise } from "@/components/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { Permission } from "@/lib/permissions/role-matrix";
 
@@ -39,26 +39,26 @@ function getStatusColor(status: AttendanceRecord["status"]): string {
     case "overtime":
       return "bg-purple-100 text-purple-700";
     default:
-      return "bg-zinc-100 text-zinc-700";
+      return "bg-bg-tertiary text-text-secondary";
   }
 }
 
 function getStatusIcon(status: AttendanceRecord["status"]) {
   switch (status) {
     case "normal":
-      return <CheckCircle2 className="w-4 h-4" />;
+      return <CheckCircle className="w-4 h-4" />;
     case "late":
-      return <Clock4 className="w-4 h-4" />;
+      return <Clock className="w-4 h-4" />;
     case "early_leave":
-      return <Clock4 className="w-4 h-4" />;
+      return <Clock className="w-4 h-4" />;
     case "absent":
       return <XCircle className="w-4 h-4" />;
     case "leave":
-      return <Briefcase className="w-4 h-4" />;
+      return <ClipboardText className="w-4 h-4" />;
     case "overtime":
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendUp className="w-4 h-4" />;
     default:
-      return <AlertCircle className="w-4 h-4" />;
+      return <WarningCircle className="w-4 h-4" />;
   }
 }
 
@@ -102,7 +102,7 @@ function makeUpStatusTone(s: MakeUpRequestListItem["status"]): string {
     case "rejected":
       return "bg-red-100 text-red-800";
     default:
-      return "bg-zinc-100 text-zinc-700";
+      return "bg-bg-tertiary text-text-secondary";
   }
 }
 
@@ -182,8 +182,8 @@ export function AttendancePanel() {
 
   const checkInMutation = useMutation({
     mutationFn: (type: "in" | "out") => checkIn(type),
-    onSuccess: () => {
-      setCheckInType(type);
+    onSuccess: (_data, variables) => {
+      setCheckInType(variables);
       setLastCheckInTime(new Date().toLocaleTimeString("zh-CN"));
       setShowSuccessDialog(true);
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
@@ -200,7 +200,7 @@ export function AttendancePanel() {
   });
 
   const tabs = [
-    { id: "personal", label: "我的考勤", icon: Briefcase },
+    { id: "personal", label: "我的考勤", icon: ClipboardText },
     { id: "enterprise", label: "企业概览", icon: Users },
     { id: "make-up", label: "补卡申请", icon: Clock },
   ] as const;
@@ -225,12 +225,12 @@ export function AttendancePanel() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-zinc-700" />
-          <h1 className="text-lg font-semibold text-zinc-900">考勤管理</h1>
+          <Calendar className="w-5 h-5 text-text-secondary" />
+          <h1 className="text-lg font-semibold text-text-primary">考勤管理</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleRefresh} className="hidden sm:flex">
-            <RefreshCw className={`w-4 h-4 ${personalQuery.isRefetching ? "animate-spin" : ""}`} />
+          <Button variant="ghost" size="sm" onClick={handleRefresh} className="hidden sm:flex">
+            <ArrowsClockwise className={`w-4 h-4 ${personalQuery.isRefetching ? "animate-spin" : ""}`} />
           </Button>
           {canApproveAttendance ? (
             <Link href="/dashboard/oa/attendance/make-up-approvals">
@@ -242,19 +242,19 @@ export function AttendancePanel() {
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-zinc-100 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-bg-tertiary rounded-lg w-fit">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <Button
               key={tab.id}
-              variant={activeTab === tab.id ? "default" : "ghost"}
+              variant={activeTab === tab.id ? "primary" : "ghost"}
               onClick={() => setActiveTab(tab.id)}
               size="sm"
               className={`gap-2 rounded-md transition-all duration-200 ${
                 activeTab === tab.id
-                  ? "bg-white shadow-sm text-zinc-900"
-                  : "text-zinc-600 hover:text-zinc-900"
+                  ? "bg-white shadow-sm text-text-primary"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -265,10 +265,10 @@ export function AttendancePanel() {
       </div>
 
       <Card className="p-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-bg-secondary to-transparent opacity-50" />
         
         <div className="relative">
-          <p className="text-sm text-zinc-600 mb-6">
+          <p className="text-sm text-text-secondary mb-6">
             {new Date().toLocaleDateString("zh-CN", {
               year: "numeric",
               month: "long",
@@ -280,32 +280,32 @@ export function AttendancePanel() {
           {checkInMutation.status === "pending" ? (
             <div className="flex flex-col items-center gap-4 animate-pulse">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-zinc-100 flex items-center justify-center">
-                  <Spinner className="w-10 h-10 text-zinc-600" />
+                <div className="w-20 h-20 rounded-full bg-bg-tertiary flex items-center justify-center">
+                  <Spinner className="w-10 h-10 text-text-secondary" />
                 </div>
-                <div className="absolute inset-0 rounded-full bg-zinc-200 animate-ping opacity-50" />
+                <div className="absolute inset-0 rounded-full bg-bg-tertiary animate-ping opacity-50" />
               </div>
-              <p className="text-sm text-zinc-600">正在打卡...</p>
+              <p className="text-sm text-text-secondary">正在打卡...</p>
             </div>
           ) : todayRecord?.checkIn && todayRecord?.checkOut ? (
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center transform transition-transform duration-300 hover:scale-105">
-                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                  <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-bold text-zinc-900">今日已完成打卡</p>
+              <p className="text-xl font-bold text-text-primary">今日已完成打卡</p>
               <div className="flex flex-wrap justify-center gap-6 text-sm">
-                <div className="flex items-center gap-2 text-zinc-600">
+                <div className="flex items-center gap-2 text-text-secondary">
                   <Clock className="w-4 h-4" />
-                  <span>上班：<span className="font-semibold text-zinc-900">{formatTime(todayRecord.checkIn)}</span></span>
+                  <span>上班：<span className="font-semibold text-text-primary">{formatTime(todayRecord.checkIn)}</span></span>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-600">
+                <div className="flex items-center gap-2 text-text-secondary">
                   <Clock className="w-4 h-4" />
-                  <span>下班：<span className="font-semibold text-zinc-900">{formatTime(todayRecord.checkOut)}</span></span>
+                  <span>下班：<span className="font-semibold text-text-primary">{formatTime(todayRecord.checkOut)}</span></span>
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
@@ -313,7 +313,7 @@ export function AttendancePanel() {
                   {getStatusIcon(todayRecord.status)}
                   <span className="ml-1">{getStatusName(todayRecord.status)}</span>
                 </Badge>
-                <span className="text-sm text-zinc-500">
+                <span className="text-sm text-text-tertiary">
                   工时：{formatWorkHours(todayRecord.workHours)}h
                 </span>
               </div>
@@ -328,8 +328,8 @@ export function AttendancePanel() {
                   <span className="text-white text-xs font-medium">班中</span>
                 </div>
               </div>
-              <p className="text-xl font-bold text-zinc-900">等待下班打卡</p>
-              <p className="text-sm text-zinc-600 flex items-center gap-2">
+              <p className="text-xl font-bold text-text-primary">等待下班打卡</p>
+              <p className="text-sm text-text-secondary flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 上班时间：{formatTime(todayRecord.checkIn)}
               </p>
@@ -344,13 +344,13 @@ export function AttendancePanel() {
           ) : (
             <div className="flex flex-col items-center gap-4">
               <div className="relative group cursor-pointer">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-zinc-100 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                  <Clock className="w-10 h-10 text-zinc-600" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-bg-tertiary flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                  <Clock className="w-10 h-10 text-text-secondary" />
                 </div>
                 <div className="absolute inset-0 rounded-full bg-blue-200 blur-xl opacity-0 group-hover:opacity-50 transition-opacity" />
               </div>
-              <p className="text-xl font-bold text-zinc-900">开始今日工作</p>
-              <p className="text-sm text-zinc-600 flex items-center gap-2">
+              <p className="text-xl font-bold text-text-primary">开始今日工作</p>
+              <p className="text-sm text-text-secondary flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 请在工作地点打卡
               </p>
@@ -380,7 +380,7 @@ export function AttendancePanel() {
           {personalQuery.isLoading && (
             <Card className="p-8 text-center col-span-full">
               <Spinner className="mx-auto mb-2" />
-              <p className="text-sm text-zinc-600">加载中...</p>
+              <p className="text-sm text-text-secondary">加载中...</p>
             </Card>
           )}
 
@@ -397,11 +397,11 @@ export function AttendancePanel() {
             <>
               <Card className="p-5 col-span-full sm:col-span-2">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+                  <h3 className="font-medium text-text-primary flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     本月统计
                   </h3>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-text-tertiary">
                     {new Date().getFullYear()}年{new Date().getMonth() + 1}月
                   </span>
                 </div>
@@ -415,21 +415,21 @@ export function AttendancePanel() {
                   ].map((stat) => (
                     <div key={stat.label} className={`${stat.bg} rounded-lg p-3 text-center transition-transform hover:scale-105`}>
                       <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                      <p className="text-xs text-zinc-600 mt-1">{stat.label}</p>
+                      <p className="text-xs text-text-secondary mt-1">{stat.label}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 pt-4 border-t border-zinc-100">
+                <div className="mt-4 pt-4 border-t border-border-secondary">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">本月总工时</span>
+                    <span className="text-sm text-text-secondary">本月总工时</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-zinc-100 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-bg-tertiary rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
                           style={{ width: `${Math.min((parseFloat(formatWorkHours(personalQuery.data.stats.totalWorkHours)) / 180) * 100, 100)}%` }}
                         />
                       </div>
-                      <span className="font-semibold text-zinc-900">
+                      <span className="font-semibold text-text-primary">
                         {formatWorkHours(personalQuery.data.stats.totalWorkHours)}h
                       </span>
                     </div>
@@ -438,73 +438,73 @@ export function AttendancePanel() {
               </Card>
 
               <Card className="p-5">
-                <h3 className="font-medium text-zinc-900 mb-4 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" />
+                <h3 className="font-medium text-text-primary mb-4 flex items-center gap-2">
+                  <ClipboardText className="w-4 h-4" />
                   今日状态
                 </h3>
                 {todayRecord ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">打卡状态</span>
+                      <span className="text-sm text-text-secondary">打卡状态</span>
                       <Badge className={getStatusColor(todayRecord.status)}>
                         {getStatusName(todayRecord.status)}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">上班时间</span>
+                      <span className="text-sm text-text-secondary">上班时间</span>
                       <span className="font-medium">{formatTime(todayRecord.checkIn)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">下班时间</span>
+                      <span className="text-sm text-text-secondary">下班时间</span>
                       <span className="font-medium">{formatTime(todayRecord.checkOut)}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-                      <span className="text-sm text-zinc-600">今日工时</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-border-secondary">
+                      <span className="text-sm text-text-secondary">今日工时</span>
                       <span className="font-bold text-blue-600">{formatWorkHours(todayRecord.workHours)}h</span>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-                    <p className="text-sm text-zinc-500">今日尚未打卡</p>
+                    <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
+                    <p className="text-sm text-text-tertiary">今日尚未打卡</p>
                   </div>
                 )}
               </Card>
 
               <Card className="p-0 overflow-hidden col-span-full">
-                <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
-                  <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+                <div className="px-5 py-3 border-b border-border-secondary flex items-center justify-between">
+                  <h3 className="font-medium text-text-primary flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     考勤记录
                   </h3>
-                  <span className="text-xs text-zinc-500">最近30天</span>
+                  <span className="text-xs text-text-tertiary">最近30天</span>
                 </div>
                 {personalQuery.data.records.length === 0 ? (
                   <div className="p-8 text-center">
-                    <Clock className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-                    <p className="text-sm text-zinc-500">暂无考勤记录</p>
+                    <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
+                    <p className="text-sm text-text-tertiary">暂无考勤记录</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-zinc-50 max-h-80 overflow-y-auto">
+                  <div className="divide-y divide-border-secondary max-h-80 overflow-y-auto">
                     {personalQuery.data.records.map((record) => (
                       <div
                         key={record.id}
-                        className="px-5 py-3 flex items-center justify-between hover:bg-zinc-50 transition-colors"
+                        className="px-5 py-3 flex items-center justify-between hover:bg-bg-secondary transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-zinc-700">
+                          <span className="text-sm font-medium text-text-secondary">
                             {formatDate(record.date)}
                           </span>
-                          <Badge variant="outline" className={getStatusColor(record.status)}>
+                          <Badge variant="default" className={getStatusColor(record.status)}>
                             {getStatusIcon(record.status)}
                             <span className="ml-1 text-xs">{getStatusName(record.status)}</span>
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="text-sm text-zinc-500">
+                          <span className="text-sm text-text-tertiary">
                             {formatTime(record.checkIn)} - {formatTime(record.checkOut)}
                           </span>
-                          <span className="text-sm font-medium text-zinc-700">{formatWorkHours(record.workHours)}h</span>
+                          <span className="text-sm font-medium text-text-secondary">{formatWorkHours(record.workHours)}h</span>
                         </div>
                       </div>
                     ))}
@@ -521,7 +521,7 @@ export function AttendancePanel() {
           {enterpriseQuery.isLoading && (
             <Card className="p-8 text-center">
               <Spinner className="mx-auto mb-2" />
-              <p className="text-sm text-zinc-600">加载中...</p>
+              <p className="text-sm text-text-secondary">加载中...</p>
             </Card>
           )}
 
@@ -538,8 +538,8 @@ export function AttendancePanel() {
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="p-5 text-center">
-                  <p className="text-3xl font-bold text-zinc-900 mb-1">{enterpriseQuery.data.totalEmployees}</p>
-                  <p className="text-sm text-zinc-600">员工总数</p>
+                  <p className="text-3xl font-bold text-text-primary mb-1">{enterpriseQuery.data.totalEmployees}</p>
+                  <p className="text-sm text-text-secondary">员工总数</p>
                 </Card>
                 <Card className="p-5 text-center bg-green-50 border-green-200">
                   <p className="text-3xl font-bold text-green-600 mb-1">{enterpriseQuery.data.checkedIn}</p>
@@ -557,12 +557,12 @@ export function AttendancePanel() {
 
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-medium text-zinc-900">
+                  <h3 className="font-medium text-text-primary">
                     {enterpriseQuery.data.date} 出勤率
                   </h3>
-                  <span className="text-4xl font-bold text-zinc-900">{enterpriseQuery.data.checkInRate}%</span>
+                  <span className="text-4xl font-bold text-text-primary">{enterpriseQuery.data.checkInRate}%</span>
                 </div>
-                <div className="h-4 bg-zinc-100 rounded-full overflow-hidden">
+                <div className="h-4 bg-bg-tertiary rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
                     style={{ width: `${enterpriseQuery.data.checkInRate}%` }}
@@ -571,26 +571,26 @@ export function AttendancePanel() {
               </Card>
 
               <Card className="p-0 overflow-hidden">
-                <div className="px-5 py-3 border-b border-zinc-100">
-                  <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+                <div className="px-5 py-3 border-b border-border-secondary">
+                  <h3 className="font-medium text-text-primary flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     员工打卡详情
                   </h3>
                 </div>
-                <div className="divide-y divide-zinc-50 max-h-96 overflow-y-auto">
+                <div className="divide-y divide-border-secondary max-h-96 overflow-y-auto">
                   {enterpriseQuery.data.details.map((detail, index) => (
                     <div
                       key={index}
-                      className="px-5 py-3 flex items-center justify-between hover:bg-zinc-50 transition-colors"
+                      className="px-5 py-3 flex items-center justify-between hover:bg-bg-secondary transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
-                          <Users className="w-4 h-4 text-zinc-500" />
+                        <div className="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center">
+                          <Users className="w-4 h-4 text-text-tertiary" />
                         </div>
-                        <span className="text-sm font-medium text-zinc-700">{detail.userName}</span>
+                        <span className="text-sm font-medium text-text-secondary">{detail.userName}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-sm text-zinc-500">
+                        <span className="text-sm text-text-tertiary">
                           {detail.checkIn ? formatTime(detail.checkIn) : "--:--"}
                           {detail.checkOut && ` - ${formatTime(detail.checkOut)}`}
                         </span>
@@ -600,7 +600,7 @@ export function AttendancePanel() {
                               ? "bg-green-100 text-green-700"
                               : detail.status === "late"
                               ? "bg-amber-100 text-amber-700"
-                              : "bg-zinc-100 text-zinc-700"
+                              : "bg-bg-tertiary text-text-secondary"
                           }
                         >
                           {detail.status === "normal"
@@ -623,19 +623,19 @@ export function AttendancePanel() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+              <h3 className="font-medium text-text-primary flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 申请补卡
               </h3>
             </div>
-            <p className="text-xs text-zinc-500 mb-4">
+            <p className="text-xs text-text-tertiary mb-4">
               提交后请在右侧列表查看审批状态；管理员可通过右上角「补卡审批」入口处理全员申请。
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">补卡日期</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">补卡日期</label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <Input
                     type="date"
                     value={makeUpDate}
@@ -645,18 +645,17 @@ export function AttendancePanel() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">补卡类型</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">补卡类型</label>
                 <Select
                   value={makeUpType}
                   onValueChange={(value) => setMakeUpType(value as "in" | "out")}
-                  className="w-full"
                 >
                   <option value="in">上班打卡</option>
                   <option value="out">下班打卡</option>
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">补卡原因</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">补卡原因</label>
                 <Textarea
                   value={makeUpReason}
                   onChange={(e) => setMakeUpReason(e.target.value)}
@@ -681,7 +680,7 @@ export function AttendancePanel() {
               </Button>
               {makeUpMutation.isSuccess && (
                 <div className="p-3 bg-green-50 rounded-lg flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-700">补卡申请已提交，请查看右侧列表了解审批进度</span>
                 </div>
               )}
@@ -695,8 +694,8 @@ export function AttendancePanel() {
           </Card>
 
           <Card className="p-0 overflow-hidden">
-            <div className="px-5 py-3 border-b border-zinc-100">
-              <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+            <div className="px-5 py-3 border-b border-border-secondary">
+              <h3 className="font-medium text-text-primary flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 我的补卡记录
               </h3>
@@ -716,28 +715,28 @@ export function AttendancePanel() {
             )}
             {!myMakeUpQuery.isLoading && !myMakeUpQuery.isError && (myMakeUpQuery.data?.length ?? 0) === 0 && (
               <div className="p-8 text-center">
-                <Clock className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-                <p className="text-sm text-zinc-500">暂无补卡申请记录</p>
+                <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
+                <p className="text-sm text-text-tertiary">暂无补卡申请记录</p>
               </div>
             )}
             {myMakeUpQuery.data &&
               myMakeUpQuery.data.length > 0 &&
               !myMakeUpQuery.isLoading && (
-                <div className="divide-y divide-zinc-50 max-h-96 overflow-y-auto">
+                <div className="divide-y divide-border-secondary max-h-96 overflow-y-auto">
                   {myMakeUpQuery.data.map((row) => (
-                    <div key={row.id} className="px-5 py-4 hover:bg-zinc-50 transition-colors">
+                    <div key={row.id} className="px-5 py-4 hover:bg-bg-secondary transition-colors">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-zinc-900">
+                        <span className="font-medium text-text-primary">
                           {formatMakeUpDay(row.date)} · {formatMakeUpType(row.type)}
                         </span>
                         <Badge className={makeUpStatusTone(row.status)}>
                           {makeUpStatusLabel(row.status)}
                         </Badge>
                       </div>
-                      <p className="text-xs text-zinc-500 mb-2">
+                      <p className="text-xs text-text-tertiary mb-2">
                         提交于 {formatDateTimeCn(row.createdAt)}
                       </p>
-                      <p className="text-sm text-zinc-700">{row.reason}</p>
+                      <p className="text-sm text-text-secondary">{row.reason}</p>
                       {row.status === "rejected" && row.remark && (
                         <div className="mt-2 p-2 bg-red-50 rounded text-xs text-red-700">
                           审批备注：{row.remark}
@@ -756,12 +755,12 @@ export function AttendancePanel() {
           <DialogHeader>
             <DialogTitle className="text-center">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <p className="text-xl font-bold text-zinc-900">
+              <p className="text-xl font-bold text-text-primary">
                 {checkInType === "in" ? "上班打卡成功" : "下班打卡成功"}
               </p>
-              <p className="text-sm text-zinc-600 mt-2">
+              <p className="text-sm text-text-secondary mt-2">
                 打卡时间：{lastCheckInTime}
               </p>
             </DialogTitle>

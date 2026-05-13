@@ -1,3 +1,13 @@
+import type { Icon } from "@phosphor-icons/react";
+import {
+  House,
+  Bell,
+  Users,
+  Package,
+  Coins,
+  ClipboardText,
+  Robot,
+} from "@phosphor-icons/react";
 import { Permission, type PermissionCode } from "./role-matrix";
 
 export function permissionSet(permissions: readonly string[]): Set<string> {
@@ -18,50 +28,58 @@ export function hasEveryPermission(
   return required.every((p) => perms.has(p));
 }
 
+/** 导航项类型定义 */
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: Icon;
+  anyOf: PermissionCode[];
+}
+
 /** 侧栏：满足任一权限即显示该入口 */
-export const SIDEBAR_NAV = [
+export const SIDEBAR_NAV: NavItem[] = [
   {
     href: "/dashboard",
-    label: "首页",
-    icon: "🏠",
-    anyOf: [] as PermissionCode[],
+    label: "工作台",
+    icon: House,
+    anyOf: [],
   },
   {
     href: "/dashboard/messages",
-    label: "消息",
-    icon: "🔔",
-    anyOf: [] as PermissionCode[],
+    label: "消息中心",
+    icon: Bell,
+    anyOf: [],
   },
   {
     href: "/dashboard/crm",
     label: "客户管理",
-    icon: "👥",
+    icon: Users,
     anyOf: [Permission.CRM_READ],
   },
   {
     href: "/dashboard/inventory",
-    label: "进销存",
-    icon: "📦",
+    label: "进销存管",
+    icon: Package,
     anyOf: [Permission.INV_READ],
   },
   {
     href: "/dashboard/finance",
-    label: "财务",
-    icon: "💰",
+    label: "财务管理",
+    icon: Coins,
     anyOf: [Permission.FIN_READ],
   },
   {
     href: "/dashboard/oa",
     label: "OA 办公",
-    icon: "📋",
+    icon: ClipboardText,
     anyOf: [Permission.OA_READ],
   },
   {
     href: "/dashboard/ai",
     label: "AI 智能",
-    icon: "🤖",
+    icon: Robot,
     /** AI 任务仅要求登录+企业；具体能力由各接口鉴权 */
-    anyOf: [] as PermissionCode[],
+    anyOf: [],
   },
 ] as const;
 

@@ -29,17 +29,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Download,
-  Trash2,
+  DownloadSimple,
+  Trash,
   Clock,
-  FileCheck,
+  FileText,
   Shield,
-  Settings,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle2,
+  Gear,
+  ArrowsClockwise,
+  WarningCircle,
+  CheckCircle,
   Info,
-} from 'lucide-react';
+} from '@/components/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
@@ -97,14 +97,14 @@ function getStatusBadge(status: string) {
     case 'completed':
       return (
         <Badge variant="secondary" className="bg-green-100 text-green-700">
-          <CheckCircle2 className="w-3 h-3 mr-1" />
+          <CheckCircle className="w-3 h-3 mr-1" />
           已完成
         </Badge>
       );
     case 'failed':
       return (
         <Badge variant="secondary" className="bg-red-100 text-red-700">
-          <AlertCircle className="w-3 h-3 mr-1" />
+          <WarningCircle className="w-3 h-3 mr-1" />
           失败
         </Badge>
       );
@@ -130,7 +130,7 @@ function getBackupTypeLabel(type: string): string {
 export default function BackupPanel() {
   const [activeTab, setActiveTab] = useState<'list' | 'config'>('list');
   const [configForm, setConfigForm] = useState<BackupConfig | null>(null);
-  const [showVerifyDialog, setShowVerifyDialog] = useState<string | null>(null);
+  const [, setShowVerifyDialog] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<{
     valid: boolean;
     message: string;
@@ -161,7 +161,6 @@ export default function BackupPanel() {
   const backupsLoading = backupsQuery.isLoading;
   const backupsError = backupsQuery.error;
 
-  const config = configQuery.data;
   const configLoading = configQuery.isLoading;
 
   const stats = statsQuery.data;
@@ -243,8 +242,8 @@ export default function BackupPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">数据备份</h1>
-          <p className="text-sm text-zinc-500 mt-1">管理企业数据备份，确保数据安全</p>
+          <h1 className="text-2xl font-bold text-text-primary">数据备份</h1>
+          <p className="text-sm text-text-tertiary mt-1">管理企业数据备份，确保数据安全</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -252,7 +251,7 @@ export default function BackupPanel() {
             onClick={handleExport}
             className="gap-2"
           >
-            <Download className="w-4 h-4" />
+            <DownloadSimple className="w-4 h-4" />
             导出数据
           </Button>
           <Button
@@ -260,7 +259,7 @@ export default function BackupPanel() {
             disabled={createBackupMutation.isPending}
             className="gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${createBackupMutation.isPending ? 'animate-spin' : ''}`} />
+            <ArrowsClockwise className={`w-4 h-4 ${createBackupMutation.isPending ? 'animate-spin' : ''}`} />
             创建备份
           </Button>
         </div>
@@ -277,7 +276,7 @@ export default function BackupPanel() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <FileCheck className="w-6 h-6" />
+                <FileText className="w-6 h-6" />
               </div>
             </div>
           </CardContent>
@@ -293,7 +292,7 @@ export default function BackupPanel() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" />
+                <CheckCircle className="w-6 h-6" />
               </div>
             </div>
           </CardContent>
@@ -332,13 +331,13 @@ export default function BackupPanel() {
         </Card>
       </div>
 
-      <div className="flex items-center gap-2 p-1 bg-zinc-100 rounded-lg w-fit">
+      <div className="flex items-center gap-2 p-1 bg-bg-tertiary rounded-lg w-fit">
         <button
           onClick={() => setActiveTab('list')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'list'
-              ? 'bg-white shadow text-zinc-900'
-              : 'text-zinc-600 hover:text-zinc-900'
+              ? 'bg-white shadow text-text-primary'
+              : 'text-text-secondary hover:text-text-primary'
           }`}
         >
           备份列表
@@ -347,11 +346,11 @@ export default function BackupPanel() {
           onClick={() => setActiveTab('config')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === 'config'
-              ? 'bg-white shadow text-zinc-900'
-              : 'text-zinc-600 hover:text-zinc-900'
+              ? 'bg-white shadow text-text-primary'
+              : 'text-text-secondary hover:text-text-primary'
           }`}
         >
-          <Settings className="w-4 h-4 inline mr-1" />
+          <Gear className="w-4 h-4 inline mr-1" />
           备份设置
         </button>
       </div>
@@ -367,7 +366,7 @@ export default function BackupPanel() {
           <CardContent>
             {backupsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 text-zinc-400 animate-spin" />
+                <ArrowsClockwise className="w-8 h-8 text-text-muted animate-spin" />
               </div>
             ) : backupsError ? (
               <div className="rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -383,29 +382,29 @@ export default function BackupPanel() {
               </div>
             ) : backupList.length === 0 ? (
               <div className="text-center py-12">
-                <FileCheck className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-                <p className="text-zinc-500">暂无备份记录</p>
-                <p className="text-sm text-zinc-400 mt-1">点击上方按钮创建第一个备份</p>
+                <FileText className="w-16 h-16 text-text-quaternary mx-auto mb-4" />
+                <p className="text-text-tertiary">暂无备份记录</p>
+                <p className="text-sm text-text-muted mt-1">点击上方按钮创建第一个备份</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {backupList.map(backup => (
                   <div
                     key={backup.id}
-                    className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg hover:bg-zinc-100 transition-colors"
+                    className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-zinc-200 flex items-center justify-center">
-                        <FileCheck className="w-6 h-6 text-zinc-500" />
+                      <div className="w-12 h-12 rounded-lg bg-bg-tertiary flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-text-tertiary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-zinc-900">
+                          <span className="font-medium text-text-primary">
                             {backup.fileName}
                           </span>
                           {getStatusBadge(backup.status)}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-zinc-500 mt-1">
+                        <div className="flex items-center gap-4 text-sm text-text-tertiary mt-1">
                           <span>{getBackupTypeLabel(backup.backupType)}</span>
                           <span>{formatFileSize(backup.fileSize)}</span>
                           <span>{formatDate(backup.createdAt)}</span>
@@ -416,7 +415,7 @@ export default function BackupPanel() {
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" onClick={() => handleVerify(backup.fileName)}>
-                            <FileCheck className="w-4 h-4 mr-1" />
+                            <CheckCircle className="w-4 h-4 mr-1" />
                             验证
                           </Button>
                         </DialogTrigger>
@@ -427,12 +426,12 @@ export default function BackupPanel() {
                           <DialogDescription className="flex items-center gap-2">
                             {verifyResult?.valid ? (
                               <>
-                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                <CheckCircle className="w-5 h-5 text-green-500" />
                                 <span className="text-green-700">{verifyResult.message}</span>
                               </>
                             ) : (
                               <>
-                                <AlertCircle className="w-5 h-5 text-red-500" />
+                                <WarningCircle className="w-5 h-5 text-red-500" />
                                 <span className="text-red-700">{verifyResult?.message || '验证中...'}</span>
                               </>
                             )}
@@ -445,7 +444,7 @@ export default function BackupPanel() {
                         onClick={() => handleDownload(backup.fileName)}
                         disabled={backup.status !== 'completed'}
                       >
-                        <Download className="w-4 h-4 mr-1" />
+                        <DownloadSimple className="w-4 h-4 mr-1" />
                         下载
                       </Button>
                       <DropdownMenu>
@@ -459,12 +458,12 @@ export default function BackupPanel() {
                             className="text-red-600"
                             onClick={() => deleteBackupMutation.mutate(backup.id)}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
+                            <Trash className="w-4 h-4 mr-2" />
                             删除备份
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleVerify(backup.fileName)}>
-                            <FileCheck className="w-4 h-4 mr-2" />
+                            <CheckCircle className="w-4 h-4 mr-2" />
                             验证完整性
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -487,14 +486,14 @@ export default function BackupPanel() {
           <CardContent>
             {configLoading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 text-zinc-400 animate-spin" />
+                <ArrowsClockwise className="w-8 h-8 text-text-muted animate-spin" />
               </div>
             ) : (
               <div className="space-y-6 max-w-2xl">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-base font-medium">自动备份</Label>
-                    <p className="text-sm text-zinc-500 mt-1">启用后系统将自动定期备份数据</p>
+                    <p className="text-sm text-text-tertiary mt-1">启用后系统将自动定期备份数据</p>
                   </div>
                   <Switch
                     checked={configForm?.autoBackup || false}
@@ -504,7 +503,7 @@ export default function BackupPanel() {
 
                 <div>
                   <Label className="text-base font-medium">备份频率</Label>
-                  <p className="text-sm text-zinc-500 mt-1">设置自动备份的时间间隔</p>
+                  <p className="text-sm text-text-tertiary mt-1">设置自动备份的时间间隔</p>
                   <div className="flex items-center gap-3 mt-3">
                     {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
                       <button
@@ -513,7 +512,7 @@ export default function BackupPanel() {
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           configForm?.backupFrequency === freq
                             ? 'bg-purple-500 text-white'
-                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                            : 'bg-bg-tertiary text-text-secondary hover:bg-border-primary'
                         }`}
                       >
                         {freq === 'daily' ? '每天' : freq === 'weekly' ? '每周' : '每月'}
@@ -524,7 +523,7 @@ export default function BackupPanel() {
 
                 <div>
                   <Label className="text-base font-medium">备份时间</Label>
-                  <p className="text-sm text-zinc-500 mt-1">设置自动备份的执行时间（24小时制）</p>
+                  <p className="text-sm text-text-tertiary mt-1">设置自动备份的执行时间（24小时制）</p>
                   <Input
                     type="time"
                     value={configForm?.backupTime || '02:00'}
@@ -535,7 +534,7 @@ export default function BackupPanel() {
 
                 <div>
                   <Label className="text-base font-medium">备份保留天数</Label>
-                  <p className="text-sm text-zinc-500 mt-1">超过此天数的备份将自动删除</p>
+                  <p className="text-sm text-text-tertiary mt-1">超过此天数的备份将自动删除</p>
                   <div className="flex items-center gap-3 mt-3">
                     <Input
                       type="number"
@@ -545,14 +544,14 @@ export default function BackupPanel() {
                       onChange={(e) => handleConfigChange('retentionDays', parseInt(e.target.value) || 30)}
                       className="w-32"
                     />
-                    <span className="text-zinc-500">天</span>
+                    <span className="text-text-tertiary">天</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-base font-medium">包含附件文件</Label>
-                    <p className="text-sm text-zinc-500 mt-1">备份时同时包含上传的文件附件</p>
+                    <p className="text-sm text-text-tertiary mt-1">备份时同时包含上传的文件附件</p>
                   </div>
                   <Switch
                     checked={configForm?.includeFiles || false}
@@ -563,7 +562,7 @@ export default function BackupPanel() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-base font-medium">加密备份</Label>
-                    <p className="text-sm text-zinc-500 mt-1">使用加密方式存储备份文件（需要配置加密密钥）</p>
+                    <p className="text-sm text-text-tertiary mt-1">使用加密方式存储备份文件（需要配置加密密钥）</p>
                   </div>
                   <Switch
                     checked={configForm?.encryptionEnabled || false}

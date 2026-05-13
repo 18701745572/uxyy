@@ -1,6 +1,6 @@
 {
   "name": "@uxyy/api",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "",
   "author": "",
   "private": true,
@@ -37,6 +37,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.2",
     "@uxyy/shared": "workspace:^",
+    "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.76.5",
     "class-transformer": "^0.5.1",

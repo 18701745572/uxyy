@@ -71,23 +71,23 @@ export function VouchersPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">凭证录入</h1>
+        <h1 className="text-lg font-semibold text-text-primary">凭证录入</h1>
         <Link
           href="/dashboard/ai"
-          className="text-sm text-zinc-600 underline hover:text-zinc-900"
+          className="text-sm text-text-secondary underline hover:text-text-primary"
         >
           从 AI 助手写入凭证 →
         </Link>
       </div>
 
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-text-secondary">
         当前为<strong>单行分录凭证</strong>列表（一笔借方科目、一笔贷方科目）。草稿/过账筛选已移除；可按来源筛选，
         AI 生成的记录来源为 「AI 任务」。
       </p>
 
       <div className="flex flex-wrap gap-2 items-center">
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={sourceType}
           onChange={(e) => {
             setSourceType(e.target.value);
@@ -104,14 +104,14 @@ export function VouchersPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {listErrorMessage(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -119,45 +119,45 @@ export function VouchersPanel() {
             </div>
 
             {!items.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无凭证数据。若在 AI 中已写入，请将来源筛为 「AI 任务」或选 「全部来源」后刷新。
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {items.map((row) => (
                   <li key={row.id} className="px-4 py-3 flex flex-col gap-1">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span
-                        className="text-xs text-zinc-500 tabular-nums"
+                        className="text-xs text-text-tertiary tabular-nums"
                         title="数据库主键，用于 AI 纠错等按 id 查询的场景"
                       >
                         分录 id {row.id}
                       </span>
-                      <span className="font-medium text-zinc-900">
+                      <span className="font-medium text-text-primary">
                         {row.voucherNo}
                       </span>
-                      <span className="text-xs rounded bg-zinc-100 px-2 py-0.5 text-zinc-700">
+                      <span className="text-xs rounded bg-bg-tertiary px-2 py-0.5 text-text-secondary">
                         {sourceTypeLabel(row.sourceType)}
                       </span>
                       {row.sourceId != null && row.sourceType === "ai_task" && (
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-text-tertiary">
                           任务 #{row.sourceId}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-zinc-600">
+                    <div className="text-xs text-text-secondary">
                       <span className="mr-3">
                         日期: {formatEntryDate(row.entryDate)}
                       </span>
                       <span className="mr-3">金额: ¥{row.amount}</span>
                     </div>
-                    <div className="text-xs text-zinc-700">
+                    <div className="text-xs text-text-secondary">
                       借：<span className="font-medium">{row.debitAccount}</span>
                       {" → "}
                       贷：<span className="font-medium">{row.creditAccount}</span>
                     </div>
                     {row.summary && (
-                      <div className="text-xs text-zinc-500 line-clamp-2">
+                      <div className="text-xs text-text-tertiary line-clamp-2">
                         摘要：{row.summary}
                       </div>
                     )}
@@ -166,7 +166,7 @@ export function VouchersPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -174,7 +174,7 @@ export function VouchersPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button

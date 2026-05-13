@@ -105,15 +105,15 @@ export function InvoiceOcrPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">发票OCR识别</h1>
-        <p className="text-sm text-zinc-600">上传发票图片，AI自动识别信息</p>
+        <h1 className="text-lg font-semibold text-text-primary">发票OCR识别</h1>
+        <p className="text-sm text-text-secondary">上传发票图片，AI自动识别信息</p>
       </div>
 
       {!showResult ? (
         <Card className="p-6">
-          <h3 className="text-sm font-medium text-zinc-900 mb-4">上传发票图片</h3>
+          <h3 className="text-sm font-medium text-text-primary mb-4">上传发票图片</h3>
 
-          <div className="border-2 border-dashed border-zinc-300 rounded-lg p-8 text-center">
+          <div className="border-2 border-dashed border-border-primary rounded-lg p-8 text-center">
             {selectedFile ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="relative max-h-64">
@@ -125,7 +125,7 @@ export function InvoiceOcrPanel() {
                     height={300}
                   />
                 </div>
-                <p className="text-sm text-zinc-600">{selectedFile.name}</p>
+                <p className="text-sm text-text-secondary">{selectedFile.name}</p>
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -138,9 +138,9 @@ export function InvoiceOcrPanel() {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-bg-tertiary flex items-center justify-center">
                   <svg
-                    className="w-8 h-8 text-zinc-400"
+                    className="w-8 h-8 text-text-muted"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -153,7 +153,7 @@ export function InvoiceOcrPanel() {
                     />
                   </svg>
                 </div>
-                <p className="text-sm text-zinc-600">点击或拖拽上传发票图片</p>
+                <p className="text-sm text-text-secondary">点击或拖拽上传发票图片</p>
                 <input
                   type="file"
                   accept="image/*"
@@ -184,7 +184,7 @@ export function InvoiceOcrPanel() {
             </Button>
           </div>
 
-          <p className="mt-4 text-xs text-center text-zinc-500">
+          <p className="mt-4 text-xs text-center text-text-tertiary">
             支持 JPG、PNG 格式，建议分辨率不低于 300dpi，单个文件不超过 5MB
           </p>
         </Card>
@@ -216,7 +216,7 @@ export function InvoiceOcrPanel() {
                 <div className="flex items-center gap-2 mb-4">
                   <Badge className="bg-green-100 text-green-700">识别完成</Badge>
                   {viewResult.confidence > 0 && (
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-text-tertiary">
                       置信度：{(viewResult.confidence * 100).toFixed(0)}%
                     </span>
                   )}
@@ -232,7 +232,7 @@ export function InvoiceOcrPanel() {
                       onPatch={(p) => setDraft((d: InvoiceOcrResult | null) => (d ? { ...d, ...p } : null))}
                     />
                     {draft.items.length > 0 && (
-                      <p className="mt-2 text-xs text-zinc-500">
+                      <p className="mt-2 text-xs text-text-tertiary">
                         商品明细仍以识别结果为准；若需改明细请保存后到「发票管理」新建发票时核对。
                       </p>
                     )}
@@ -241,28 +241,28 @@ export function InvoiceOcrPanel() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-zinc-900">发票信息</h4>
+                        <h4 className="text-sm font-medium text-text-primary">发票信息</h4>
                         <InfoRow label="发票类型" value={viewResult.invoiceType} />
                         <InfoRow label="发票代码" value={viewResult.invoiceCode} />
                         <InfoRow label="发票号码" value={viewResult.invoiceNumber} />
                         <InfoRow label="开票日期" value={viewResult.invoiceDate} />
                       </div>
                       <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-zinc-900">购买方</h4>
+                        <h4 className="text-sm font-medium text-text-primary">购买方</h4>
                         <InfoRow label="名称" value={viewResult.buyerName} />
                         <InfoRow label="税号" value={viewResult.buyerTaxId} />
                         <InfoRow label="地址电话" value={viewResult.buyerAddress} />
                         <InfoRow label="开户行" value={viewResult.buyerBank} />
                       </div>
                       <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-zinc-900">销售方</h4>
+                        <h4 className="text-sm font-medium text-text-primary">销售方</h4>
                         <InfoRow label="名称" value={viewResult.sellerName} />
                         <InfoRow label="税号" value={viewResult.sellerTaxId} />
                         <InfoRow label="地址电话" value={viewResult.sellerAddress} />
                         <InfoRow label="开户行" value={viewResult.sellerBank} />
                       </div>
                       <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-zinc-900">金额信息</h4>
+                        <h4 className="text-sm font-medium text-text-primary">金额信息</h4>
                         <InfoRow label="不含税金额" value={`¥${viewResult.amount.toFixed(2)}`} />
                         <InfoRow label="税率" value={viewResult.taxRate} />
                         <InfoRow label="税额" value={`¥${viewResult.taxAmount.toFixed(2)}`} />
@@ -276,48 +276,48 @@ export function InvoiceOcrPanel() {
 
                     {viewResult.items && viewResult.items.length > 0 && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-zinc-900 mb-3">商品明细</h4>
+                        <h4 className="text-sm font-medium text-text-primary mb-3">商品明细</h4>
                         <Card className="p-0 overflow-hidden">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="bg-zinc-50">
-                                <th className="px-4 py-2 text-left text-xs font-medium text-zinc-600">
+                              <tr className="bg-bg-secondary">
+                                <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary">
                                   名称
                                 </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary">
                                   数量
                                 </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary">
                                   单价
                                 </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary">
                                   金额
                                 </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary">
                                   税率
                                 </th>
-                                <th className="px-4 py-2 text-right text-xs font-medium text-zinc-600">
+                                <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary">
                                   税额
                                 </th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-100">
+                            <tbody className="divide-y divide-border-secondary">
                               {viewResult.items.map((item: InvoiceItem, index: number) => (
                                 <tr key={index}>
-                                  <td className="px-4 py-2 text-zinc-700">{item.name}</td>
-                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                  <td className="px-4 py-2 text-text-secondary">{item.name}</td>
+                                  <td className="px-4 py-2 text-right text-text-secondary">
                                     {item.quantity}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                  <td className="px-4 py-2 text-right text-text-secondary">
                                     {item.price != null ? item.price.toFixed(2) : "—"}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                  <td className="px-4 py-2 text-right text-text-secondary">
                                     {item.amount != null ? item.amount.toFixed(2) : "—"}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                  <td className="px-4 py-2 text-right text-text-secondary">
                                     {item.taxRate}
                                   </td>
-                                  <td className="px-4 py-2 text-right text-zinc-600">
+                                  <td className="px-4 py-2 text-right text-text-secondary">
                                     {item.taxAmount != null ? item.taxAmount.toFixed(2) : "—"}
                                   </td>
                                 </tr>
@@ -344,8 +344,8 @@ export function InvoiceOcrPanel() {
                   )}
 
                 {editing && draft && (
-                  <div className="mt-4 space-y-3 rounded-md border border-zinc-200 p-3">
-                    <p className="text-xs font-medium text-zinc-700">其他信息</p>
+                  <div className="mt-4 space-y-3 rounded-md border border-border-primary p-3">
+                    <p className="text-xs font-medium text-text-secondary">其他信息</p>
                     <Input
                       label="备注"
                       value={draft.remarks ?? ""}
@@ -436,7 +436,7 @@ function OcrInvoiceEditForm({
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-zinc-900">发票信息</h4>
+        <h4 className="text-sm font-medium text-text-primary">发票信息</h4>
         <Input
           label="发票类型"
           value={value.invoiceType}
@@ -460,7 +460,7 @@ function OcrInvoiceEditForm({
         />
       </div>
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-zinc-900">购买方</h4>
+        <h4 className="text-sm font-medium text-text-primary">购买方</h4>
         <Input
           label="名称"
           value={value.buyerName}
@@ -483,7 +483,7 @@ function OcrInvoiceEditForm({
         />
       </div>
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-zinc-900">销售方</h4>
+        <h4 className="text-sm font-medium text-text-primary">销售方</h4>
         <Input
           label="名称"
           value={value.sellerName}
@@ -506,7 +506,7 @@ function OcrInvoiceEditForm({
         />
       </div>
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-zinc-900">金额信息</h4>
+        <h4 className="text-sm font-medium text-text-primary">金额信息</h4>
         <Input
           label="不含税金额"
           inputMode="decimal"
@@ -550,8 +550,8 @@ function InfoRow({
         highlight ? "font-medium text-amber-600" : ""
       }`}
     >
-      <span className="text-zinc-500">{label}</span>
-      <span className={highlight ? "text-amber-600" : "text-zinc-700"}>
+      <span className="text-text-tertiary">{label}</span>
+      <span className={highlight ? "text-amber-600" : "text-text-secondary"}>
         {value || "-"}
       </span>
     </div>

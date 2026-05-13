@@ -32,13 +32,13 @@ function ItemsTable({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-medium text-zinc-900 mb-2">{title}</h2>
+      <h2 className="text-sm font-medium text-text-primary mb-2">{title}</h2>
       {rows.length === 0 ? (
-        <p className="text-sm text-zinc-500">{emptyText}</p>
+        <p className="text-sm text-text-tertiary">{emptyText}</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200">
+        <div className="overflow-x-auto rounded-lg border border-border-primary">
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-zinc-50 text-left text-xs font-medium text-zinc-600">
+            <thead className="bg-bg-secondary text-left text-xs font-medium text-text-secondary">
               <tr>
                 <th className="px-3 py-2">{counterpartyLabel}</th>
                 <th className="px-3 py-2">发票号</th>
@@ -49,22 +49,22 @@ function ItemsTable({
                 <th className="px-3 py-2 text-right">逾期(天)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-border-secondary">
               {rows.map((r) => (
                 <tr key={r.id} className="bg-white">
                   <td className="px-3 py-2">{r.name}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.invoiceNo}</td>
                   <td className="px-3 py-2 text-right tabular-nums">¥{r.amount}</td>
                   <td className="px-3 py-2 text-right tabular-nums">¥{r.paidAmount}</td>
-                  <td className="px-3 py-2 text-right font-medium text-zinc-900 tabular-nums">
+                  <td className="px-3 py-2 text-right font-medium text-text-primary tabular-nums">
                     ¥{r.balance}
                   </td>
-                  <td className="px-3 py-2 text-zinc-600">{r.issueDate ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{r.issueDate ?? "—"}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {r.daysOverdue > 0 ? (
                       <span className="text-red-600">{r.daysOverdue}</span>
                     ) : (
-                      <span className="text-zinc-500">—</span>
+                      <span className="text-text-tertiary">—</span>
                     )}
                   </td>
                 </tr>
@@ -96,7 +96,7 @@ export function ArApPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">应收应付</h1>
+        <h1 className="text-lg font-semibold text-text-primary">应收应付</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/dashboard/finance/invoices">
             <Button type="button" variant="secondary" className="text-sm">
@@ -111,7 +111,7 @@ export function ArApPanel() {
         </div>
       </div>
 
-      <p className="text-sm text-zinc-600 rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">
+      <p className="text-sm text-text-secondary rounded-md bg-bg-secondary border border-border-secondary px-3 py-2">
         数据来自「已核验、未入账」的发票：<strong>应收账款</strong>
         为非采购来源票（销售侧应收），<strong>应付账款</strong>为采购关联票；入账后将从本列表消失。可在
         发票管理中完成核验与入账。
@@ -132,7 +132,7 @@ export function ArApPanel() {
       </div>
 
       {q.isLoading ? (
-        <p className="text-sm text-zinc-600">加载中…</p>
+        <p className="text-sm text-text-secondary">加载中…</p>
       ) : q.isError ? (
         <p className="text-sm text-red-600">
           {q.error instanceof Error ? q.error.message : "加载失败"}
@@ -174,7 +174,7 @@ export function ArApPanel() {
           />
         </>
       ) : (
-        <p className="text-sm text-zinc-500">暂无数据</p>
+        <p className="text-sm text-text-tertiary">暂无数据</p>
       )}
     </div>
   );

@@ -45,7 +45,7 @@ export function DashboardRouteGate({ children }: { children: ReactNode }) {
     !onForbiddenPage
   ) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-zinc-500">
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-text-tertiary">
         正在检查访问权限…
       </div>
     );

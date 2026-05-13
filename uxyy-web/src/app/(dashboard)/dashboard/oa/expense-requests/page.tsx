@@ -5,13 +5,13 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
-  Search,
+  MagnifyingGlass,
   Receipt,
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
-} from "lucide-react";
+  WarningCircle,
+} from "@/components/icons";
 import { fetchExpenseRequests } from "@/lib/api/expense-requests";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ const statusMap = {
   pending: { label: "待审批", color: "bg-yellow-100 text-yellow-800", icon: Clock },
   approved: { label: "已通过", color: "bg-green-100 text-green-800", icon: CheckCircle },
   rejected: { label: "已驳回", color: "bg-red-100 text-red-800", icon: XCircle },
-  cancelled: { label: "已取消", color: "bg-gray-100 text-gray-800", icon: AlertCircle },
+  cancelled: { label: "已取消", color: "bg-gray-100 text-gray-800", icon: WarningCircle },
 } as const;
 
 const typeTone: Record<string, string> = {
@@ -67,8 +67,8 @@ export default function ExpenseRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">报销管理</h1>
-          <p className="text-zinc-500 mt-1">费用报销申请（数据来自后端）</p>
+          <h1 className="text-2xl font-bold text-text-primary">报销管理</h1>
+          <p className="text-text-tertiary mt-1">费用报销申请（数据来自后端）</p>
         </div>
         <Link href="/dashboard/oa/expense-requests/new">
           <Button>
@@ -87,27 +87,27 @@ export default function ExpenseRequestsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">已通过金额合计</p>
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-sm text-text-tertiary">已通过金额合计</p>
+            <p className="text-2xl font-bold text-text-primary">
               ¥{stats.approvedSum.toFixed(2)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">报销笔数</p>
-            <p className="text-2xl font-bold text-zinc-900">{rows.length}</p>
+            <p className="text-sm text-text-tertiary">报销笔数</p>
+            <p className="text-2xl font-bold text-text-primary">{rows.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">待审批</p>
+            <p className="text-sm text-text-tertiary">待审批</p>
             <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">已通过</p>
+            <p className="text-sm text-text-tertiary">已通过</p>
             <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
           </CardContent>
         </Card>
@@ -115,7 +115,7 @@ export default function ExpenseRequestsPage() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <Input
             placeholder="搜索报销说明..."
             value={searchQuery}
@@ -146,9 +146,9 @@ export default function ExpenseRequestsPage() {
         </CardHeader>
         <CardContent>
           {q.isLoading ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">加载中…</p>
+            <p className="text-sm text-text-tertiary py-8 text-center">加载中…</p>
           ) : filteredRequests.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-text-muted">
               <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>暂无报销记录</p>
               <p className="text-sm mt-1">点击右上角按钮发起报销申请</p>
@@ -163,11 +163,11 @@ export default function ExpenseRequestsPage() {
                 return (
                   <div
                     key={req.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-zinc-50 transition-colors"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-bg-secondary transition-colors"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="bg-zinc-100 p-3 rounded-lg">
-                        <Receipt className="w-5 h-5 text-zinc-600" />
+                      <div className="bg-bg-tertiary p-3 rounded-lg">
+                        <Receipt className="w-5 h-5 text-text-secondary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -177,12 +177,12 @@ export default function ExpenseRequestsPage() {
                             {meta.label}
                           </Badge>
                         </div>
-                        <p className="text-sm text-zinc-900 mt-1">¥{req.amount}</p>
-                        <p className="text-sm text-zinc-500">{req.description ?? "—"}</p>
+                        <p className="text-sm text-text-primary mt-1">¥{req.amount}</p>
+                        <p className="text-sm text-text-tertiary">{req.description ?? "—"}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-text-muted">
                         {String(req.createdAt).slice(0, 10)}
                       </p>
                       <Link href={`/dashboard/oa/expense-requests/${req.id}`}>

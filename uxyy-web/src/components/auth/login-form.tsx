@@ -52,7 +52,7 @@ export function LoginForm() {
         <h1 className="text-xl font-semibold tracking-tight text-center">
           优效营 uxyy
         </h1>
-        <p className="text-sm text-zinc-600 text-center">登录您的企业账号</p>
+        <p className="text-sm text-text-secondary text-center">登录您的企业账号</p>
 
         <Input
           label="手机号"
@@ -84,11 +84,11 @@ export function LoginForm() {
           登录
         </Button>
 
-        <p className="text-center text-sm text-zinc-600">
+        <p className="text-center text-sm text-text-secondary">
           没有账号？{" "}
           <Link
             href="/register"
-            className="text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
+            className="text-text-primary underline underline-offset-4 hover:text-text-secondary"
           >
             免费注册
           </Link>

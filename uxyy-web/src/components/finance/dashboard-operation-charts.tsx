@@ -55,9 +55,9 @@ export function DashboardOperationCharts({ data }: { data: DashboardData }) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="p-4 border-zinc-100">
-        <h3 className="text-sm font-medium text-zinc-900">销售 vs 采购</h3>
-        <p className="mt-0.5 text-xs text-zinc-500">
+      <Card className="p-4 border-border-secondary">
+        <h3 className="text-sm font-medium text-text-primary">销售 vs 采购</h3>
+        <p className="mt-0.5 text-xs text-text-tertiary">
           当前筛选周期内订单金额合计，用于快速对比进销规模
         </p>
         <div className="mt-4 h-56 w-full min-w-0">
@@ -99,13 +99,13 @@ export function DashboardOperationCharts({ data }: { data: DashboardData }) {
         </div>
       </Card>
 
-      <Card className="p-4 border-zinc-100">
-        <h3 className="text-sm font-medium text-zinc-900">热销商品（销售额）</h3>
-        <p className="mt-0.5 text-xs text-zinc-500">
+      <Card className="p-4 border-border-secondary">
+        <h3 className="text-sm font-medium text-text-primary">热销商品（销售额）</h3>
+        <p className="mt-0.5 text-xs text-text-tertiary">
           同周期内按明细汇总；无数据时多为本期无销售或未匹配商品
         </p>
         {topBar.length === 0 ? (
-          <p className="mt-8 text-sm text-zinc-500">本期暂无热销排行数据</p>
+          <p className="mt-8 text-sm text-text-tertiary">本期暂无热销排行数据</p>
         ) : (
           <div className="mt-4 h-56 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">

@@ -29,8 +29,8 @@ export function ApiErrorCallout({
       <p className="mt-1 whitespace-pre-wrap text-red-800/95">{text}</p>
       {steps.length > 0 ? (
         <div className="mt-3 rounded-md border border-red-100/80 bg-white/70 px-3 py-2">
-          <p className="text-xs font-medium text-zinc-700">建议尝试：</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-zinc-600">
+          <p className="text-xs font-medium text-text-secondary">建议尝试：</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-text-secondary">
             {steps.map((s, i) => (
               <li key={i}>{s}</li>
             ))}

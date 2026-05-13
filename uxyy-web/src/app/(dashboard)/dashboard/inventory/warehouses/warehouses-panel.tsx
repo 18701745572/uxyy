@@ -112,8 +112,8 @@ export function WarehousesPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-900">仓库管理</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h1 className="text-lg font-semibold text-text-primary">仓库管理</h1>
+          <p className="mt-1 text-sm text-text-secondary">
             数据来自后端 GET /inventory/warehouses ，与盘点、库存明细中的
             warehouseId 对应。
           </p>
@@ -155,9 +155,9 @@ export function WarehousesPanel() {
                 maxLength={50}
               />
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-zinc-700">地址</label>
+                <label className="text-sm font-medium text-text-secondary">地址</label>
                 <textarea
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -172,16 +172,16 @@ export function WarehousesPanel() {
                 maxLength={20}
               />
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-zinc-700">备注</label>
+                <label className="text-sm font-medium text-text-secondary">备注</label>
                 <textarea
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
                   rows={2}
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
                   placeholder="可选"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-800 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isDefault}
@@ -213,47 +213,47 @@ export function WarehousesPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : rows.length === 0 ? (
-          <p className="p-8 text-sm text-zinc-600">
+          <p className="p-8 text-sm text-text-secondary">
             当前企业尚无仓库档案。可点击顶部「新建仓库」，或在项目 uxyy-api 下执行一次{" "}
-            <code className="text-xs bg-zinc-100 px-1 rounded">pnpm db:seed</code>{" "}
+            <code className="text-xs bg-bg-tertiary px-1 rounded">pnpm db:seed</code>{" "}
             自动写入「主仓库」。
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-100">
+            <thead className="bg-bg-secondary border-b border-border-secondary">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   ID
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   名称
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   编码
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   默认
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   SKU 数
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-700">
+                <th className="px-4 py-2 text-left font-medium text-text-secondary">
                   总量
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-border-secondary">
               {rows.map((w) => (
                 <tr key={w.id}>
                   <td className="px-4 py-2">{w.id}</td>
-                  <td className="px-4 py-2 font-medium text-zinc-900">{w.name}</td>
-                  <td className="px-4 py-2 text-zinc-600">{w.code ?? "—"}</td>
+                  <td className="px-4 py-2 font-medium text-text-primary">{w.name}</td>
+                  <td className="px-4 py-2 text-text-secondary">{w.code ?? "—"}</td>
                   <td className="px-4 py-2">{w.isDefault ? "是" : "—"}</td>
                   <td className="px-4 py-2">{w.productCount ?? "—"}</td>
                   <td className="px-4 py-2">{w.totalQuantity ?? "—"}</td>

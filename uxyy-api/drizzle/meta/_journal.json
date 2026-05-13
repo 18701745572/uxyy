@@ -127,6 +127,27 @@
       "when": 1778745600000,
       "tag": "0021_backup_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778560864960,
+      "tag": "0018_bent_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1778561548691,
+      "tag": "0019_outgoing_wallow",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778570527125,
+      "tag": "0020_lying_vivisector",
+      "breakpoints": true
     }
   ]
 }

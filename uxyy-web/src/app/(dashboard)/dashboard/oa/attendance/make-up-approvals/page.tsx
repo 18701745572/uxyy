@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, CheckCircle2, XCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, User, Calendar, ChatText } from "@/components/icons";
 
 type FilterStatus = "pending" | "all" | "approved" | "rejected";
 
@@ -42,7 +42,7 @@ function statusBadgeClass(s: MakeUpRequestListItem["status"]): string {
     case "rejected":
       return "bg-red-100 text-red-800";
     default:
-      return "bg-zinc-100 text-zinc-800";
+      return "bg-bg-tertiary text-text-secondary";
   }
 }
 
@@ -150,13 +150,13 @@ export default function MakeUpApprovalsPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/dashboard/oa/attendance">
-            <Button variant="ghost" size="icon" className="hover:bg-zinc-100">
+            <Button variant="ghost" size="sm" className="hover:bg-bg-tertiary">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">补卡审批</h1>
-            <p className="text-sm text-zinc-600">
+            <h1 className="text-lg font-semibold text-text-primary">补卡审批</h1>
+            <p className="text-sm text-text-secondary">
               处理员工补卡申请，支持批量查看和审批操作
             </p>
           </div>
@@ -168,16 +168,16 @@ export default function MakeUpApprovalsPage() {
           { status: "pending" as const, label: "待审批", count: statusCounts.pending, bg: "bg-amber-50", color: "text-amber-600" },
           { status: "approved" as const, label: "已通过", count: statusCounts.approved, bg: "bg-green-50", color: "text-green-600" },
           { status: "rejected" as const, label: "已驳回", count: statusCounts.rejected, bg: "bg-red-50", color: "text-red-600" },
-          { status: "all" as const, label: "全部", count: listQuery.data?.length || 0, bg: "bg-zinc-50", color: "text-zinc-600" },
+          { status: "all" as const, label: "全部", count: listQuery.data?.length || 0, bg: "bg-bg-secondary", color: "text-text-secondary" },
         ].map(({ status, label, count, bg, color }) => (
           <Button
             key={status}
-            variant={filter === status ? "default" : "ghost"}
+            variant={filter === status ? "primary" : "ghost"}
             onClick={() => setFilter(status)}
             className={`justify-start gap-2 ${filter === status ? "" : bg}`}
           >
             <span className={color}>{label}</span>
-            <Badge variant="outline" className="ml-auto">
+            <Badge variant="default" className="ml-auto">
               {count}
             </Badge>
           </Button>
@@ -187,7 +187,7 @@ export default function MakeUpApprovalsPage() {
       {listQuery.isLoading && (
         <Card className="p-8 text-center">
           <Spinner className="mx-auto mb-2" />
-          <p className="text-sm text-zinc-600">加载中…</p>
+          <p className="text-sm text-text-secondary">加载中…</p>
         </Card>
       )}
 
@@ -211,8 +211,8 @@ export default function MakeUpApprovalsPage() {
         <div className="space-y-3">
           {listQuery.data.length === 0 ? (
             <Card className="p-8 text-center">
-              <Clock className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-              <p className="text-sm text-zinc-500">暂无{filter === "all" ? "" : statusLabel(filter)}补卡申请</p>
+              <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
+              <p className="text-sm text-text-tertiary">暂无{filter === "all" ? "" : statusLabel(filter)}补卡申请</p>
             </Card>
           ) : (
             listQuery.data.map((row) => (
@@ -220,17 +220,17 @@ export default function MakeUpApprovalsPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
-                        <User className="w-5 h-5 text-zinc-500" />
+                      <div className="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center">
+                        <User className="w-5 h-5 text-text-tertiary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-zinc-900">{row.applicantName}</span>
+                          <span className="font-semibold text-text-primary">{row.applicantName}</span>
                           <Badge className={statusBadgeClass(row.status)}>
                             {statusLabel(row.status)}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-text-tertiary">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {row.type === "in" ? "上班卡" : "下班卡"}
@@ -246,13 +246,13 @@ export default function MakeUpApprovalsPage() {
 
                   <div className="ml-13 pl-13">
                     <div className="flex items-start gap-2">
-                      <MessageSquare className="w-4 h-4 text-zinc-400 mt-0.5 shrink-0" />
-                      <p className="text-sm text-zinc-700">{row.reason}</p>
+                      <ChatText className="w-4 h-4 text-text-muted mt-0.5 shrink-0" />
+                      <p className="text-sm text-text-secondary">{row.reason}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-                    <span className="text-xs text-zinc-500">
+                  <div className="flex items-center justify-between pt-3 border-t border-border-secondary">
+                    <span className="text-xs text-text-tertiary">
                       提交于 {formatLocalDate(row.createdAt)}
                       {row.status !== "pending" && row.approvedAt && (
                         <>
@@ -279,7 +279,7 @@ export default function MakeUpApprovalsPage() {
                           onClick={() => handleApprove(row)}
                           className="flex items-center gap-1"
                         >
-                          <CheckCircle2 className="w-4 h-4" />
+                          <CheckCircle className="w-4 h-4" />
                           通过
                         </Button>
                       </div>
@@ -298,7 +298,7 @@ export default function MakeUpApprovalsPage() {
             <DialogTitle className="flex items-center gap-2">
               {actionType === "approve" ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                   通过补卡申请
                 </>
               ) : (
@@ -317,7 +317,7 @@ export default function MakeUpApprovalsPage() {
 
           {actionType === "reject" && (
             <div className="mt-4">
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 驳回原因（选填）
               </label>
               <Textarea

@@ -1,0 +1,184 @@
+# Sealos 部署配置
+# 使用方法: sealos apply -f sealos.yaml
+#
+# 部署前准备:
+# 1. 在 Sealos 控制台创建 PostgreSQL 数据库
+# 2. 在 Sealos 控制台创建 Redis 实例
+# 3. 修改下方的环境变量为你实际的值
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uxyy-api
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uxyy-api
+  template:
+    metadata:
+      labels:
+        app: uxyy-api
+    spec:
+      containers:
+        - name: uxyy-api
+          image: jianghuizhong18701745572/uxyy-api:v4
+          ports:
+            - containerPort: 3000
+          env:
+            # 数据库配置 - PostgreSQL
+            - name: DATABASE_URL
+              value: "postgresql://postgres:bq4j86wm@postgres-postgresql.ns-9cv5e1pt.svc:5432/postgres"
+            # Redis 配置
+            - name: REDIS_URL
+              value: "redis://default:s7n6pk7@uxyy-redis-redis.ns-9cv5e1pt.svc:6379"
+            # JWT 密钥
+            - name: JWT_ACCESS_SECRET
+              value: "qF9fiMVpte6tqZ1bAbqqCIUOGznOpn54sEwLiMcYb8yf8Z6ke0UE8Yaz9BQWGGJv"
+            - name: JWT_ACCESS_EXPIRES_IN
+              value: "2h"
+            - name: JWT_REFRESH_SECRET
+              value: "wOY7jWBCnVaBOqtJFlk9YM3cQ0jj7SZxzwkGKEUKzTJYSIm0CM9Wh3RoMtMw8H6w"
+            - name: JWT_REFRESH_EXPIRES_IN
+              value: "7d"
+            # 服务端口
+            - name: PORT
+              value: "3000"
+            # 生产环境标识
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uxyy-api-service
+  namespace: default
+spec:
+  selector:
+    app: uxyy-api
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
+
+---
+# 前端部署
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uxyy-web
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uxyy-web
+  template:
+    metadata:
+      labels:
+        app: uxyy-web
+    spec:
+      containers:
+        - name: uxyy-web
+          image: jianghuizhong18701745572/uxyy-web:latest
+          ports:
+            - containerPort: 3001
+          env:
+            # API 地址 - 指向后端服务
+            # 格式: http://<后端服务名>:<端口>
+            - name: API_URL
+              value: "http://uxyy-api-service:3000"
+            # Next.js 端口
+            - name: PORT
+              value: "3001"
+            # 生产环境标识
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uxyy-web-service
+  namespace: default
+spec:
+  selector:
+    app: uxyy-web
+  ports:
+    - port: 3001
+      targetPort: 3001
+  type: ClusterIP
+
+---
+# 前端 Ingress - 对外暴露访问
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uxyy-web-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: uxyy.hzh.sealos.run
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: uxyy-web-service
+                port:
+                  number: 3001
+
+---
+# 后端 API Ingress - 可选，如果需要直接访问 API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uxyy-api-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: api-uxyy.hzh.sealos.run
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: uxyy-api-service
+                port:
+                  number: 3000

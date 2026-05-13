@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList } from "lucide-react";
+import { ClipboardText } from "@/components/icons";
 import {
   fetchPendingApprovals,
   type PendingApprovalBundle,
@@ -42,8 +42,8 @@ export default function PendingApprovalsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">待审批中心</h1>
-        <p className="text-zinc-500 mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-text-primary">待审批中心</h1>
+        <p className="text-text-tertiary mt-1 text-sm">
           汇总本企业<strong>未完成</strong>的审批实例（请假、报销等）。同意后业务单状态会与审批记录一并更新。
           仅限具备 <strong>oa:approve</strong>
           的账号（通常为老板或行政）；若看不到数据，请将企业切换为有审批权限的成员或联系管理员授予权限。
@@ -66,13 +66,13 @@ export default function PendingApprovalsPage() {
       ) : null}
 
       {canApprove && q.isLoading ? (
-        <p className="text-sm text-zinc-500">加载中…</p>
+        <p className="text-sm text-text-tertiary">加载中…</p>
       ) : null}
 
       {canApprove && !q.isLoading && rows.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-zinc-500 text-sm">
-            <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-40" />
+          <CardContent className="py-12 text-center text-text-tertiary text-sm">
+            <ClipboardText className="w-10 h-10 mx-auto mb-2 opacity-40" />
             暂无待处理审批。
           </CardContent>
         </Card>
@@ -90,27 +90,27 @@ export default function PendingApprovalsPage() {
               return (
                 <div
                   key={bundle.record.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-zinc-100 p-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border-secondary p-4"
                 >
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge className="border border-zinc-200 bg-white text-zinc-700">
+                      <Badge className="border border-border-primary bg-white text-text-secondary">
                         {bundle.record.businessType}
                       </Badge>
                       <Badge
                         className={
                           st === "pending"
                             ? "bg-amber-100 text-amber-900"
-                            : "bg-zinc-100 text-zinc-700"
+                            : "bg-bg-tertiary text-text-secondary"
                         }
                       >
                         {st}
                       </Badge>
                     </div>
-                    <p className="font-medium text-zinc-900 mt-2">
+                    <p className="font-medium text-text-primary mt-2">
                       {bundle.record.title}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-text-tertiary mt-1">
                       流程：{bundle.flow.name} · 类型 {bundle.flow.type} · 记录 #
                       {bundle.record.id}
                     </p>
@@ -121,7 +121,7 @@ export default function PendingApprovalsPage() {
                         <Link href={href}>打开业务单审批</Link>
                       </Button>
                     ) : (
-                      <span className="text-xs text-zinc-400">无外链业务类型</span>
+                      <span className="text-xs text-text-muted">无外链业务类型</span>
                     )}
                   </div>
                 </div>

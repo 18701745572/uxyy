@@ -69,3 +69,13 @@ export const aiTaskStatusEnum = pgEnum('ai_task_status', [
   'failed',
   'dead',
 ]);
+
+/** 凭证状态 */
+export const voucherStatusEnum = pgEnum('voucher_status', [
+  'draft',      // 草稿
+  'pending',    // 待审核
+  'approved',   // 已审核
+  'rejected',   // 已驳回
+  'posted',     // 已过账
+  'void',       // 已作废
+]);

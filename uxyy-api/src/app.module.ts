@@ -9,6 +9,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OaModule } from './modules/oa/oa.module';
+import { WeComModule } from './modules/wecom/wecom.module';
 import { CommonModule } from './common/common.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { CommonModule } from './common/common.module';
     HealthModule,
     AiModule,
     OaModule,
+    WeComModule,
     CommonModule,
   ],
 })

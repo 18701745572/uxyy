@@ -39,20 +39,20 @@ function LineItemsTable({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-medium text-zinc-900">{title}</h3>
+      <h3 className="text-sm font-medium text-text-primary">{title}</h3>
       {items.length === 0 ? (
-        <p className="text-sm text-zinc-500 py-2">无发生额或未匹配科目</p>
+        <p className="text-sm text-text-tertiary py-2">无发生额或未匹配科目</p>
       ) : (
-        <div className="overflow-x-auto border border-zinc-100 rounded-md">
+        <div className="overflow-x-auto border border-border-secondary rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50">
+            <thead className="bg-bg-secondary">
               <tr>
                 <th className="px-3 py-2 text-left">科目编码</th>
                 <th className="px-3 py-2 text-left">科目名称</th>
                 <th className="px-3 py-2 text-right">金额</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-border-secondary">
               {items.map((row) => (
                 <tr key={`${row.code}-${row.name}`}>
                   <td className="px-3 py-2 font-mono text-xs">{row.code}</td>
@@ -63,7 +63,7 @@ function LineItemsTable({
                 </tr>
               ))}
               {totalLabel !== undefined && totalAmount !== undefined ? (
-                <tr className="bg-zinc-50 font-medium">
+                <tr className="bg-bg-secondary font-medium">
                   <td className="px-3 py-2" colSpan={2}>
                     {totalLabel}
                   </td>
@@ -83,7 +83,7 @@ function LineItemsTable({
 function BalanceSheetView({ data }: { data: BalanceSheetData }) {
   return (
     <div className="space-y-6">
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-text-tertiary">
         截止日期（含）：<strong>{data.period}</strong> ·
         按企业科目表与截止日前凭证汇总借贷差（子目命名「父科目-子目」归入父科目）
       </p>
@@ -112,7 +112,7 @@ function BalanceSheetView({ data }: { data: BalanceSheetData }) {
 function IncomeStatementView({ data }: { data: IncomeStatementData }) {
   return (
     <div className="space-y-6">
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-text-tertiary">
         会计期间：<strong>{data.period}</strong> · 营业收入取收入类科目的贷方；成本/费用区分见 PRD
         §2.5.5
       </p>
@@ -135,7 +135,7 @@ function IncomeStatementView({ data }: { data: IncomeStatementData }) {
         totalLabel="费用小计"
         totalAmount={data.totalExpenses}
       />
-      <div className="flex justify-between items-center rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium">
+      <div className="flex justify-between items-center rounded-lg border border-border-primary bg-bg-secondary px-4 py-3 text-sm font-medium">
         <span>净利润（收入 − 成本 − 费用）</span>
         <span
           className={
@@ -154,33 +154,33 @@ function IncomeStatementView({ data }: { data: IncomeStatementData }) {
 function CashFlowView({ data }: { data: CashFlowData }) {
   return (
     <div className="space-y-6">
-      <p className="text-xs text-zinc-500 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
+      <p className="text-xs text-text-tertiary rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
         <strong>MVP 简版</strong>：
         「现金流入」= 借方记在银行存款 / 库存现金；「现金流出」= 贷方记在银行存款 / 库存现金。不涉及直接法逐项还原，投资 / 筹资活动本期可为
         0。
       </p>
       <LineItemsTable title="经营活动" items={data.operatingActivities} />
-      <div className="flex justify-between text-sm px-3 py-2 bg-zinc-50 rounded-md">
+      <div className="flex justify-between text-sm px-3 py-2 bg-bg-secondary rounded-md">
         <span>经营活动现金流量净额</span>
         <span className="tabular-nums font-medium">
           ¥{data.netOperatingCashFlow}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-zinc-600">
-        <div className="p-3 border border-zinc-100 rounded-md">
-          <span className="font-medium text-zinc-900">筹资活动净额</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-text-secondary">
+        <div className="p-3 border border-border-secondary rounded-md">
+          <span className="font-medium text-text-primary">筹资活动净额</span>
           <p className="mt-1 tabular-nums">
             ¥{data.netFinancingCashFlow}（占位）
           </p>
         </div>
-        <div className="p-3 border border-zinc-100 rounded-md">
-          <span className="font-medium text-zinc-900">投资活动净额</span>
+        <div className="p-3 border border-border-secondary rounded-md">
+          <span className="font-medium text-text-primary">投资活动净额</span>
           <p className="mt-1 tabular-nums">
             ¥{data.netInvestingCashFlow}（占位）
           </p>
         </div>
-        <div className="p-3 border border-zinc-100 rounded-md">
-          <span className="font-medium text-zinc-900">现金流量净增加</span>
+        <div className="p-3 border border-border-secondary rounded-md">
+          <span className="font-medium text-text-primary">现金流量净增加</span>
           <p className="mt-1 tabular-nums font-semibold">
             ¥{data.netCashFlow}
           </p>
@@ -245,7 +245,7 @@ export function ReportsPanel() {
     title?: string,
   ): ReactNode {
     if (q.isLoading) {
-      return <p className="text-sm text-zinc-600">加载中…</p>;
+      return <p className="text-sm text-text-secondary">加载中…</p>;
     }
     if (q.isError) {
       return (
@@ -262,7 +262,7 @@ export function ReportsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold text-zinc-900">财务报表</h1>
+      <h1 className="text-lg font-semibold text-text-primary">财务报表</h1>
 
       <div className="flex gap-2 flex-wrap">
         {tabs.map((tab) => (
@@ -280,7 +280,7 @@ export function ReportsPanel() {
       {activeTab === "dashboard" && (
         <div className="flex gap-2">
           <select
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
           >
@@ -290,7 +290,7 @@ export function ReportsPanel() {
           </select>
           <input
             type="month"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -299,10 +299,10 @@ export function ReportsPanel() {
 
       {activeTab === "balance-sheet" && (
         <div className="flex gap-2 items-center">
-          <label className="text-sm text-zinc-600">截止日期</label>
+          <label className="text-sm text-text-secondary">截止日期</label>
           <input
             type="date"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm"
             value={asOfDate}
             onChange={(e) => setAsOfDate(e.target.value)}
           />
@@ -311,10 +311,10 @@ export function ReportsPanel() {
 
       {(activeTab === "income-statement" || activeTab === "cash-flow") && (
         <div className="flex gap-2 items-center">
-          <label className="text-sm text-zinc-600">会计月度</label>
+          <label className="text-sm text-text-secondary">会计月度</label>
           <input
             type="month"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -325,7 +325,7 @@ export function ReportsPanel() {
         {activeTab === "dashboard" && (
           <>
             {dashboardQuery.isLoading ? (
-              <p className="text-sm text-zinc-600">加载中…</p>
+              <p className="text-sm text-text-secondary">加载中…</p>
             ) : dashboardQuery.isError ? (
               <ApiErrorCallout
                 error={dashboardQuery.error}
@@ -335,35 +335,35 @@ export function ReportsPanel() {
             ) : dashboardQuery.data ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-zinc-50 rounded-lg">
-                    <p className="text-xs text-zinc-500">销售金额</p>
-                    <p className="text-lg font-semibold text-zinc-900">
+                  <div className="p-4 bg-bg-secondary rounded-lg">
+                    <p className="text-xs text-text-tertiary">销售金额</p>
+                    <p className="text-lg font-semibold text-text-primary">
                       ¥{dashboardQuery.data.salesAmount}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-text-tertiary">
                       {dashboardQuery.data.salesOrderCount} 单
                     </p>
                   </div>
-                  <div className="p-4 bg-zinc-50 rounded-lg">
-                    <p className="text-xs text-zinc-500">采购金额</p>
-                    <p className="text-lg font-semibold text-zinc-900">
+                  <div className="p-4 bg-bg-secondary rounded-lg">
+                    <p className="text-xs text-text-tertiary">采购金额</p>
+                    <p className="text-lg font-semibold text-text-primary">
                       ¥{dashboardQuery.data.purchaseAmount}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-text-tertiary">
                       {dashboardQuery.data.purchaseOrderCount} 单
                     </p>
                   </div>
-                  <div className="p-4 bg-zinc-50 rounded-lg">
-                    <p className="text-xs text-zinc-500">毛利润</p>
+                  <div className="p-4 bg-bg-secondary rounded-lg">
+                    <p className="text-xs text-text-tertiary">毛利润</p>
                     <p className="text-lg font-semibold text-green-600">
                       ¥{dashboardQuery.data.grossProfit}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-text-tertiary">
                       毛利率 {dashboardQuery.data.grossProfitRate}
                     </p>
                   </div>
-                  <div className="p-4 bg-zinc-50 rounded-lg">
-                    <p className="text-xs text-zinc-500">应收/应付（示意）</p>
+                  <div className="p-4 bg-bg-secondary rounded-lg">
+                    <p className="text-xs text-text-tertiary">应收/应付（示意）</p>
                     <p className="text-sm font-medium text-blue-600">
                       应收: ¥{dashboardQuery.data.pendingReceivable}
                     </p>
@@ -377,19 +377,19 @@ export function ReportsPanel() {
 
                 {(dashboardQuery.data.lowStockProducts?.length ?? 0) > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-zinc-900 mb-2">
+                    <h3 className="text-sm font-medium text-text-primary mb-2">
                       库存预警
                     </h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-zinc-50">
+                        <thead className="bg-bg-secondary">
                           <tr>
                             <th className="px-3 py-2 text-left">商品</th>
                             <th className="px-3 py-2 text-right">当前库存</th>
                             <th className="px-3 py-2 text-right">最低库存</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-100">
+                        <tbody className="divide-y divide-border-secondary">
                           {dashboardQuery.data.lowStockProducts.map((p) => (
                             <tr key={p.productId}>
                               <td className="px-3 py-2">{p.productName}</td>
@@ -408,19 +408,19 @@ export function ReportsPanel() {
                 )}
                 {(dashboardQuery.data.topSalesProducts?.length ?? 0) > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-zinc-900 mb-2">
+                    <h3 className="text-sm font-medium text-text-primary mb-2">
                       热销商品
                     </h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-zinc-50">
+                        <thead className="bg-bg-secondary">
                           <tr>
                             <th className="px-3 py-2 text-left">商品</th>
                             <th className="px-3 py-2 text-right">销量</th>
                             <th className="px-3 py-2 text-right">销售额</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-100">
+                        <tbody className="divide-y divide-border-secondary">
                           {dashboardQuery.data.topSalesProducts.map((p) => (
                             <tr key={p.productId}>
                               <td className="px-3 py-2">{p.productName}</td>
@@ -439,7 +439,7 @@ export function ReportsPanel() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">暂无数据</p>
+              <p className="text-sm text-text-tertiary">暂无数据</p>
             )}
           </>
         )}
@@ -474,7 +474,7 @@ export function ReportsPanel() {
         {activeTab === "ar-ap" && (
           <>
             {arApQuery.isLoading ? (
-              <p className="text-sm text-zinc-600">加载中…</p>
+              <p className="text-sm text-text-secondary">加载中…</p>
             ) : arApQuery.isError ? (
               <ApiErrorCallout
                 error={arApQuery.error}
@@ -484,7 +484,7 @@ export function ReportsPanel() {
               />
             ) : arApQuery.data ? (
               <div className="space-y-6">
-                <p className="text-xs text-zinc-500 rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">
+                <p className="text-xs text-text-tertiary rounded-md bg-bg-secondary border border-border-secondary px-3 py-2">
                   MVP：基于「已验证、未入账」发票；应收剔除{" "}
                   <code className="text-xs">purchase_order</code>{" "}
                   采购来源，应付仅限采购发票。核销与对账导出见 PRD 后续迭代。
@@ -504,12 +504,12 @@ export function ReportsPanel() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-900 mb-2">
+                  <h3 className="text-sm font-medium text-text-primary mb-2">
                     应收账款明细
                   </h3>
                   {(arApQuery.data.receivables?.length ?? 0) > 0 ? (
-                    <table className="w-full text-sm border border-zinc-100 rounded-md overflow-hidden">
-                      <thead className="bg-zinc-50">
+                    <table className="w-full text-sm border border-border-secondary rounded-md overflow-hidden">
+                      <thead className="bg-bg-secondary">
                         <tr>
                           <th className="px-3 py-2 text-left">客户（购方）</th>
                           <th className="px-3 py-2 text-left">发票号</th>
@@ -517,7 +517,7 @@ export function ReportsPanel() {
                           <th className="px-3 py-2 text-right">逾期天数</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-100">
+                      <tbody className="divide-y divide-border-secondary">
                         {arApQuery.data.receivables.map((r) => (
                           <tr key={r.id}>
                             <td className="px-3 py-2">{r.name}</td>
@@ -535,16 +535,16 @@ export function ReportsPanel() {
                       </tbody>
                     </table>
                   ) : (
-                    <p className="text-sm text-zinc-500">暂无应收账款</p>
+                    <p className="text-sm text-text-tertiary">暂无应收账款</p>
                   )}
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-900 mb-2">
+                  <h3 className="text-sm font-medium text-text-primary mb-2">
                     应付账款明细
                   </h3>
                   {(arApQuery.data.payables?.length ?? 0) > 0 ? (
-                    <table className="w-full text-sm border border-zinc-100 rounded-md overflow-hidden">
-                      <thead className="bg-zinc-50">
+                    <table className="w-full text-sm border border-border-secondary rounded-md overflow-hidden">
+                      <thead className="bg-bg-secondary">
                         <tr>
                           <th className="px-3 py-2 text-left">
                             供应商（销方）
@@ -554,7 +554,7 @@ export function ReportsPanel() {
                           <th className="px-3 py-2 text-right">逾期天数</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-100">
+                      <tbody className="divide-y divide-border-secondary">
                         {arApQuery.data.payables.map((r) => (
                           <tr key={r.id}>
                             <td className="px-3 py-2">{r.name}</td>
@@ -572,12 +572,12 @@ export function ReportsPanel() {
                       </tbody>
                     </table>
                   ) : (
-                    <p className="text-sm text-zinc-500">暂无应付账款</p>
+                    <p className="text-sm text-text-tertiary">暂无应付账款</p>
                   )}
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">暂无数据</p>
+              <p className="text-sm text-text-tertiary">暂无数据</p>
             )}
           </>
         )}

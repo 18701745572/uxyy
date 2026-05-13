@@ -8,12 +8,26 @@ import { Header } from "@/components/layout/header";
 import { DashboardRouteGate } from "@/components/layout/dashboard-route-gate";
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "首页",
+  "/dashboard": "工作台",
   "/dashboard/messages": "消息中心",
+  "/dashboard/notifications": "通知中心",
   "/dashboard/crm": "客户管理",
-  "/dashboard/inventory": "进销存",
-  "/dashboard/finance": "财务",
+  "/dashboard/crm/customers": "客户列表",
+  "/dashboard/crm/opportunities": "商机管理",
+  "/dashboard/crm/follow-ups": "跟进记录",
+  "/dashboard/crm/categories": "客户分类",
+  "/dashboard/crm/members": "会员管理",
+  "/dashboard/crm/member-levels": "会员等级",
+  "/dashboard/inventory": "进销存管",
+  "/dashboard/finance": "财务管理",
+  "/dashboard/finance/invoices": "发票管理",
+  "/dashboard/finance/vouchers": "凭证录入",
+  "/dashboard/finance/account-subjects": "会计科目",
+  "/dashboard/finance/bank-statements": "银行流水",
+  "/dashboard/finance/reports": "财务报表",
   "/dashboard/finance/ar-ap": "应收应付",
+  "/dashboard/finance/profit-analysis": "利润分析",
+  "/dashboard/finance/ai-error-correction": "AI纠错",
   "/dashboard/oa/pending-approvals": "待审批中心",
   "/dashboard/oa": "OA 办公",
   "/dashboard/oa/approval-flows": "审批流程",
@@ -29,7 +43,6 @@ const pageTitles: Record<string, string> = {
 };
 
 function titleForPath(pathname: string): string {
-  // 优先精确匹配，再尝试最长前缀匹配（避免 /dashboard 抢先匹配 /dashboard/crm/...）
   if (pageTitles[pathname]) return pageTitles[pathname];
   let bestPrefix = "";
   let bestTitle = "";
@@ -43,20 +56,35 @@ function titleForPath(pathname: string): string {
   return bestTitle;
 }
 
+/**
+ * Dashboard 布局 - 深色主题
+ * 
+ * 设计原则：
+ * 1. 深色背景：主背景使用 bg-primary
+ * 2. 玻璃拟态：侧边栏和头部使用半透明效果
+ * 3. 渐变装饰：可选的渐变背景装饰
+ * 4. 响应式：移动端抽屉式侧边栏
+ */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
   return (
     <RequireAuth>
-      <div className="flex min-h-screen bg-zinc-50">
+      <div className="flex min-h-screen bg-bg-primary">
+        {/* 背景装饰 - 渐变光晕 */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-[128px]" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-purple/5 rounded-full blur-[128px]" />
+        </div>
+
         <Sidebar
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex flex-1 flex-col min-w-0 relative z-10">
           <Header
-            title={titleForPath(pathname)}
+            title={titleForPath(pathname ?? "")}
             onMenuToggle={() => setSidebarOpen((v) => !v)}
           />
           <main className="flex-1 p-4 md:p-6">

@@ -6,7 +6,7 @@ export default function JoinPage({
   searchParams: { t?: string };
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-bg-secondary px-4">
       <JoinByInvitationForm invitationToken={searchParams.t} />
     </main>
   );

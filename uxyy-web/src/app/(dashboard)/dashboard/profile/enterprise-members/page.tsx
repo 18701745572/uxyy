@@ -122,12 +122,12 @@ export default function EnterpriseMembersPage() {
     return (
       <div className="flex flex-col gap-4 max-w-2xl">
         <nav className="text-sm">
-          <Link href="/dashboard/profile" className="text-zinc-500 hover:text-zinc-900">
+          <Link href="/dashboard/profile" className="text-text-tertiary hover:text-text-primary">
             ← 用户资料
           </Link>
         </nav>
-        <h1 className="text-lg font-semibold text-zinc-900">企业成员</h1>
-        <p className="text-sm text-zinc-600">
+        <h1 className="text-lg font-semibold text-text-primary">企业成员</h1>
+        <p className="text-sm text-text-secondary">
           仅<strong>老板</strong>（boss）或<strong>行政</strong>（oa）可管理企业与成员权限（system:member）。
           当前账号不满足条件。
         </p>
@@ -138,25 +138,25 @@ export default function EnterpriseMembersPage() {
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <nav className="text-sm">
-        <Link href="/dashboard/profile" className="text-zinc-500 hover:text-zinc-900">
+        <Link href="/dashboard/profile" className="text-text-tertiary hover:text-text-primary">
           ← 用户资料
         </Link>
       </nav>
-      <h1 className="text-lg font-semibold text-zinc-900">企业成员</h1>
-      <p className="text-sm text-zinc-500">
+      <h1 className="text-lg font-semibold text-text-primary">企业成员</h1>
+      <p className="text-sm text-text-tertiary">
         成员关系与邀请记录统一：<strong>已注册</strong>可在此直接入库，或未注册用户先发邀请链接再走受限注册并入会。
         五种角色中仅可指派 finance / sales / warehouse / oa；boss 仅限企业主链路。
       </p>
 
       <Card className="p-4 space-y-3">
-        <h2 className="font-medium text-zinc-900">添加成员（统一邀请模型）</h2>
-        <p className="text-xs text-zinc-500 leading-relaxed">
+        <h2 className="font-medium text-text-primary">添加成员（统一邀请模型）</h2>
+        <p className="text-xs text-text-tertiary leading-relaxed">
           同一手机号可被管理员写入两种操作：<strong>直接加入</strong>（对方须已在本站注册）；或<strong>生成邀请链接</strong>（可先分享链接，
           未注册用户打开 /join?t=… 仅能设密码入会，已注册用户登录后点此链接接受）。
         </p>
         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
           <div className="flex-1 w-full space-y-1">
-            <label htmlFor="m-phone" className="text-xs text-zinc-500">
+            <label htmlFor="m-phone" className="text-xs text-text-tertiary">
               手机号（11 位）
             </label>
             <Input
@@ -170,7 +170,7 @@ export default function EnterpriseMembersPage() {
             />
           </div>
           <div className="space-y-1">
-            <span className="text-xs text-zinc-500 block">角色</span>
+            <span className="text-xs text-text-tertiary block">角色</span>
             <Select
               value={inviteRole}
               onValueChange={(v) => setInviteRole(v as typeof inviteRole)}
@@ -209,9 +209,9 @@ export default function EnterpriseMembersPage() {
       </Card>
 
       <Card className="p-4">
-        <h2 className="font-medium text-zinc-900 mb-3">成员列表</h2>
+        <h2 className="font-medium text-text-primary mb-3">成员列表</h2>
         {(listQ.error || listQ.isLoading) && (
-          <p className="text-sm text-zinc-500 mb-3">
+          <p className="text-sm text-text-tertiary mb-3">
             {listQ.isLoading
               ? "加载中…"
               : listQ.error instanceof Error
@@ -220,13 +220,13 @@ export default function EnterpriseMembersPage() {
           </p>
         )}
         {!listQ.data?.length && !listQ.isLoading && (
-          <p className="text-sm text-zinc-500">暂无成员数据</p>
+          <p className="text-sm text-text-tertiary">暂无成员数据</p>
         )}
         {rows.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-zinc-500 border-b border-zinc-100">
+                <tr className="text-left text-text-tertiary border-b border-border-secondary">
                   <th className="py-2 pr-3">姓名/手机</th>
                   <th className="py-2 pr-3">角色</th>
                   <th className="py-2 pr-3">标记</th>
@@ -273,16 +273,16 @@ function MemberRowEditable(props: {
     String(row.userId);
 
   return (
-    <tr className="border-b border-zinc-50">
+    <tr className="border-b border-border-secondary">
       <td className="py-2 pr-3">
-        <div className="font-medium text-zinc-900">{display}</div>
+        <div className="font-medium text-text-primary">{display}</div>
         {row.phone && (
-          <div className="text-xs text-zinc-500 font-mono">{row.phone}</div>
+          <div className="text-xs text-text-tertiary font-mono">{row.phone}</div>
         )}
       </td>
       <td className="py-2 pr-3">
         {row.isOwner ? (
-          <span className="text-zinc-800">
+          <span className="text-text-secondary">
             {labelForEnterpriseRole(row.role)}（企业主）
           </span>
         ) : (
@@ -300,7 +300,7 @@ function MemberRowEditable(props: {
           </Select>
         )}
       </td>
-      <td className="py-2 pr-3 text-xs text-zinc-500">
+      <td className="py-2 pr-3 text-xs text-text-tertiary">
         {row.isOwner && "owner · "}
         {row.isDefault && "默认企业 · "}
         userId {row.userId}

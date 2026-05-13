@@ -20,32 +20,30 @@ import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Search,
-  FileSearch,
-  FileBadge,
-  Activity,
-  ShieldCheck,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  RefreshCw,
-  ArrowRight,
-  CheckCircle2,
-  XCircle,
-  Lightbulb,
-  Zap,
-  BarChart3,
-  TrendingUp,
-  ChevronRight,
+  MagnifyingGlass,
   FileText,
-} from "lucide-react";
+  ShieldCheck,
+  Warning,
+  WarningCircle,
+  Info,
+  ArrowsClockwise,
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  Sparkle,
+  ChartBar,
+  TrendUp,
+  CaretRight,
+  FileSearch,
+  Activity,
+} from "@/components/icons";
 
 const featureCards = [
   {
     id: "single-check" as const,
     label: "单个检测",
     desc: "精准定位单笔凭证问题",
-    icon: <Search className="w-5 h-5" />,
+    icon: <MagnifyingGlass className="w-5 h-5" />,
     color: "from-blue-500 to-blue-600",
   },
   {
@@ -67,9 +65,9 @@ const featureCards = [
 function getErrorTypeIcon(type: ErrorDetectionResult["type"]) {
   switch (type) {
     case "error":
-      return <AlertCircle className="w-4 h-4" />;
+      return <WarningCircle className="w-4 h-4" />;
     case "warning":
-      return <AlertTriangle className="w-4 h-4" />;
+      return <Warning className="w-4 h-4" />;
     case "info":
       return <Info className="w-4 h-4" />;
     default:
@@ -86,7 +84,7 @@ function getErrorTypeColor(type: ErrorDetectionResult["type"]): string {
     case "info":
       return "bg-blue-50 text-blue-700 border-blue-200";
     default:
-      return "bg-zinc-50 text-zinc-700 border-zinc-200";
+      return "bg-bg-secondary text-text-secondary border-border-primary";
   }
 }
 
@@ -99,7 +97,7 @@ function getErrorTypeBadge(type: ErrorDetectionResult["type"]): string {
     case "info":
       return "bg-blue-100 text-blue-700";
     default:
-      return "bg-zinc-100 text-zinc-700";
+      return "bg-bg-tertiary text-text-secondary";
   }
 }
 
@@ -125,7 +123,7 @@ function getPriorityColor(priority: CorrectionSuggestion["priority"]): string {
     case "low":
       return "text-blue-600 bg-blue-50";
     default:
-      return "text-zinc-600 bg-zinc-50";
+      return "text-text-secondary bg-bg-secondary";
   }
 }
 
@@ -210,8 +208,8 @@ export function ErrorCorrectionPanel() {
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900">AI智能纠错</h1>
-            <p className="text-sm text-zinc-500">智能检测凭证错误，保障财务健康</p>
+            <h1 className="text-xl font-bold text-text-primary">AI智能纠错</h1>
+            <p className="text-sm text-text-tertiary">智能检测凭证错误，保障财务健康</p>
           </div>
         </div>
       </div>
@@ -223,7 +221,7 @@ export function ErrorCorrectionPanel() {
             className={`p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${
               activeTab === card.id
                 ? "ring-2 ring-purple-500 bg-purple-50/50"
-                : "hover:bg-zinc-50/50"
+                : "hover:bg-bg-secondary/50"
             }`}
             onClick={() => setActiveTab(card.id)}
           >
@@ -232,13 +230,13 @@ export function ErrorCorrectionPanel() {
                 {card.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-zinc-900 flex items-center gap-2">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
                   {card.label}
                   {activeTab === card.id && (
-                    <ChevronRight className="w-4 h-4 text-purple-500" />
+                    <CaretRight className="w-4 h-4 text-purple-500" />
                   )}
                 </h3>
-                <p className="text-sm text-zinc-500 mt-1">{card.desc}</p>
+                <p className="text-sm text-text-tertiary mt-1">{card.desc}</p>
               </div>
             </div>
           </Card>
@@ -251,9 +249,9 @@ export function ErrorCorrectionPanel() {
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Search className="w-4 h-4 text-blue-600" />
+                <MagnifyingGlass className="w-4 h-4 text-blue-600" />
               </div>
-              <h2 className="font-semibold text-zinc-900">输入凭证分录 ID</h2>
+              <h2 className="font-semibold text-text-primary">输入凭证分录 ID</h2>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
@@ -263,7 +261,7 @@ export function ErrorCorrectionPanel() {
                 placeholder="请输入分录 ID（非凭证号）"
                 value={voucherId}
                 onChange={(e) => setVoucherId(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                className="flex-1 rounded-lg border border-border-primary px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
               />
               <Button
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20"
@@ -282,12 +280,12 @@ export function ErrorCorrectionPanel() {
                   void singleCheckQuery.refetch();
                 }}
               >
-                <Zap className="w-4 h-4 mr-2" />
+                <Sparkle className="w-4 h-4 mr-2" />
                 开始检测
               </Button>
             </div>
-            <div className="mt-4 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-              <p className="text-xs text-zinc-600 flex items-start gap-2">
+            <div className="mt-4 p-3 bg-bg-secondary rounded-lg border border-border-secondary">
+              <p className="text-xs text-text-secondary flex items-start gap-2">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
                 <span>
                   请打开{" "}
@@ -306,11 +304,11 @@ export function ErrorCorrectionPanel() {
           {singleCheckQuery.isLoading && (
             <Card className="p-12 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center animate-pulse">
-                <Search className="w-8 h-8 text-white" />
+                <MagnifyingGlass className="w-8 h-8 text-white" />
               </div>
               <Spinner className="mx-auto mb-3 w-6 h-6" />
-              <p className="text-sm text-zinc-600 font-medium">正在智能检测凭证...</p>
-              <p className="text-xs text-zinc-400 mt-1">AI 正在分析凭证的完整性和准确性</p>
+              <p className="text-sm text-text-secondary font-medium">正在智能检测凭证...</p>
+              <p className="text-xs text-text-muted mt-1">AI 正在分析凭证的完整性和准确性</p>
             </Card>
           )}
 
@@ -335,7 +333,7 @@ export function ErrorCorrectionPanel() {
               {singleCheckQuery.data.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-white" />
+                    <CheckCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-lg font-semibold text-green-700 mb-2">检测通过</h3>
                   <p className="text-sm text-green-600">该凭证未检测到任何错误，财务状况良好</p>
@@ -345,11 +343,11 @@ export function ErrorCorrectionPanel() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                        <Warning className="w-5 h-5 text-amber-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-zinc-900">检测结果</h3>
-                        <p className="text-sm text-zinc-500">发现 {singleCheckQuery.data.length} 个问题需要关注</p>
+                        <h3 className="font-semibold text-text-primary">检测结果</h3>
+                        <p className="text-sm text-text-tertiary">发现 {singleCheckQuery.data.length} 个问题需要关注</p>
                       </div>
                     </div>
                   </div>
@@ -371,16 +369,16 @@ export function ErrorCorrectionPanel() {
                             <Badge className={getErrorTypeBadge(error.type)}>
                               {getErrorTypeName(error.type)}
                             </Badge>
-                            <span className="text-xs text-zinc-500 bg-white/50 px-2 py-0.5 rounded">{error.category}</span>
+                            <span className="text-xs text-text-tertiary bg-white/50 px-2 py-0.5 rounded">{error.category}</span>
                           </div>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 mb-2">{error.title}</h3>
-                        <p className="text-sm text-zinc-600 mb-3">{error.description}</p>
+                        <h3 className="font-semibold text-text-primary mb-2">{error.title}</h3>
+                        <p className="text-sm text-text-secondary mb-3">{error.description}</p>
                         <div className="flex items-start gap-2 p-3 bg-white/50 rounded-lg">
-                          <Lightbulb className="w-4 h-4 mt-0.5 text-purple-500 flex-shrink-0" />
+                          <Sparkle className="w-4 h-4 mt-0.5 text-purple-500 flex-shrink-0" />
                           <div>
-                            <p className="text-xs font-medium text-zinc-700 mb-1">修复建议</p>
-                            <p className="text-sm text-zinc-600">{error.suggestion}</p>
+                            <p className="text-xs font-medium text-text-secondary mb-1">修复建议</p>
+                            <p className="text-sm text-text-secondary">{error.suggestion}</p>
                           </div>
                         </div>
                       </div>
@@ -403,8 +401,8 @@ export function ErrorCorrectionPanel() {
                   <FileSearch className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-zinc-900">批量凭证检测</h2>
-                  <p className="text-sm text-zinc-500">对所有凭证进行全量风险扫描</p>
+                  <h2 className="font-semibold text-text-primary">批量凭证检测</h2>
+                  <p className="text-sm text-text-tertiary">对所有凭证进行全量风险扫描</p>
                 </div>
               </div>
               <Button
@@ -419,7 +417,7 @@ export function ErrorCorrectionPanel() {
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <ArrowsClockwise className="w-4 h-4 mr-2" />
                     重新检测
                   </>
                 )}
@@ -433,8 +431,8 @@ export function ErrorCorrectionPanel() {
                 <FileSearch className="w-8 h-8 text-white" />
               </div>
               <Spinner className="mx-auto mb-3 w-6 h-6" />
-              <p className="text-sm text-zinc-600 font-medium">正在批量检测凭证...</p>
-              <p className="text-xs text-zinc-400 mt-1">正在扫描 {VOUCHER_ENTRY_ID_MAX} 个分录</p>
+              <p className="text-sm text-text-secondary font-medium">正在批量检测凭证...</p>
+              <p className="text-xs text-text-muted mt-1">正在扫描 {VOUCHER_ENTRY_ID_MAX} 个分录</p>
             </Card>
           )}
 
@@ -458,18 +456,18 @@ export function ErrorCorrectionPanel() {
             <>
               <Card className="p-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center p-4 bg-gradient-to-br from-zinc-50 to-zinc-100 rounded-xl">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center">
-                      <FileBadge className="w-6 h-6 text-zinc-600" />
+                  <div className="text-center p-4 bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-bg-tertiary flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-text-secondary" />
                     </div>
-                    <p className="text-3xl font-bold text-zinc-900">
+                    <p className="text-3xl font-bold text-text-primary">
                       {batchCheckQuery.data.totalChecked}
                     </p>
-                    <p className="text-sm text-zinc-600 mt-1">检测凭证数</p>
+                    <p className="text-sm text-text-secondary mt-1">检测凭证数</p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-200 flex items-center justify-center">
-                      <AlertCircle className="w-6 h-6 text-red-600" />
+                      <WarningCircle className="w-6 h-6 text-red-600" />
                     </div>
                     <p className="text-3xl font-bold text-red-600">
                       {batchCheckQuery.data.errorVouchers}
@@ -478,7 +476,7 @@ export function ErrorCorrectionPanel() {
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-200 flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-amber-600" />
+                      <Warning className="w-6 h-6 text-amber-600" />
                     </div>
                     <p className="text-3xl font-bold text-amber-600">
                       {batchCheckQuery.data.details.reduce((sum, d) => sum + d.errorCount, 0)}
@@ -495,7 +493,7 @@ export function ErrorCorrectionPanel() {
                         ? "bg-green-200"
                         : "bg-amber-200"
                     }`}>
-                      <TrendingUp className={`w-6 h-6 ${
+                      <TrendUp className={`w-6 h-6 ${
                         batchCheckQuery.data.errorVouchers === 0
                           ? "text-green-600"
                           : "text-amber-600"
@@ -518,10 +516,10 @@ export function ErrorCorrectionPanel() {
               </Card>
 
               <Card className="overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-zinc-50 to-zinc-100 border-b border-zinc-200">
+                <div className="px-6 py-4 bg-gradient-to-r from-bg-secondary to-bg-tertiary border-b border-border-primary">
                   <div className="flex items-center gap-3">
-                    <BarChart3 className="w-5 h-5 text-zinc-600" />
-                    <h3 className="font-semibold text-zinc-900">异常凭证列表</h3>
+                    <ChartBar className="w-5 h-5 text-text-secondary" />
+                    <h3 className="font-semibold text-text-primary">异常凭证列表</h3>
                     <Badge variant="secondary" className="ml-auto">
                       共 {batchCheckQuery.data.details.length} 条异常
                     </Badge>
@@ -530,22 +528,22 @@ export function ErrorCorrectionPanel() {
                 {batchCheckQuery.data.details.length === 0 ? (
                   <div className="p-12 text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
-                      <CheckCircle2 className="w-8 h-8 text-white" />
+                      <CheckCircle className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-lg font-semibold text-green-700 mb-2">全部通过</h3>
                     <p className="text-sm text-green-600">所有凭证检测正常，未发现异常情况</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-zinc-100">
+                  <div className="divide-y divide-border-secondary">
                     {batchCheckQuery.data.details.map((detail) => (
-                      <div key={detail.voucherId} className="px-6 py-4 hover:bg-zinc-50/50 transition-colors">
+                      <div key={detail.voucherId} className="px-6 py-4 hover:bg-bg-secondary/50 transition-colors">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                               <FileText className="w-5 h-5 text-purple-600" />
                             </div>
                             <div>
-                              <span className="font-semibold text-zinc-900">
+                              <span className="font-semibold text-text-primary">
                                 {detail.voucherNo}
                               </span>
                               <Badge variant="secondary" className="ml-2 text-xs bg-red-100 text-red-700">
@@ -567,13 +565,13 @@ export function ErrorCorrectionPanel() {
                             <ArrowRight className="w-3 h-3" />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-zinc-500 mb-3">
+                        <div className="flex items-center gap-4 text-sm text-text-tertiary mb-3">
                           <span className="flex items-center gap-1">
                             <FileText className="w-3 h-3" />
                             {detail.voucherDate.slice(0, 10)}
                           </span>
                           <span className="flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
+                            <TrendUp className="w-3 h-3" />
                             ¥{detail.totalAmount}
                           </span>
                         </div>
@@ -587,7 +585,7 @@ export function ErrorCorrectionPanel() {
                             </span>
                           ))}
                           {detail.errors.length > 3 && (
-                            <span className="text-xs text-zinc-500 px-3 py-1 bg-zinc-100 rounded-full">
+                            <span className="text-xs text-text-tertiary px-3 py-1 bg-bg-tertiary rounded-full">
                               +{detail.errors.length - 3} 更多
                             </span>
                           )}
@@ -612,8 +610,8 @@ export function ErrorCorrectionPanel() {
                   <Activity className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-zinc-900">财务健康报告</h2>
-                  <p className="text-sm text-zinc-500">全面评估企业财务健康状况</p>
+                  <h2 className="font-semibold text-text-primary">财务健康报告</h2>
+                  <p className="text-sm text-text-tertiary">全面评估企业财务健康状况</p>
                 </div>
               </div>
               <Button
@@ -628,7 +626,7 @@ export function ErrorCorrectionPanel() {
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <ArrowsClockwise className="w-4 h-4 mr-2" />
                     刷新报告
                   </>
                 )}
@@ -642,8 +640,8 @@ export function ErrorCorrectionPanel() {
                 <Activity className="w-8 h-8 text-white" />
               </div>
               <Spinner className="mx-auto mb-3 w-6 h-6" />
-              <p className="text-sm text-zinc-600 font-medium">正在生成财务健康报告...</p>
-              <p className="text-xs text-zinc-400 mt-1">AI 正在分析您的财务数据</p>
+              <p className="text-sm text-text-secondary font-medium">正在生成财务健康报告...</p>
+              <p className="text-xs text-text-muted mt-1">AI 正在分析您的财务数据</p>
             </Card>
           )}
 
@@ -672,10 +670,10 @@ export function ErrorCorrectionPanel() {
                       <ShieldCheck className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-zinc-900">
+                      <h2 className="text-lg font-bold text-text-primary">
                         财务健康度报告
                       </h2>
-                      <p className="text-sm text-zinc-500">
+                      <p className="text-sm text-text-tertiary">
                         {healthReportQuery.data.period}
                       </p>
                     </div>
@@ -690,18 +688,18 @@ export function ErrorCorrectionPanel() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="text-center p-5 bg-gradient-to-br from-zinc-50 to-zinc-100 rounded-xl border border-zinc-200">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center">
-                      <FileBadge className="w-6 h-6 text-zinc-600" />
+                  <div className="text-center p-5 bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl border border-border-primary">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-bg-tertiary flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-text-secondary" />
                     </div>
-                    <p className="text-3xl font-bold text-zinc-900">
+                    <p className="text-3xl font-bold text-text-primary">
                       {healthReportQuery.data.summary.totalVoucherEntries}
                     </p>
-                    <p className="text-sm text-zinc-600 mt-1">分录总数</p>
+                    <p className="text-sm text-text-secondary mt-1">分录总数</p>
                   </div>
                   <div className="text-center p-5 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-200 flex items-center justify-center">
-                      <AlertCircle className="w-6 h-6 text-red-600" />
+                      <WarningCircle className="w-6 h-6 text-red-600" />
                     </div>
                     <p className="text-3xl font-bold text-red-600">
                       {healthReportQuery.data.summary.errorEntries}
@@ -710,7 +708,7 @@ export function ErrorCorrectionPanel() {
                   </div>
                   <div className="text-center p-5 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border border-amber-200">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-200 flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-amber-600" />
+                      <Warning className="w-6 h-6 text-amber-600" />
                     </div>
                     <p className="text-3xl font-bold text-amber-600">
                       {healthReportQuery.data.summary.errorRate}
@@ -729,18 +727,18 @@ export function ErrorCorrectionPanel() {
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-base font-semibold text-zinc-900 mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-purple-500" />
+                  <h3 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <ChartBar className="w-5 h-5 text-purple-500" />
                     问题分类统计
                   </h3>
                   <div className="space-y-3">
                     {Object.entries(healthReportQuery.data.errorCategories).map(
                       ([category, count]) => (
-                        <div key={category} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
-                          <span className="text-sm text-zinc-700 w-32 truncate font-medium">
+                        <div key={category} className="flex items-center gap-4 p-3 bg-bg-secondary rounded-lg">
+                          <span className="text-sm text-text-secondary w-32 truncate font-medium">
                             {category}
                           </span>
-                          <div className="flex-1 h-3 bg-zinc-200 rounded-full overflow-hidden">
+                          <div className="flex-1 h-3 bg-bg-tertiary rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
                               style={{
@@ -748,7 +746,7 @@ export function ErrorCorrectionPanel() {
                               }}
                             />
                           </div>
-                          <span className="text-sm text-zinc-600 w-10 text-right font-medium">
+                          <span className="text-sm text-text-secondary w-10 text-right font-medium">
                             {count}
                           </span>
                         </div>
@@ -758,25 +756,25 @@ export function ErrorCorrectionPanel() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold text-zinc-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <TrendUp className="w-5 h-5 text-amber-500" />
                     主要问题 TOP5
                   </h3>
                   <ul className="space-y-3">
                     {healthReportQuery.data.topIssues.map(([issue, count], index) => (
                       <li
                         key={index}
-                        className="flex items-center gap-4 p-4 bg-zinc-50 rounded-lg hover:bg-zinc-100 transition-colors"
+                        className="flex items-center gap-4 p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors"
                       >
                         <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                           index === 0 ? "bg-red-500 text-white" :
                           index === 1 ? "bg-amber-500 text-white" :
                           index === 2 ? "bg-yellow-500 text-white" :
-                          "bg-zinc-300 text-zinc-700"
+                          "bg-bg-tertiary text-text-secondary"
                         }`}>
                           {index + 1}
                         </span>
-                        <span className="flex-1 text-sm text-zinc-700 font-medium">{issue}</span>
+                        <span className="flex-1 text-sm text-text-secondary font-medium">{issue}</span>
                         <Badge variant="secondary" className="bg-purple-100 text-purple-700">
                           {count} 次
                         </Badge>
@@ -797,7 +795,7 @@ export function ErrorCorrectionPanel() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
-                  <Lightbulb className="w-4 h-4 text-white" />
+                  <Sparkle className="w-4 h-4 text-white" />
                 </div>
                 凭证 #{selectedVoucherId} 的纠错建议
               </DialogTitle>
@@ -806,14 +804,14 @@ export function ErrorCorrectionPanel() {
               {suggestionsQuery.data.map((suggestion, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-100"
+                  className="flex items-start gap-3 p-4 bg-bg-secondary rounded-xl border border-border-secondary"
                 >
                   <Badge className={`mt-0.5 ${getPriorityColor(suggestion.priority)}`}>
                     {getPriorityName(suggestion.priority)}
                   </Badge>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-zinc-900">{suggestion.error}</p>
-                    <p className="text-xs text-zinc-600 mt-1">{suggestion.action}</p>
+                    <p className="text-sm font-medium text-text-primary">{suggestion.error}</p>
+                    <p className="text-xs text-text-secondary mt-1">{suggestion.action}</p>
                   </div>
                   {suggestion.autoFixable && (
                     <Button
@@ -831,7 +829,7 @@ export function ErrorCorrectionPanel() {
                         </>
                       ) : (
                         <>
-                          <Zap className="w-3 h-3 mr-1" />
+                          <Sparkle className="w-3 h-3 mr-1" />
                           一键修复
                         </>
                       )}
@@ -843,7 +841,7 @@ export function ErrorCorrectionPanel() {
             {autoFixMutation.isSuccess && (
               <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm text-green-700 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle className="w-4 h-4" />
                   {autoFixMutation.data?.message}
                 </p>
               </div>

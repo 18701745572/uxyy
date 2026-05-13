@@ -94,11 +94,7 @@ export async function apiFetch<T = unknown>(
   _retry = true,
 ): Promise<T> {
   const base = getPublicApiBaseUrl();
-  if (!base) {
-    throw new Error(
-      "缺少 NEXT_PUBLIC_API_URL（见 uxyy-web/.env.example → .env.local）",
-    );
-  }
+  // 当 base 为空字符串时，使用相对路径（配合 next.config.mjs rewrites）
 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
@@ -115,7 +111,9 @@ export async function apiFetch<T = unknown>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${base}/api/v1${path}`, {
+  // 构建请求 URL：如果有 base 则使用绝对路径，否则使用相对路径
+  const url = base ? `${base}/api/v1${path}` : `/api/v1${path}`;
+  const res = await fetch(url, {
     ...options,
     headers,
   });

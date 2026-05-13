@@ -343,3 +343,273 @@ export async function deleteFollowUpRecord(
     },
   );
 }
+
+// ==================== 会员管理相关类型和API ====================
+
+// 会员等级类型
+export type MemberLevelCode = "bronze" | "silver" | "gold" | "platinum" | "diamond";
+
+export interface MemberLevelResponseDto {
+  id: number;
+  enterpriseId: number;
+  name: string;
+  code: MemberLevelCode;
+  minPoints: number;
+  maxPoints?: number;
+  discountRate: string; // 折扣率，如 "95.00" 表示95折
+  description?: string;
+  benefits?: string[];
+  color: string;
+  sortOrder: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMemberLevelDto {
+  name: string;
+  code: MemberLevelCode;
+  minPoints?: number;
+  maxPoints?: number;
+  discountRate?: string;
+  description?: string;
+  benefits?: string[];
+  color?: string;
+  sortOrder?: number;
+  isDefault?: boolean;
+}
+
+export interface UpdateMemberLevelDto {
+  name?: string;
+  code?: MemberLevelCode;
+  minPoints?: number;
+  maxPoints?: number;
+  discountRate?: string;
+  description?: string;
+  benefits?: string[];
+  color?: string;
+  sortOrder?: number;
+  isDefault?: boolean;
+}
+
+// 客户会员类型
+export interface CustomerMemberResponseDto {
+  id: number;
+  customerId: number;
+  customerName?: string;
+  enterpriseId: number;
+  memberNo?: string;
+  levelId?: number;
+  levelName?: string;
+  levelCode?: MemberLevelCode;
+  totalPoints: number;
+  availablePoints: number;
+  usedPoints: number;
+  balance: string;
+  totalConsumption: string;
+  orderCount: number;
+  joinDate: string;
+  expireDate?: string;
+  lastConsumptionAt?: string;
+  remark?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCustomerMemberDto {
+  customerId: number;
+  levelId?: number;
+  memberNo?: string;
+  remark?: string;
+}
+
+export interface UpdateCustomerMemberDto {
+  levelId?: number;
+  memberNo?: string;
+  remark?: string;
+}
+
+// 积分记录类型
+export type PointsChangeType = "earn" | "redeem" | "adjust" | "expire";
+
+export interface PointsRecordResponseDto {
+  id: number;
+  customerId: number;
+  customerName?: string;
+  enterpriseId: number;
+  type: PointsChangeType;
+  points: number; // 正数为增加，负数为减少
+  beforePoints: number;
+  afterPoints: number;
+  sourceType?: string;
+  sourceId?: number;
+  description?: string;
+  createdBy?: number;
+  createdAt: string;
+}
+
+export interface AddPointsDto {
+  customerId: number;
+  points: number;
+  type: PointsChangeType;
+  description?: string;
+  sourceType?: string;
+  sourceId?: number;
+}
+
+// 会员等级管理API
+export async function fetchMemberLevels(): Promise<MemberLevelResponseDto[]> {
+  return apiFetch<MemberLevelResponseDto[]>("/crm/members/levels");
+}
+
+export async function fetchMemberLevel(id: number): Promise<MemberLevelResponseDto> {
+  return apiFetch<MemberLevelResponseDto>(`/crm/members/levels/${id}`);
+}
+
+export async function createMemberLevel(
+  data: CreateMemberLevelDto,
+): Promise<MemberLevelResponseDto> {
+  return apiFetch<MemberLevelResponseDto>("/crm/members/levels", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMemberLevel(
+  id: number,
+  data: UpdateMemberLevelDto,
+): Promise<MemberLevelResponseDto> {
+  return apiFetch<MemberLevelResponseDto>(`/crm/members/levels/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMemberLevel(id: number): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/crm/members/levels/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// 会员管理API
+export interface MemberListQueryDto {
+  page?: number;
+  pageSize?: number;
+  levelId?: number;
+  search?: string;
+}
+
+export interface MemberListResponseDto {
+  items: CustomerMemberResponseDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchMembers(query?: MemberListQueryDto): Promise<MemberListResponseDto> {
+  const params = new URLSearchParams();
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.pageSize) params.set("pageSize", String(query.pageSize));
+  if (query?.levelId) params.set("levelId", String(query.levelId));
+  if (query?.search) params.set("search", query.search);
+
+  const qs = params.toString();
+  return apiFetch<MemberListResponseDto>(`/crm/members${qs ? `?${qs}` : ""}`);
+}
+
+export async function fetchCustomerMember(customerId: number): Promise<CustomerMemberResponseDto> {
+  return apiFetch<CustomerMemberResponseDto>(`/crm/members/customer/${customerId}`);
+}
+
+export async function createCustomerMember(
+  data: CreateCustomerMemberDto,
+): Promise<CustomerMemberResponseDto> {
+  return apiFetch<CustomerMemberResponseDto>("/crm/members", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCustomerMember(
+  customerId: number,
+  data: UpdateCustomerMemberDto,
+): Promise<CustomerMemberResponseDto> {
+  return apiFetch<CustomerMemberResponseDto>(`/crm/members/customer/${customerId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCustomerMember(customerId: number): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/crm/members/customer/${customerId}`, {
+    method: "DELETE",
+  });
+}
+
+// 积分管理API
+export async function addPoints(data: AddPointsDto): Promise<CustomerMemberResponseDto> {
+  return apiFetch<CustomerMemberResponseDto>("/crm/members/points/add", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchPointsRecords(
+  customerId: number,
+  query?: { page?: number; pageSize?: number },
+): Promise<{ items: PointsRecordResponseDto[]; total: number; page: number; pageSize: number }> {
+  const params = new URLSearchParams();
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.pageSize) params.set("pageSize", String(query.pageSize));
+
+  const qs = params.toString();
+  return apiFetch(
+    `/crm/members/points/records/${customerId}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+// 获取积分变动类型标签
+export function getPointsChangeTypeLabel(type: PointsChangeType): string {
+  const labels: Record<PointsChangeType, string> = {
+    earn: "获得积分",
+    redeem: "兑换消耗",
+    adjust: "手动调整",
+    expire: "积分过期",
+  };
+  return labels[type];
+}
+
+// 获取积分变动类型颜色
+export function getPointsChangeTypeColor(type: PointsChangeType): string {
+  const colors: Record<PointsChangeType, string> = {
+    earn: "text-green-600 bg-green-50",
+    redeem: "text-orange-600 bg-orange-50",
+    adjust: "text-blue-600 bg-blue-50",
+    expire: "text-text-secondary bg-bg-secondary",
+  };
+  return colors[type];
+}
+
+// 获取会员等级标签
+export function getMemberLevelLabel(code: MemberLevelCode): string {
+  const labels: Record<MemberLevelCode, string> = {
+    bronze: "青铜会员",
+    silver: "白银会员",
+    gold: "黄金会员",
+    platinum: "铂金会员",
+    diamond: "钻石会员",
+  };
+  return labels[code];
+}
+
+// 获取会员等级颜色
+export function getMemberLevelColor(code: MemberLevelCode): string {
+  const colors: Record<MemberLevelCode, string> = {
+    bronze: "text-amber-700 bg-amber-100",
+    silver: "text-slate-600 bg-slate-200",
+    gold: "text-yellow-700 bg-yellow-100",
+    platinum: "text-cyan-700 bg-cyan-100",
+    diamond: "text-purple-700 bg-purple-100",
+  };
+  return colors[code];
+}

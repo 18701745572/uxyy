@@ -181,15 +181,15 @@ export function EmployeeProfileDialog({
                 )}
               </div>
             ) : editRow ? (
-              <div className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+              <div className="rounded-md bg-bg-secondary px-3 py-2 text-sm text-text-secondary">
                 账号：
-                <span className="font-medium text-zinc-900">
+                <span className="font-medium text-text-primary">
                   {" "}
                   {editRow.user.nickname?.trim() ||
                     editRow.user.phone ||
                     `#${editRow.user.id}`}
                 </span>
-                <span className="text-zinc-400">
+                <span className="text-text-muted">
                   {" "}
                   · 用户 ID {editRow.profile.userId}
                 </span>

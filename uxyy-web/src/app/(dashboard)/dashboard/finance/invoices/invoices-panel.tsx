@@ -346,15 +346,15 @@ function InvoiceForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {!isEdit ? (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 space-y-2">
-          <p className="text-sm font-medium text-zinc-900">上传发票影像（可选）</p>
-          <p className="text-xs text-zinc-600">
+        <div className="rounded-lg border border-border-primary bg-bg-secondary/80 px-4 py-3 space-y-2">
+          <p className="text-sm font-medium text-text-primary">上传发票影像（可选）</p>
+          <p className="text-xs text-text-secondary">
             支持清晰 JPG / PNG / WebP，最大 5MB。翻拍不清或仅有电子版 PDF / 只有号码时，请直接手工录入。
           </p>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="text-sm text-zinc-700"
+            className="text-sm text-text-secondary"
             disabled={ocrStatus === "loading"}
             onChange={onPickOcrFile}
           />
@@ -367,16 +367,16 @@ function InvoiceForm({
             </p>
           ) : null}
           {ocrStatus === "success" && lastOcr ? (
-            <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 space-y-2">
+            <div className="rounded-md border border-border-primary bg-white px-3 py-2 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-medium text-zinc-700">识别预览</p>
+                <p className="text-xs font-medium text-text-secondary">识别预览</p>
                 {ocrConfidencePct != null ? (
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-text-tertiary">
                     置信度 {ocrConfidencePct}%
                   </span>
                 ) : null}
               </div>
-              <ul className="text-xs text-zinc-600 grid sm:grid-cols-2 gap-x-4 gap-y-1">
+              <ul className="text-xs text-text-secondary grid sm:grid-cols-2 gap-x-4 gap-y-1">
                 <li>号码 {lastOcr.invoiceNo}</li>
                 <li>
                   类型 {lastOcr.type === "special" ? "专用" : lastOcr.type === "electronic" ? "电子" : "普通"}
@@ -407,7 +407,7 @@ function InvoiceForm({
               >
                 填入表单
               </Button>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-text-tertiary">
                 若表单已有内容，将询问「全覆盖」或「仅填空白项」后再写入。
               </p>
             </div>
@@ -436,9 +436,9 @@ function InvoiceForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-zinc-700">发票类型 *</label>
+          <label className="text-sm font-medium text-text-secondary">发票类型 *</label>
           <select
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
             value={formData.type}
             onChange={(e) =>
               setFormData((prev) => ({
@@ -537,9 +537,9 @@ function InvoiceForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-zinc-700">备注</label>
+        <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           rows={2}
           value={formData.remark}
           onChange={(e) =>
@@ -668,7 +668,7 @@ export function InvoicesPanel() {
   if (creating) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">新建发票</h2>
+        <h2 className="font-medium text-text-primary mb-4">新建发票</h2>
         <InvoiceForm
           initialForm={ocrPrefill ?? undefined}
           onDone={() => {
@@ -683,7 +683,7 @@ export function InvoicesPanel() {
   if (editing) {
     return (
       <Card>
-        <h2 className="font-medium text-zinc-900 mb-4">
+        <h2 className="font-medium text-text-primary mb-4">
           编辑发票 · {editing.invoiceNo}
         </h2>
         <InvoiceForm init={editing} onDone={() => setEditing(null)} />
@@ -694,13 +694,13 @@ export function InvoicesPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">发票管理</h1>
+        <h1 className="text-lg font-semibold text-text-primary">发票管理</h1>
         <Button onClick={() => setCreating(true)}>+ 新建发票</Button>
       </div>
 
       <div className="flex gap-2">
         <select
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
           value={status ?? ""}
           onChange={(e) => {
             setStatus((e.target.value as InvoiceStatus) || undefined);
@@ -717,14 +717,14 @@ export function InvoicesPanel() {
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (
-          <p className="text-sm text-zinc-600 p-6">加载中…</p>
+          <p className="text-sm text-text-secondary p-6">加载中…</p>
         ) : q.isError ? (
           <pre className="whitespace-pre-wrap text-sm text-red-700 p-6">
             {q.error instanceof Error ? q.error.message : String(q.error)}
           </pre>
         ) : (
           <>
-            <div className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100 flex justify-between">
+            <div className="px-4 py-3 text-sm text-text-secondary border-b border-border-secondary flex justify-between">
               <span>
                 共 <strong>{q.data?.total ?? 0}</strong> 条 · 第{" "}
                 <strong>{q.data?.page ?? page}</strong> 页
@@ -732,20 +732,20 @@ export function InvoicesPanel() {
             </div>
 
             {!q.data?.list?.length ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
+              <p className="p-8 text-center text-sm text-text-tertiary">
                 暂无发票数据
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="divide-y divide-border-secondary">
                 {(q.data?.list ?? []).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium text-zinc-900">
+                      <div className="font-medium text-text-primary">
                         {row.invoiceNo}
-                        <span className="ml-2 text-xs text-zinc-500">
+                        <span className="ml-2 text-xs text-text-tertiary">
                           {typeMap[row.type]}
                         </span>
                         <span
@@ -754,7 +754,7 @@ export function InvoicesPanel() {
                           {statusMap[row.status]}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-text-secondary">
                         <span className="mr-3">
                           金额: ¥{row.totalAmount}
                         </span>
@@ -820,7 +820,7 @@ export function InvoicesPanel() {
               </ul>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-secondary">
               <Button
                 variant="secondary"
                 disabled={page <= 1}
@@ -828,7 +828,7 @@ export function InvoicesPanel() {
               >
                 上一页
               </Button>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
               <Button

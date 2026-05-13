@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const DropdownMenuContext = React.createContext<{
   open: boolean;
-  setOpen: (open: boolean) => void;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }>({
   open: false,
   setOpen: () => {},
@@ -35,7 +35,7 @@ export function DropdownMenuTrigger({ children, asChild, className }: DropdownMe
   const { setOpen } = React.useContext(DropdownMenuContext);
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, {
+    return React.cloneElement(children as React.ReactElement<{ onClick?: () => void; className?: string }>, {
       onClick: () => setOpen((prev) => !prev),
       className,
     });
@@ -80,7 +80,7 @@ export function DropdownMenuContent({ children, align = "end", className }: Drop
     <div
       ref={ref}
       className={cn(
-        "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border border-zinc-200 bg-white p-1 shadow-lg animate-in fade-in-0 zoom-in-95",
+        "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border border-border-primary bg-white p-1 shadow-lg animate-in fade-in-0 zoom-in-95",
         align === "end" ? "right-0" : "left-0",
         className
       )}
@@ -113,8 +113,8 @@ export function DropdownMenuItem({ children, onClick, disabled, className }: Dro
       className={cn(
         "relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none transition-colors",
         disabled
-          ? "cursor-not-allowed opacity-50 text-zinc-400"
-          : "hover:bg-zinc-100 text-zinc-900",
+          ? "cursor-not-allowed opacity-50 text-text-muted"
+          : "hover:bg-bg-tertiary text-text-primary",
         className
       )}
     >
@@ -124,5 +124,5 @@ export function DropdownMenuItem({ children, onClick, disabled, className }: Dro
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="-mx-1 my-1 h-px bg-zinc-100" />;
+  return <div className="-mx-1 my-1 h-px bg-bg-tertiary" />;
 }

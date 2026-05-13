@@ -28,6 +28,7 @@ export const Permission = {
   FIN_WRITE: "finance:write",
   FIN_VOUCHER: "finance:voucher",
   FIN_REPORT: "finance:report",
+  FIN_CONFIG: "finance:config",
 
   OA_READ: "oa:read",
   OA_APPROVE: "oa:approve",
