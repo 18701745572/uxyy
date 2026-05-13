@@ -17,8 +17,6 @@ import {
   ArrowsClockwise,
   Funnel,
   Phone,
-  Calendar,
-  CurrencyCircleDollar,
   ShoppingCart,
   ChartLineUp,
   SealWarning,

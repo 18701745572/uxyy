@@ -1,9 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { AiPanel } from "./ai-panel";
-import { ChurnPredictionPanel } from "./churn-prediction-panel";
-import { OpportunityPredictionPanel } from "./opportunity-prediction-panel";
+import { CardSkeleton } from "@/components/ui/card";
 import {
   Robot,
   Warning,
@@ -42,6 +41,28 @@ const tabs: Array<{
     gradient: "from-success/20 to-accent-blue/20",
   },
 ];
+
+// 动态导入面板组件
+const AiPanel = dynamic(
+  () => import("./ai-panel").then((mod) => ({ default: mod.AiPanel })),
+  {
+    loading: () => <CardSkeleton className="h-96" />,
+  }
+);
+
+const ChurnPredictionPanel = dynamic(
+  () => import("./churn-prediction-panel").then((mod) => ({ default: mod.ChurnPredictionPanel })),
+  {
+    loading: () => <CardSkeleton className="h-96" />,
+  }
+);
+
+const OpportunityPredictionPanel = dynamic(
+  () => import("./opportunity-prediction-panel").then((mod) => ({ default: mod.OpportunityPredictionPanel })),
+  {
+    loading: () => <CardSkeleton className="h-96" />,
+  }
+);
 
 function TabCard({
   tab,
@@ -89,6 +110,7 @@ function TabCard({
 
 /**
  * AI 智能页面 - 深色主题
+ * 优化：Tab 面板动态导入，减少首屏加载体积
  */
 export default function AiPage() {
   const [activeTab, setActiveTab] = useState<TabType>("tasks");
@@ -115,7 +137,7 @@ export default function AiPage() {
         ))}
       </div>
 
-      {/* 内容面板 */}
+      {/* 内容面板 - 动态加载 */}
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
         {activeTab === "tasks" && <AiPanel />}
         {activeTab === "churn" && <ChurnPredictionPanel />}

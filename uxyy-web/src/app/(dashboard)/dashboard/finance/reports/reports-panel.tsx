@@ -14,8 +14,10 @@ import {
   type ReportLineItem,
 } from "@/lib/api/reports";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
-import { DashboardOperationCharts } from "@/components/finance/dashboard-operation-charts";
-import { IncomeStatementStructureChart } from "@/components/finance/income-statement-structure-chart";
+import {
+  DashboardOperationCharts,
+  IncomeStatementStructureChart,
+} from "@/components/finance/charts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 

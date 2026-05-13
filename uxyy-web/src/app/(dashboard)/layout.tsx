@@ -6,6 +6,7 @@ import { RequireAuth } from "@/components/auth/auth-guard";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { DashboardRouteGate } from "@/components/layout/dashboard-route-gate";
+import { AuroraBackdrop } from "@/components/ui/aurora-backdrop";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "工作台",
@@ -62,7 +63,7 @@ function titleForPath(pathname: string): string {
  * 设计原则：
  * 1. 深色背景：主背景使用 bg-primary
  * 2. 玻璃拟态：侧边栏和头部使用半透明效果
- * 3. 渐变装饰：可选的渐变背景装饰
+ * 3. 与登录页一致的极光 mesh 背景（AuroraBackdrop）
  * 4. 响应式：移动端抽屉式侧边栏
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -71,12 +72,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <RequireAuth>
-      <div className="flex min-h-screen bg-bg-primary">
-        {/* 背景装饰 - 渐变光晕 */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-[128px]" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-purple/5 rounded-full blur-[128px]" />
-        </div>
+      <div className="relative flex min-h-screen overflow-hidden bg-[#05050a]">
+        <AuroraBackdrop position="fixed" />
 
         <Sidebar
           open={sidebarOpen}

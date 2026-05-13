@@ -242,6 +242,13 @@
   }
 }
 
+/* AuroraBackdrop：肌理与细线装饰（无大块光源动画，降低闪屏） */
+.login-svg-deco {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0.14;
+}
+
 /* 减少动效偏好支持 */
 @media (prefers-reduced-motion: reduce) {
   *,

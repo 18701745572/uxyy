@@ -283,6 +283,27 @@ const FeatureCard = forwardRef<HTMLDivElement, FeatureCardProps>(
 );
 FeatureCard.displayName = "FeatureCard";
 
+/**
+ * 卡片骨架屏
+ * 用于动态导入时的 loading 状态
+ */
+interface CardSkeletonProps {
+  className?: string;
+  height?: number | string;
+}
+
+function CardSkeleton({ className, height }: CardSkeletonProps) {
+  return (
+    <Card className={cn("animate-pulse", className)} style={{ height }}>
+      <div className="space-y-3">
+        <div className="h-4 w-1/3 bg-bg-tertiary rounded" />
+        <div className="h-4 w-1/2 bg-bg-tertiary/50 rounded" />
+        <div className="h-20 w-full bg-bg-tertiary rounded mt-4" />
+      </div>
+    </Card>
+  );
+}
+
 export {
   Card,
   CardHeader,
@@ -292,4 +313,5 @@ export {
   CardContent,
   StatCard,
   FeatureCard,
+  CardSkeleton,
 };
