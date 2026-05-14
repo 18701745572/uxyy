@@ -11,6 +11,9 @@ import { ApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
 import {
   Dialog,
   DialogContent,
@@ -157,7 +160,7 @@ export function WarehousesPanel() {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-text-secondary">地址</label>
                 <textarea
-                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+                  className={selectCls}
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -174,7 +177,7 @@ export function WarehousesPanel() {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-text-secondary">备注</label>
                 <textarea
-                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+                  className={selectCls}
                   rows={2}
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}

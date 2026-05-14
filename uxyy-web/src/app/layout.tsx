@@ -20,7 +20,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "优效营 uxyy",
-  description: "小微企业一体化经营系统",
+  description: "小微企业经营智能体平台",
 };
 
 export default function RootLayout({

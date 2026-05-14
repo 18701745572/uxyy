@@ -21,6 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 type ReportType =
   | "dashboard"
   | "balance-sheet"
@@ -282,7 +285,7 @@ export function ReportsPanel() {
       {activeTab === "dashboard" && (
         <div className="flex gap-2">
           <select
-            className="rounded-md border border-border-primary px-3 py-2 text-sm"
+            className={selectCls}
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
           >

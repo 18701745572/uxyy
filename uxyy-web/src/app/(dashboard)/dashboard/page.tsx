@@ -88,7 +88,7 @@ export default function DashboardHome() {
         <div className="relative z-10">
           <h1 className="text-xl font-bold text-text-primary">欢迎使用优效营</h1>
           <p className="mt-2 text-sm text-text-secondary">
-            小微企业一体化经营系统
+            小微企业经营智能体平台
           </p>
           <p className="mt-3 text-xs text-text-muted">
             下方仅展示您当前角色有权使用的快捷入口。

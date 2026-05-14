@@ -23,6 +23,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 const PAYMENT_METHOD_OPTIONS = [
   { value: "cash", label: "现金" },
   { value: "bank", label: "银行转账" },
@@ -110,7 +113,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">客户 *</label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={formData.customerId ?? ""}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -134,7 +137,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
           关联销售订单（可选）
         </label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={formData.orderId ?? ""}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -166,7 +169,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">回款方式 *</label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={formData.paymentMethod}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -204,7 +207,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           rows={2}
           value={formData.remark}
           onChange={(e) =>

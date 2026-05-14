@@ -6,7 +6,7 @@ import { RequireAuth } from "@/components/auth/auth-guard";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { DashboardRouteGate } from "@/components/layout/dashboard-route-gate";
-import { AuroraBackdrop } from "@/components/ui/aurora-backdrop";
+import { SimpleGridBackdrop } from "@/components/ui/simple-grid-backdrop";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "工作台",
@@ -59,11 +59,11 @@ function titleForPath(pathname: string): string {
 
 /**
  * Dashboard 布局 - 深色主题
- * 
+ *
  * 设计原则：
- * 1. 深色背景：主背景使用 bg-primary
+ * 1. 深色背景：主背景与 SimpleGridBackdrop 的底色一致
  * 2. 玻璃拟态：侧边栏和头部使用半透明效果
- * 3. 与登录页一致的极光 mesh 背景（AuroraBackdrop）
+ * 3. 工作区背景为独立浅色线网格（与登录页 AuroraBackdrop 分离）
  * 4. 响应式：移动端抽屉式侧边栏
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -73,7 +73,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <RequireAuth>
       <div className="relative flex min-h-screen overflow-hidden bg-[#05050a]">
-        <AuroraBackdrop position="fixed" />
+        <SimpleGridBackdrop position="fixed" />
 
         <Sidebar
           open={sidebarOpen}

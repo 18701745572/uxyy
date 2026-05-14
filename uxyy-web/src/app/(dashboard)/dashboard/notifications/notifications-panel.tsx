@@ -185,7 +185,7 @@ export function NotificationsPanel() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-tertiary">类型:</span>
             <select
-              className="text-sm rounded-md border border-border-primary px-2 py-1"
+              className="text-sm rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
               value={filterType}
               onChange={(e) => {
                 setFilterType(e.target.value as NotificationType | "all");
@@ -202,7 +202,7 @@ export function NotificationsPanel() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-tertiary">状态:</span>
             <select
-              className="text-sm rounded-md border border-border-primary px-2 py-1"
+              className="text-sm rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
               value={filterRead}
               onChange={(e) => {
                 setFilterRead(e.target.value as "all" | "read" | "unread");

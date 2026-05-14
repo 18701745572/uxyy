@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 
 const selectCls =
-  "rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20 bg-white";
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
 
 const statusMap: Record<OrderStatus, string> = {
   draft: "草稿",
@@ -320,7 +320,7 @@ function PurchaseOrderForm({
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           rows={3}
           value={formData.remark}
           onChange={(e) =>
@@ -460,7 +460,7 @@ export function PurchaseOrdersPanel() {
 
       <div className="flex gap-2">
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={status ?? ""}
           onChange={(e) => {
             setStatus((e.target.value as OrderStatus) || undefined);
@@ -663,7 +663,7 @@ export function PurchaseOrdersPanel() {
                   付款方式
                 </label>
                 <select
-                  className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+                  className={selectCls}
                   value={payMethod}
                   onChange={(e) =>
                     setPayMethod(e.target.value as typeof payMethod)

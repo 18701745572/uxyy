@@ -1827,7 +1827,7 @@ export {
 #### 代码示例
 ```tsx
 <select
-  className="px-3 py-1.5 text-sm border border-border-primary bg-bg-tertiary text-text-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-blue/20 focus:border-accent-blue"
+  className="px-3 py-1.5 text-sm border border-border-primary bg-bg-secondary text-text-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
   value={value}
   onChange={(e) => setValue(e.target.value)}
 >

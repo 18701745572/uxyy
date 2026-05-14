@@ -17,6 +17,9 @@ import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash } from "@/components/icons";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 const categoryLabels: Record<string, string> = {
   asset: "资产",
   liability: "负债",
@@ -309,7 +312,7 @@ function AccountSubjectForm({
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">科目类别</label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm"
+          className={selectCls}
           value={formData.type}
           onChange={(e) =>
             setFormData({

@@ -10,6 +10,9 @@ import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 // 模拟获取多期数据用于趋势分析
 async function fetchProfitTrend(
   startDate: string,
@@ -262,7 +265,7 @@ export function ProfitAnalysisPanel() {
         <h1 className="text-lg font-semibold text-text-primary">利润分析</h1>
         <div className="flex items-center gap-2">
           <select
-            className="text-sm rounded-md border border-border-primary px-2 py-1"
+            className={selectCls}
             value={period}
             onChange={(e) => setPeriod(e.target.value as typeof period)}
           >

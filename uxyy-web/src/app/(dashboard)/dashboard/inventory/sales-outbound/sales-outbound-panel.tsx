@@ -21,6 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft: { label: "草稿", className: "bg-bg-tertiary text-text-secondary" },
   confirmed: { label: "已确认", className: "bg-green-100 text-green-600" },
@@ -93,7 +96,7 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">销售订单 *</label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={formData.orderId ?? ""}
           onChange={(e) => {
             setFormData((prev) => ({
@@ -140,7 +143,7 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           rows={2}
           value={formData.remark}
           onChange={(e) =>

@@ -10,8 +10,7 @@ type AuroraBackdropProps = {
 };
 
 /**
- * 紫黑肌理背景：无大块色光，仅基底 + 刻线/点阵/轻噪点/网格 + 细线装饰。
- * 避免 SVG 模糊大色块 + mix-blend 叠层动画带来的闪屏与重绘抖动。
+ * 登录页专用背景：深色肌理 + 彩色水波涟漪等，与工作区 SimpleGridBackdrop 独立。
  */
 export function AuroraBackdrop({
   position = "absolute",
@@ -19,8 +18,13 @@ export function AuroraBackdrop({
 }: AuroraBackdropProps) {
   const uid = useId().replace(/:/g, "");
   const noiseFilterId = `aurora-noise-${uid}`;
-  const patternHatchId = `aurora-hatch-${uid}`;
   const patternFineId = `aurora-fine-${uid}`;
+  const waterSoftFilterId = `aurora-water-soft-${uid}`;
+  const rippleGrad = {
+    r1: `aurora-wr1-${uid}`,
+    r2: `aurora-wr2-${uid}`,
+    r3: `aurora-wr3-${uid}`,
+  } as const;
 
   const posClass = position === "fixed" ? "fixed inset-0" : "absolute inset-0";
 
@@ -40,6 +44,7 @@ export function AuroraBackdrop({
           backgroundImage: `
             radial-gradient(ellipse 100% 70% at 50% 0%, rgba(35, 18, 58, 0.22), transparent 50%),
             radial-gradient(ellipse 80% 50% at 50% 100%, rgba(18, 8, 32, 0.35), transparent 45%),
+            radial-gradient(ellipse 88% 45% at 50% 48%, rgba(15, 80, 120, 0.1), transparent 58%),
             linear-gradient(180deg, #07040f 0%, #05030a 50%, #040208 100%)
           `,
         }}
@@ -53,29 +58,12 @@ export function AuroraBackdrop({
       >
         <defs>
           <pattern
-            id={patternHatchId}
-            width={24}
-            height={24}
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(-28)"
-          >
-            <line
-              x1={0}
-              y1={0}
-              x2={0}
-              y2={24}
-              stroke="#8b5cf6"
-              strokeOpacity={0.12}
-              strokeWidth={1}
-            />
-          </pattern>
-          <pattern
             id={patternFineId}
             width={10}
             height={10}
             patternUnits="userSpaceOnUse"
           >
-            <circle cx={1.5} cy={1.5} r={0.6} fill="#a78bfa" fillOpacity={0.07} />
+            <circle cx={1.5} cy={1.5} r={0.6} fill="#a78bfa" fillOpacity={0.055} />
           </pattern>
 
           <filter
@@ -100,34 +88,75 @@ export function AuroraBackdrop({
               values="0.18 0 0 0 0.03  0 0.15 0 0 0.02  0 0 0.22 0 0.05  0 0 0 0.35 0"
             />
           </filter>
+
+          <filter
+            id={waterSoftFilterId}
+            x="-8%"
+            y="-8%"
+            width="116%"
+            height="116%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feGaussianBlur in="SourceGraphic" stdDeviation={0.55} />
+          </filter>
+
+          {/* 涟漪环：水平炫彩扫描，模拟水面反色 */}
+          <linearGradient id={rippleGrad.r1} x1={0} y1={0} x2={1440} y2={0} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.55} />
+            <stop offset="35%" stopColor="#3b82f6" stopOpacity={0.52} />
+            <stop offset="70%" stopColor="#8b5cf6" stopOpacity={0.48} />
+            <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0.5} />
+          </linearGradient>
+          <linearGradient id={rippleGrad.r2} x1={0} y1={0} x2={1440} y2={0} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#67e8f9" stopOpacity={0.5} />
+            <stop offset="40%" stopColor="#6366f1" stopOpacity={0.54} />
+            <stop offset="78%" stopColor="#f0abfc" stopOpacity={0.45} />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.5} />
+          </linearGradient>
+          <linearGradient id={rippleGrad.r3} x1={0} y1={0} x2={1440} y2={0} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#4ade80" stopOpacity={0.38} />
+            <stop offset="45%" stopColor="#38bdf8" stopOpacity={0.52} />
+            <stop offset="100%" stopColor="#e879f9" stopOpacity={0.46} />
+          </linearGradient>
         </defs>
 
-        <rect width={1440} height={900} fill={`url(#${patternHatchId})`} opacity={0.85} />
-        <rect width={1440} height={900} fill={`url(#${patternFineId})`} opacity={0.5} />
+        <rect width={1440} height={900} fill={`url(#${patternFineId})`} opacity={0.36} />
 
         <rect
           width={1440}
           height={900}
           filter={`url(#${noiseFilterId})`}
-          opacity={0.09}
+          opacity={0.06}
         />
 
-        <g fill="none" strokeWidth={1} className="login-svg-deco">
-          <circle cx={200} cy={140} r={118} stroke="#5b21b6" strokeOpacity={1} />
-          <circle cx={1260} cy={200} r={96} stroke="#7c3aed" strokeOpacity={1} />
-          <circle cx={720} cy={100} r={52} stroke="#a78bfa" strokeOpacity={1} />
-          <path d="M 60 780 L 340 620" stroke="#6d28d9" strokeOpacity={1} strokeLinecap="round" />
-          <path d="M 1180 740 L 1340 500" stroke="#9333ea" strokeOpacity={1} strokeLinecap="round" />
-          <path d="M 400 860 Q 640 780 880 800" stroke="#581c87" strokeOpacity={1} strokeLinecap="round" />
-          <path
-            d="M 1040 120 L 1240 80 M 1120 40 L 1120 200"
-            stroke="#4c1d95"
-            strokeOpacity={0.9}
-            strokeLinecap="round"
-          />
-          <circle cx={360} cy={300} r={2.5} fill="#c4b5fd" stroke="none" />
-          <circle cx={1000} cy={160} r={2} fill="#c084fc" stroke="none" />
-          <circle cx={1080} cy={640} r={2.5} fill="#818cf8" stroke="none" />
+        {/* 底层淡色环形（上半区，与海浪区域错开） */}
+        <g fill="none" strokeWidth={1} className="login-svg-deco-ambient">
+          <circle cx={200} cy={140} r={118} stroke="#5b21b6" strokeOpacity={0.4} />
+          <circle cx={1260} cy={200} r={96} stroke="#7c3aed" strokeOpacity={0.36} />
+          <circle cx={720} cy={100} r={52} stroke="#a78bfa" strokeOpacity={0.33} />
+        </g>
+
+        {/* 双波心椭圆涟漪（屏中水波） */}
+        <g
+          filter={`url(#${waterSoftFilterId})`}
+          fill="none"
+          strokeLinecap="round"
+          className="login-svg-deco-water-ripples"
+        >
+          <g transform="translate(662 448) rotate(-4.5)">
+            <ellipse cx={0} cy={0} rx={115} ry={15} stroke={`url(#${rippleGrad.r1})`} strokeWidth={1.05} />
+            <ellipse cx={0} cy={0} rx={198} ry={26} stroke={`url(#${rippleGrad.r2})`} strokeWidth={0.98} />
+            <ellipse cx={0} cy={0} rx={288} ry={36} stroke={`url(#${rippleGrad.r3})`} strokeWidth={0.92} />
+            <ellipse cx={0} cy={0} rx={392} ry={48} stroke={`url(#${rippleGrad.r1})`} strokeWidth={0.85} />
+            <ellipse cx={0} cy={0} rx={505} ry={62} stroke={`url(#${rippleGrad.r2})`} strokeWidth={0.78} />
+            <ellipse cx={0} cy={0} rx={630} ry={76} stroke={`url(#${rippleGrad.r3})`} strokeWidth={0.72} />
+          </g>
+          <g transform="translate(838 468) rotate(5)">
+            <ellipse cx={0} cy={0} rx={95} ry={12} stroke={`url(#${rippleGrad.r2})`} strokeWidth={0.88} />
+            <ellipse cx={0} cy={0} rx={168} ry={21} stroke={`url(#${rippleGrad.r3})`} strokeWidth={0.82} />
+            <ellipse cx={0} cy={0} rx={248} ry={30} stroke={`url(#${rippleGrad.r1})`} strokeWidth={0.76} />
+            <ellipse cx={0} cy={0} rx={338} ry={40} stroke={`url(#${rippleGrad.r2})`} strokeWidth={0.7} />
+          </g>
         </g>
       </svg>
 
@@ -140,7 +169,7 @@ export function AuroraBackdrop({
       />
 
       <div
-        className="absolute inset-0 opacity-[0.05]"
+        className="absolute inset-0 opacity-[0.028]"
         style={{
           backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.32) 1px, transparent 1px),
             linear-gradient(90deg, rgba(139, 92, 246, 0.26) 1px, transparent 1px)`,
@@ -148,7 +177,7 @@ export function AuroraBackdrop({
         }}
       />
       <div
-        className="absolute inset-0 opacity-[0.032]"
+        className="absolute inset-0 opacity-[0.016]"
         style={{
           backgroundImage: `linear-gradient(rgba(167, 139, 250, 0.35) 1px, transparent 1px),
             linear-gradient(90deg, rgba(167, 139, 250, 0.28) 1px, transparent 1px)`,

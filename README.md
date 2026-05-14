@@ -1,6 +1,6 @@
 # uxyy
 
-优效营（[uxyy.cn](https://uxyy.cn)）小微企业一体化经营系统。
+优效营（[uxyy.cn](https://uxyy.cn））**小微企业经营智能体平台**。
 
 ## 项目状态
 

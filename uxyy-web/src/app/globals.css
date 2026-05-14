@@ -242,11 +242,32 @@
   }
 }
 
-/* AuroraBackdrop：肌理与细线装饰（无大块光源动画，降低闪屏） */
-.login-svg-deco {
+/* AuroraBackdrop（登录页）：仅椭圆彩色水波涟漪 + 柔焦；无横向曲线条 */
+.login-svg-deco-ambient {
   transform-box: fill-box;
   transform-origin: center;
-  opacity: 0.14;
+  opacity: 0.22;
+}
+
+.login-svg-deco-water-ripples {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0.42;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login-svg-deco-water-ripples {
+    animation: login-water-shimmer 14s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes login-water-shimmer {
+  from {
+    opacity: 0.34;
+  }
+  to {
+    opacity: 0.48;
+  }
 }
 
 /* 减少动效偏好支持 */
@@ -257,5 +278,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .login-svg-deco-water-ripples {
+    animation: none !important;
+    opacity: 0.38 !important;
   }
 }

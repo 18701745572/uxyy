@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gear, X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 import { useAuthStore } from "@/stores/auth-store";
-import { visibleSidebarItems, type NavItem } from "@/lib/permissions/nav-access";
+import { visibleSidebarItems } from "@/lib/permissions/nav-access";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
-
-const bottomItems: Omit<NavItem, "anyOf">[] = [
-  { href: "/dashboard/profile", label: "用户资料", icon: Gear },
-];
 
 interface SidebarProps {
   open: boolean;
@@ -30,8 +26,6 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const permissions = useAuthStore((s) => s.permissions);
-  const userDisplay = useAuthStore((s) => s.user?.sub);
-  const logout = useAuthStore((s) => s.logout);
   const navItems = visibleSidebarItems(permissions);
 
   return (
@@ -137,73 +131,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             })}
           </nav>
 
-          {/* 底部导航 */}
-          <div className="mt-6 pt-4 border-t border-border-primary px-3">
-            <nav className="flex flex-col gap-1" aria-label="辅助导航">
-              {bottomItems.map((item) => {
-                const isActive = pathname?.startsWith(item.href) ?? false;
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm",
-                      "transition-all duration-150 ease-out",
-                      isActive
-                        ? [
-                            "bg-gradient-to-r from-accent-blue/20 to-accent-purple/10 text-text-primary font-semibold",
-                            "border-l-2 border-accent-blue -ml-[2px] pl-[calc(0.75rem+2px)]",
-                            "shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                          ]
-                        : [
-                            "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary",
-                            "border-l-2 border-transparent"
-                          ]
-                    )}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 flex-shrink-0",
-                        isActive ? "text-accent-blue" : "text-text-muted"
-                      )}
-                      weight={isActive ? "bold" : "regular"}
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
         </div>
 
-        {/* 用户信息区域 */}
+        {/* 版本信息 */}
         <div className="border-t border-border-primary p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-accent-blue to-accent-purple flex items-center justify-center text-white text-sm font-medium shadow-glow">
-              {userDisplay?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">
-                {userDisplay ?? "未登录"}
-              </p>
-              <button
-                type="button"
-                onClick={logout}
-                className={cn(
-                  "text-xs text-text-muted",
-                  "hover:text-text-secondary",
-                  "transition-colors duration-150"
-                )}
-              >
-                退出登录
-              </button>
-            </div>
-          </div>
+          <p className="text-xs text-text-muted text-center">
+            技术支持：18701745572
+          </p>
         </div>
       </aside>
     </>

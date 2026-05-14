@@ -33,6 +33,9 @@ import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Crown } from "@/components/icons";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 const CUSTOMER_TYPES = [
   { value: "enterprise", label: "企业客户" },
   { value: "personal", label: "个人客户" },
@@ -224,7 +227,7 @@ function CustomerForm({
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text-secondary">客户类型</label>
           <select
-            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+            className={selectCls}
             value={type}
             onChange={(e) => setType(e.target.value as CustomerEntityType)}
           >
@@ -238,7 +241,7 @@ function CustomerForm({
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text-secondary">客户等级</label>
           <select
-            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+            className={selectCls}
             value={level}
             onChange={(e) => setLevel(e.target.value as CustomerLevel)}
           >
@@ -252,7 +255,7 @@ function CustomerForm({
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text-secondary">来源</label>
           <select
-            className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+            className={selectCls}
             value={source}
             onChange={(e) => setSource(e.target.value as CustomerSource)}
           >
@@ -311,7 +314,7 @@ function CustomerForm({
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">备注</label>
         <textarea
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           rows={3}
           value={remark}
           onChange={(e) => setRemark(e.target.value)}
@@ -375,7 +378,7 @@ function CreateMemberForm({
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-text-secondary">会员等级</label>
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm"
+          className={selectCls}
           value={formData.levelId ?? ""}
           onChange={(e) =>
             setFormData({ ...formData, levelId: e.target.value ? parseInt(e.target.value) : undefined })

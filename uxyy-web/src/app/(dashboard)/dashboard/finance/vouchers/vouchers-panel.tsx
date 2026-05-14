@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/client";
 
+const selectCls =
+  "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
+
 const sourceTypeOptions: { value: string; label: string }[] = [
   { value: "", label: "全部来源" },
   { value: "ai_task", label: "AI 任务" },
@@ -87,7 +90,7 @@ export function VouchersPanel() {
 
       <div className="flex flex-wrap gap-2 items-center">
         <select
-          className="rounded-md border border-border-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/20"
+          className={selectCls}
           value={sourceType}
           onChange={(e) => {
             setSourceType(e.target.value);
