@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Button 组件 - 深色主题设计
- * 
+ *
  * 设计原则：
  * 1. 深色主题适配：所有变体适配深色背景
  * 2. 蓝紫粉渐变：主按钮使用品牌渐变
@@ -21,40 +21,40 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // 主按钮：蓝紫粉渐变，最高视觉权重
-        primary: 
+        primary:
           "bg-gradient-to-r from-accent-blue via-accent-purple to-accent-pink text-white " +
           "hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 " +
           "active:from-blue-700 active:via-purple-700 active:to-pink-700 " +
           "focus-visible:ring-accent-blue/50 shadow-md hover:shadow-glow",
-        
+
         // 次级按钮：玻璃拟态效果
-        secondary: 
+        secondary:
           "bg-bg-tertiary/80 backdrop-blur-sm border border-border-primary text-text-primary " +
           "hover:bg-bg-tertiary hover:border-border-secondary " +
           "active:bg-bg-secondary active:border-border-primary " +
           "focus-visible:ring-accent-blue/30",
-        
+
         // 危险按钮：红色背景，用于删除等危险操作
-        danger: 
+        danger:
           "bg-error/90 text-white hover:bg-error active:bg-error/80 " +
           "focus-visible:ring-error/50 shadow-sm hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]",
-        
+
         // 幽灵按钮：透明背景，最低视觉权重
-        ghost: 
+        ghost:
           "bg-transparent text-text-secondary " +
           "hover:bg-bg-tertiary hover:text-text-primary " +
           "active:bg-bg-secondary " +
           "focus-visible:ring-accent-blue/30",
-        
+
         // 轮廓按钮：带边框的透明背景
-        outline: 
+        outline:
           "border border-border-secondary bg-transparent text-text-primary " +
           "hover:bg-bg-tertiary hover:border-border-primary " +
           "active:bg-bg-secondary " +
           "focus-visible:ring-accent-blue/30",
-        
+
         // 链接按钮：看起来像链接
-        link: 
+        link:
           "bg-transparent text-accent-blue underline-offset-4 " +
           "hover:underline hover:text-blue-400 " +
           "active:text-blue-500 " +
@@ -81,7 +81,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   /** 将样式合并到唯一子节点 */
   asChild?: boolean;
@@ -121,17 +122,17 @@ function LoadingSpinner({ className }: { className?: string }) {
 
 /**
  * Button 组件
- * 
+ *
  * @example
  * // 主按钮（渐变）
  * <Button>确认提交</Button>
- * 
+ *
  * // 次级按钮（玻璃拟态）
  * <Button variant="secondary">取消</Button>
- * 
+ *
  * // 危险按钮
  * <Button variant="danger">删除</Button>
- * 
+ *
  * // 加载状态
  * <Button loading>提交中...</Button>
  */
@@ -182,7 +183,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             )}
           />
         )}
-        <span className={cn(loading && "opacity-0", "relative")}>
+        <span
+          className={cn(
+            loading && "opacity-0",
+            "inline-flex items-center gap-2 whitespace-nowrap relative",
+          )}
+        >
           {loading && loadingText ? loadingText : children}
         </span>
         {loading && (

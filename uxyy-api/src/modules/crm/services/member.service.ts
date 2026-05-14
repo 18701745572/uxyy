@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, or, count } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
@@ -139,7 +139,14 @@ export class MemberService {
 
   // ==================== 客户会员管理 ====================
 
-  async findAllMembers(enterpriseId: number, options?: { levelId?: number; keyword?: string }) {
+  async findAllMembers(
+    enterpriseId: number,
+    options?: { levelId?: number; keyword?: string; page?: number; pageSize?: number },
+  ) {
+    const page = Math.max(1, options?.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, options?.pageSize ?? 10));
+    const offset = (page - 1) * pageSize;
+
     const conditions = [
       eq(schema.customerMembers.enterpriseId, enterpriseId),
       eq(schema.customerMembers.isDeleted, false),
@@ -149,7 +156,28 @@ export class MemberService {
       conditions.push(eq(schema.customerMembers.levelId, options.levelId));
     }
 
-    return this.db
+    const kw = options?.keyword?.trim();
+    if (kw) {
+      const pattern = `%${kw}%`;
+      conditions.push(
+        or(
+          ilike(schema.customers.name, pattern),
+          ilike(schema.customerMembers.memberNo, pattern),
+        )!,
+      );
+    }
+
+    const whereClause = and(...conditions);
+
+    const [countRow] = await this.db
+      .select({ n: count() })
+      .from(schema.customerMembers)
+      .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
+      .where(whereClause);
+
+    const total = Number(countRow?.n ?? 0);
+
+    const rows = await this.db
       .select({
         member: schema.customerMembers,
         customer: schema.customers,
@@ -158,8 +186,17 @@ export class MemberService {
       .from(schema.customerMembers)
       .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
       .leftJoin(schema.memberLevels, eq(schema.customerMembers.levelId, schema.memberLevels.id))
-      .where(and(...conditions))
-      .orderBy(desc(schema.customerMembers.totalConsumption));
+      .where(whereClause)
+      .orderBy(desc(schema.customerMembers.totalConsumption))
+      .limit(pageSize)
+      .offset(offset);
+
+    return {
+      items: rows.map((r) => this.mapMemberRowToDto(r)),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async findMemberByCustomerId(customerId: number, enterpriseId: number) {
@@ -346,6 +383,38 @@ export class MemberService {
   }
 
   // ==================== 辅助方法 ====================
+
+  private mapMemberRowToDto(row: {
+    member: typeof schema.customerMembers.$inferSelect;
+    customer: typeof schema.customers.$inferSelect | null;
+    level: typeof schema.memberLevels.$inferSelect | null;
+  }) {
+    const m = row.member;
+    return {
+      id: m.id,
+      customerId: m.customerId,
+      customerName: row.customer?.name ?? undefined,
+      enterpriseId: m.enterpriseId,
+      memberNo: m.memberNo ?? undefined,
+      levelId: m.levelId ?? undefined,
+      levelName: row.level?.name ?? undefined,
+      levelCode: row.level?.code ?? undefined,
+      totalPoints: m.totalPoints,
+      availablePoints: m.availablePoints,
+      usedPoints: m.usedPoints,
+      balance: String(m.balance),
+      totalConsumption: String(m.totalConsumption),
+      orderCount: m.orderCount,
+      joinDate: m.joinDate.toISOString?.() ?? String(m.joinDate),
+      expireDate: m.expireDate ? (m.expireDate.toISOString?.() ?? String(m.expireDate)) : undefined,
+      lastConsumptionAt: m.lastConsumptionAt
+        ? (m.lastConsumptionAt.toISOString?.() ?? String(m.lastConsumptionAt))
+        : undefined,
+      remark: m.remark ?? undefined,
+      createdAt: m.createdAt.toISOString?.() ?? String(m.createdAt),
+      updatedAt: m.updatedAt.toISOString?.() ?? String(m.updatedAt),
+    };
+  }
 
   private async generateMemberNo(enterpriseId: number): Promise<string> {
     const prefix = 'M';

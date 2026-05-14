@@ -1,6 +1,8 @@
 # Sealos 部署配置
 # 使用方法: sealos apply -f sealos.yaml
 #
+# 镜像标签（Docker Hub）：uxyy-api / uxyy-web 当前为 v9；升级后请先 build+push 再 apply。
+#
 # 部署前准备:
 # 1. 在 Sealos 控制台创建 PostgreSQL 数据库
 # 2. 在 Sealos 控制台创建 Redis 实例
@@ -23,7 +25,7 @@ spec:
     spec:
       containers:
         - name: uxyy-api
-          image: jianghuizhong18701745572/uxyy-api:v4
+          image: jianghuizhong18701745572/uxyy-api:v9
           ports:
             - containerPort: 3000
           env:
@@ -101,7 +103,7 @@ spec:
     spec:
       containers:
         - name: uxyy-web
-          image: jianghuizhong18701745572/uxyy-web:latest
+          image: jianghuizhong18701745572/uxyy-web:v9
           ports:
             - containerPort: 3001
           env:

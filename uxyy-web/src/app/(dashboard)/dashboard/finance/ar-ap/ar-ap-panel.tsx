@@ -14,8 +14,7 @@ function filterItems(items: ArApLineItem[], q: string): ArApLineItem[] {
   if (!s) return items;
   return items.filter(
     (x) =>
-      x.name.toLowerCase().includes(s) ||
-      x.invoiceNo.toLowerCase().includes(s),
+      x.name.toLowerCase().includes(s) || x.invoiceNo.toLowerCase().includes(s),
   );
 }
 
@@ -54,12 +53,18 @@ function ItemsTable({
                 <tr key={r.id} className="bg-white">
                   <td className="px-3 py-2">{r.name}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.invoiceNo}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">¥{r.amount}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">¥{r.paidAmount}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    ¥{r.amount}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    ¥{r.paidAmount}
+                  </td>
                   <td className="px-3 py-2 text-right font-medium text-text-primary tabular-nums">
                     ¥{r.balance}
                   </td>
-                  <td className="px-3 py-2 text-text-secondary">{r.issueDate ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">
+                    {r.issueDate ?? "—"}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {r.daysOverdue > 0 ? (
                       <span className="text-red-600">{r.daysOverdue}</span>
@@ -98,23 +103,19 @@ export function ArApPanel() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <h1 className="text-lg font-semibold text-text-primary">应收应付</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/dashboard/finance/invoices">
-            <Button type="button" variant="secondary" className="text-sm">
-              发票管理
-            </Button>
-          </Link>
-          <Link href="/dashboard/finance/reports">
-            <Button type="button" variant="secondary" className="text-sm">
-              财务报表
-            </Button>
-          </Link>
+          <Button type="button" variant="secondary" className="text-sm" asChild>
+            <Link href="/dashboard/finance/invoices">发票管理</Link>
+          </Button>
+          <Button type="button" variant="secondary" className="text-sm" asChild>
+            <Link href="/dashboard/finance/reports">财务报表</Link>
+          </Button>
         </div>
       </div>
 
       <p className="text-sm text-text-secondary rounded-md bg-bg-secondary border border-border-secondary px-3 py-2">
         数据来自「已核验、未入账」的发票：<strong>应收账款</strong>
-        为非采购来源票（销售侧应收），<strong>应付账款</strong>为采购关联票；入账后将从本列表消失。可在
-        发票管理中完成核验与入账。
+        为非采购来源票（销售侧应收），<strong>应付账款</strong>
+        为采购关联票；入账后将从本列表消失。可在 发票管理中完成核验与入账。
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -126,7 +127,11 @@ export function ArApPanel() {
             placeholder="往来单位名称或发票号…"
           />
         </div>
-        <Button type="button" variant="secondary" onClick={() => void q.refetch()}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => void q.refetch()}
+        >
           刷新
         </Button>
       </div>

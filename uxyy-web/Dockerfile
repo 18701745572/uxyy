@@ -23,7 +23,7 @@ COPY uxyy-web/ ./uxyy-web/
 RUN pnpm install --frozen-lockfile
 
 # Build shared package
-RUN pnpm --filter uxyy-shared build
+RUN pnpm --filter @uxyy/shared build
 
 # Build frontend - use cd and run next build directly with NODE_ENV
 ENV API_URL=http://127.0.0.1:3000

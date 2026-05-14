@@ -91,12 +91,12 @@ export default function NewLeaveRequestPage() {
     <div className="space-y-6">
       {/* 页面标题 */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/oa/leave-requests">
-          <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/oa/leave-requests">
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">请假申请</h1>
           <p className="text-text-tertiary mt-1">填写请假信息并提交审批</p>
@@ -204,11 +204,14 @@ export default function NewLeaveRequestPage() {
 
             {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
-              <Link href="/dashboard/oa/leave-requests" className="flex-1">
-                <Button type="button" variant="outline" className="w-full">
-                  取消
-                </Button>
-              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 w-full"
+                asChild
+              >
+                <Link href="/dashboard/oa/leave-requests">取消</Link>
+              </Button>
               <Button type="submit" className="flex-1" disabled={loading}>
                 {loading ? (
                   <>

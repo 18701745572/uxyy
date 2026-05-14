@@ -113,10 +113,24 @@ export async function apiFetch<T = unknown>(
 
   // 构建请求 URL：如果有 base 则使用绝对路径，否则使用相对路径
   const url = base ? `${base}/api/v1${path}` : `/api/v1${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const looksNetwork =
+      err instanceof TypeError || msg === "Failed to fetch";
+    if (looksNetwork) {
+      const hint = base
+        ? `无法连接后端 API（${base}）。请在本机启动 uxyy-api（默认端口 3000），并确认 NEXT_PUBLIC_API_URL 与 PORT 一致。`
+        : "无法连接后端 API。请启动 uxyy-api，并确认 uxyy-web 的 API_URL（next.config rewrites）指向后端地址。";
+      throw new ApiError(0, hint);
+    }
+    throw err;
+  }
 
   if (res.status === 401 && _retry) {
     if (isRefreshing) {

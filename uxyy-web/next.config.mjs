@@ -3,9 +3,8 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    // 从环境变量读取 API 地址，支持 Sealos 等云平台部署
-    // 本地开发默认使用 localhost:3001
-    const apiUrl = process.env.API_URL || 'http://127.0.0.1:3001';
+    // 浏览器走相对路径 `/api/*` 时由此代理到 Nest（须为后端端口，勿用 Next 自身端口）
+    const apiUrl = process.env.API_URL || 'http://127.0.0.1:3000';
 
     return [
       {

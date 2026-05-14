@@ -14,9 +14,23 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, CheckCircle, XCircle, Clock, User, Calendar, ChatText } from "@/components/icons";
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Clock,
+  User,
+  Calendar,
+  ChatText,
+} from "@/components/icons";
 
 type FilterStatus = "pending" | "all" | "approved" | "rejected";
 
@@ -68,7 +82,8 @@ function formatDateOnly(iso: string): string {
 
 export default function MakeUpApprovalsPage() {
   const [filter, setFilter] = useState<FilterStatus>("pending");
-  const [selectedRequest, setSelectedRequest] = useState<MakeUpRequestListItem | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<MakeUpRequestListItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const qc = useQueryClient();
@@ -80,8 +95,7 @@ export default function MakeUpApprovalsPage() {
 
   const listQuery = useQuery({
     queryKey,
-    queryFn: () =>
-      fetchMakeUpRequests(filter === "all" ? undefined : filter),
+    queryFn: () => fetchMakeUpRequests(filter === "all" ? undefined : filter),
     retry: (failureCount, err) => {
       if (err instanceof ApiError && err.status === 403) return false;
       return failureCount < 1;
@@ -100,7 +114,9 @@ export default function MakeUpApprovalsPage() {
     }) => approveMakeUp(id, approved, remark),
     onSuccess: (_, v) => {
       toast.success(v.approved ? "已通过补卡申请" : "已驳回");
-      void qc.invalidateQueries({ queryKey: ["attendance", "make-up-requests"] });
+      void qc.invalidateQueries({
+        queryKey: ["attendance", "make-up-requests"],
+      });
       setSelectedRequest(null);
       setRejectReason("");
     },
@@ -128,11 +144,15 @@ export default function MakeUpApprovalsPage() {
 
   const confirmAction = () => {
     if (!selectedRequest) return;
-    
+
     if (actionType === "approve") {
       approveMutation.mutate({ id: selectedRequest.id, approved: true });
     } else {
-      approveMutation.mutate({ id: selectedRequest.id, approved: false, remark: rejectReason });
+      approveMutation.mutate({
+        id: selectedRequest.id,
+        approved: false,
+        remark: rejectReason,
+      });
     }
   };
 
@@ -149,13 +169,20 @@ export default function MakeUpApprovalsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/oa/attendance">
-            <Button variant="ghost" size="sm" className="hover:bg-bg-tertiary">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:bg-bg-tertiary"
+            asChild
+          >
+            <Link href="/dashboard/oa/attendance">
               <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
-            <h1 className="text-lg font-semibold text-text-primary">补卡审批</h1>
+            <h1 className="text-lg font-semibold text-text-primary">
+              补卡审批
+            </h1>
             <p className="text-sm text-text-secondary">
               处理员工补卡申请，支持批量查看和审批操作
             </p>
@@ -165,10 +192,34 @@ export default function MakeUpApprovalsPage() {
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[
-          { status: "pending" as const, label: "待审批", count: statusCounts.pending, bg: "bg-amber-50", color: "text-amber-600" },
-          { status: "approved" as const, label: "已通过", count: statusCounts.approved, bg: "bg-green-50", color: "text-green-600" },
-          { status: "rejected" as const, label: "已驳回", count: statusCounts.rejected, bg: "bg-red-50", color: "text-red-600" },
-          { status: "all" as const, label: "全部", count: listQuery.data?.length || 0, bg: "bg-bg-secondary", color: "text-text-secondary" },
+          {
+            status: "pending" as const,
+            label: "待审批",
+            count: statusCounts.pending,
+            bg: "bg-amber-50",
+            color: "text-amber-600",
+          },
+          {
+            status: "approved" as const,
+            label: "已通过",
+            count: statusCounts.approved,
+            bg: "bg-green-50",
+            color: "text-green-600",
+          },
+          {
+            status: "rejected" as const,
+            label: "已驳回",
+            count: statusCounts.rejected,
+            bg: "bg-red-50",
+            color: "text-red-600",
+          },
+          {
+            status: "all" as const,
+            label: "全部",
+            count: listQuery.data?.length || 0,
+            bg: "bg-bg-secondary",
+            color: "text-text-secondary",
+          },
         ].map(({ status, label, count, bg, color }) => (
           <Button
             key={status}
@@ -194,7 +245,8 @@ export default function MakeUpApprovalsPage() {
       {is403 && (
         <Card className="p-4 bg-amber-50 border-amber-200">
           <p className="text-sm text-amber-900">
-            当前账号没有「OA 审批」权限，无法查看补卡列表。请使用老板或分配了行政（oa）等含审批权限的账号登录。
+            当前账号没有「OA
+            审批」权限，无法查看补卡列表。请使用老板或分配了行政（oa）等含审批权限的账号登录。
           </p>
         </Card>
       )}
@@ -212,11 +264,16 @@ export default function MakeUpApprovalsPage() {
           {listQuery.data.length === 0 ? (
             <Card className="p-8 text-center">
               <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
-              <p className="text-sm text-text-tertiary">暂无{filter === "all" ? "" : statusLabel(filter)}补卡申请</p>
+              <p className="text-sm text-text-tertiary">
+                暂无{filter === "all" ? "" : statusLabel(filter)}补卡申请
+              </p>
             </Card>
           ) : (
             listQuery.data.map((row) => (
-              <Card key={row.id} className="p-4 transition-all duration-200 hover:shadow-md">
+              <Card
+                key={row.id}
+                className="p-4 transition-all duration-200 hover:shadow-md"
+              >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -225,7 +282,9 @@ export default function MakeUpApprovalsPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-text-primary">{row.applicantName}</span>
+                          <span className="font-semibold text-text-primary">
+                            {row.applicantName}
+                          </span>
                           <Badge className={statusBadgeClass(row.status)}>
                             {statusLabel(row.status)}
                           </Badge>
@@ -247,7 +306,9 @@ export default function MakeUpApprovalsPage() {
                   <div className="ml-13 pl-13">
                     <div className="flex items-start gap-2">
                       <ChatText className="w-4 h-4 text-text-muted mt-0.5 shrink-0" />
-                      <p className="text-sm text-text-secondary">{row.reason}</p>
+                      <p className="text-sm text-text-secondary">
+                        {row.reason}
+                      </p>
                     </div>
                   </div>
 
@@ -292,7 +353,10 @@ export default function MakeUpApprovalsPage() {
         </div>
       )}
 
-      <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
+      <Dialog
+        open={!!selectedRequest}
+        onOpenChange={(open) => !open && setSelectedRequest(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -310,7 +374,9 @@ export default function MakeUpApprovalsPage() {
             </DialogTitle>
             {selectedRequest && (
               <DialogDescription className="text-sm">
-                {selectedRequest.applicantName} · {selectedRequest.type === "in" ? "上班卡" : "下班卡"} · {formatDateOnly(selectedRequest.date)}
+                {selectedRequest.applicantName} ·{" "}
+                {selectedRequest.type === "in" ? "上班卡" : "下班卡"} ·{" "}
+                {formatDateOnly(selectedRequest.date)}
               </DialogDescription>
             )}
           </DialogHeader>
@@ -341,15 +407,19 @@ export default function MakeUpApprovalsPage() {
             <Button
               onClick={confirmAction}
               disabled={approveMutation.isPending}
-              className={actionType === "approve" ? "" : "bg-red-500 hover:bg-red-600"}
+              className={
+                actionType === "approve" ? "" : "bg-red-500 hover:bg-red-600"
+              }
             >
               {approveMutation.isPending ? (
                 <>
                   <Spinner className="w-4 h-4 mr-2" />
                   处理中...
                 </>
+              ) : actionType === "approve" ? (
+                "确认通过"
               ) : (
-                actionType === "approve" ? "确认通过" : "确认驳回"
+                "确认驳回"
               )}
             </Button>
           </div>

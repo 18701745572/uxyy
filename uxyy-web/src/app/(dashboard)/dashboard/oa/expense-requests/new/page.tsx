@@ -78,15 +78,17 @@ export default function NewExpenseRequestPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/oa/expense-requests">
-          <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/oa/expense-requests">
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">报销申请</h1>
-          <p className="text-text-tertiary mt-1">填写报销信息（附件 URL 上传待对接）</p>
+          <p className="text-text-tertiary mt-1">
+            填写报销信息（附件 URL 上传待对接）
+          </p>
         </div>
       </div>
 
@@ -161,15 +163,19 @@ export default function NewExpenseRequestPage() {
             </div>
 
             <div className="rounded-md border border-dashed border-border-primary bg-bg-secondary/80 px-3 py-3 text-xs text-text-secondary">
-              凭证附件：当前版本提交时<strong>不附带</strong>图片；后端字段已预留，后续可对接对象存储后在此补充。
+              凭证附件：当前版本提交时<strong>不附带</strong>
+              图片；后端字段已预留，后续可对接对象存储后在此补充。
             </div>
 
             <div className="flex gap-4 pt-4">
-              <Link href="/dashboard/oa/expense-requests" className="flex-1">
-                <Button type="button" variant="outline" className="w-full">
-                  取消
-                </Button>
-              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 w-full"
+                asChild
+              >
+                <Link href="/dashboard/oa/expense-requests">取消</Link>
+              </Button>
               <Button type="submit" className="flex-1" disabled={loading}>
                 {loading ? (
                   <>

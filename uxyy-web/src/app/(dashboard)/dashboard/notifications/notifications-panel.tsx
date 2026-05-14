@@ -21,7 +21,9 @@ import { formatDistanceToNow } from "@/lib/utils";
 
 export function NotificationsPanel() {
   const [filterType, setFilterType] = useState<NotificationType | "all">("all");
-  const [filterRead, setFilterRead] = useState<"all" | "read" | "unread">("all");
+  const [filterRead, setFilterRead] = useState<"all" | "read" | "unread">(
+    "all",
+  );
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -35,7 +37,11 @@ export function NotificationsPanel() {
         pageSize,
         type: filterType === "all" ? undefined : filterType,
         isRead:
-          filterRead === "read" ? true : filterRead === "unread" ? false : undefined,
+          filterRead === "read"
+            ? true
+            : filterRead === "unread"
+              ? false
+              : undefined,
       }),
   });
 
@@ -136,11 +142,9 @@ export function NotificationsPanel() {
                 </Button>
               )}
               {notification.actionUrl && (
-                <Link href={notification.actionUrl}>
-                  <Button variant="primary" size="sm">
-                    查看详情
-                  </Button>
-                </Link>
+                <Button variant="primary" size="sm" asChild>
+                  <Link href={notification.actionUrl}>查看详情</Link>
+                </Button>
               )}
               <Button
                 variant="ghost"
@@ -165,7 +169,8 @@ export function NotificationsPanel() {
         {data && data.unreadCount > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-tertiary">
-              未读通知: <strong className="text-red-600">{data.unreadCount}</strong>
+              未读通知:{" "}
+              <strong className="text-red-600">{data.unreadCount}</strong>
             </span>
             <Button
               variant="secondary"
@@ -246,7 +251,10 @@ export function NotificationsPanel() {
         ) : (
           <div className="space-y-3">
             {data?.data.map((notification) => (
-              <NotificationCard key={notification.id} notification={notification} />
+              <NotificationCard
+                key={notification.id}
+                notification={notification}
+              />
             ))}
           </div>
         )}

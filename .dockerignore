@@ -1,0 +1,20 @@
+# 勿把本机 node_modules 送入构建上下文：pnpm 在镜像内会用 symlink，
+# 再 COPY 宿主机目录会触发 cannot copy to non-directory（如 .../node_modules/dotenv）。
+
+**/node_modules
+**/.pnpm-store
+
+.git
+.turbo
+**/.turbo
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+.trae
+.cursor

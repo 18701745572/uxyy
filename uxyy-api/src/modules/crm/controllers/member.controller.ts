@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
@@ -91,12 +92,18 @@ export class MemberController {
   @Get()
   findAllMembers(
     @Req() req: Request & { user: UserContext },
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
     @Query('levelId', new ParseIntPipe({ optional: true })) levelId?: number,
+    @Query('search') search?: string,
     @Query('keyword') keyword?: string,
   ) {
+    const q = (search ?? keyword)?.trim();
     return this.memberService.findAllMembers(req.user.enterpriseId, {
       levelId,
-      keyword,
+      keyword: q || undefined,
+      page,
+      pageSize,
     });
   }
 

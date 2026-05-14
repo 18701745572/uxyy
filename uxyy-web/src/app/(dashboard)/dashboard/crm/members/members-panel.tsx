@@ -9,6 +9,7 @@ import {
   updateCustomerMember,
   deleteCustomerMember,
   addPoints,
+  fetchPointsRecords,
   getMemberLevelColor,
   getPointsChangeTypeLabel,
   getPointsChangeTypeColor,
@@ -21,8 +22,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MagnifyingGlass, Plus, PencilSimple, Trash, Coins, ClockCounterClockwise } from "@phosphor-icons/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  MagnifyingGlass,
+  Plus,
+  PencilSimple,
+  Trash,
+  Coins,
+  ClockCounterClockwise,
+  Users,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 export function MembersPanel() {
@@ -31,13 +45,22 @@ export function MembersPanel() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const [editingMember, setEditingMember] = useState<CustomerMemberResponseDto | null>(null);
-  const [pointsMember, setPointsMember] = useState<CustomerMemberResponseDto | null>(null);
-  const [viewingRecords, setViewingRecords] = useState<CustomerMemberResponseDto | null>(null);
+  const [editingMember, setEditingMember] =
+    useState<CustomerMemberResponseDto | null>(null);
+  const [pointsMember, setPointsMember] =
+    useState<CustomerMemberResponseDto | null>(null);
+  const [viewingRecords, setViewingRecords] =
+    useState<CustomerMemberResponseDto | null>(null);
 
   const queryClient = useQueryClient();
 
-  const { data: members, isLoading, isError, error, refetch } = useQuery({
+  const {
+    data: members,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["crm", "members", page, selectedLevel, searchQuery],
     queryFn: () =>
       fetchMembers({
@@ -94,14 +117,16 @@ export function MembersPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-primary">会员管理</h1>
-          <p className="text-sm text-text-secondary mt-1">管理会员等级、积分、消费记录</p>
+          <p className="text-sm text-text-secondary mt-1">
+            管理会员等级、积分、消费记录
+          </p>
         </div>
-        <Link href="/dashboard/crm/customers">
-          <Button variant="secondary" className="gap-2">
+        <Button variant="secondary" className="gap-2" asChild>
+          <Link href="/dashboard/crm/customers">
             <Plus className="w-4 h-4" weight="regular" />
             为客户开通会员
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       {/* 筛选器 */}
@@ -109,7 +134,10 @@ export function MembersPanel() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
-              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" weight="regular" />
+              <MagnifyingGlass
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
+                weight="regular"
+              />
               <input
                 type="text"
                 placeholder="搜索客户名称或卡号"
@@ -129,7 +157,9 @@ export function MembersPanel() {
               className="text-sm rounded-lg border border-border-primary bg-bg-tertiary px-3 py-2 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
               value={selectedLevel}
               onChange={(e) => {
-                setSelectedLevel(e.target.value === "all" ? "all" : parseInt(e.target.value));
+                setSelectedLevel(
+                  e.target.value === "all" ? "all" : parseInt(e.target.value),
+                );
                 setPage(1);
               }}
             >
@@ -161,20 +191,37 @@ export function MembersPanel() {
               <table className="w-full text-sm">
                 <thead className="bg-bg-tertiary">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">客户信息</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">会员等级</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">积分</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">消费统计</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
+                    <th className="px-4 py-3 text-left font-medium text-text-secondary">
+                      客户信息
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-text-secondary">
+                      会员等级
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-text-secondary">
+                      积分
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-text-secondary">
+                      消费统计
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-text-secondary">
+                      操作
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-primary">
-                  {members?.items.map((member) => (
-                    <tr key={member.id} className="hover:bg-bg-tertiary/50 transition-colors">
+                  {(members?.items ?? []).map((member) => (
+                    <tr
+                      key={member.id}
+                      className="hover:bg-bg-tertiary/50 transition-colors"
+                    >
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-text-primary">{member.customerName}</p>
-                          <p className="text-xs text-text-muted">卡号: {member.memberNo || "-"}</p>
+                          <p className="font-medium text-text-primary">
+                            {member.customerName}
+                          </p>
+                          <p className="text-xs text-text-muted">
+                            卡号: {member.memberNo || "-"}
+                          </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -182,7 +229,7 @@ export function MembersPanel() {
                           <span
                             className={cn(
                               "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
-                              getMemberLevelColor(member.levelCode)
+                              getMemberLevelColor(member.levelCode),
                             )}
                           >
                             {member.levelName}
@@ -193,8 +240,13 @@ export function MembersPanel() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Coins className="w-4 h-4 text-warning" weight="regular" />
-                          <span className="font-medium text-text-primary">{member.availablePoints}</span>
+                          <Coins
+                            className="w-4 h-4 text-warning"
+                            weight="regular"
+                          />
+                          <span className="font-medium text-text-primary">
+                            {member.availablePoints}
+                          </span>
                           <span className="text-xs text-text-muted">
                             (累计 {member.totalPoints})
                           </span>
@@ -203,9 +255,14 @@ export function MembersPanel() {
                       <td className="px-4 py-3">
                         <div className="text-xs">
                           <p className="text-text-primary">
-                            ¥{parseFloat(member.totalConsumption).toLocaleString()}
+                            ¥
+                            {parseFloat(
+                              member.totalConsumption,
+                            ).toLocaleString()}
                           </p>
-                          <p className="text-text-muted">{member.orderCount} 笔订单</p>
+                          <p className="text-text-muted">
+                            {member.orderCount} 笔订单
+                          </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -216,7 +273,10 @@ export function MembersPanel() {
                             onClick={() => setPointsMember(member)}
                             title="调整积分"
                           >
-                            <Coins className="w-4 h-4 text-warning" weight="regular" />
+                            <Coins
+                              className="w-4 h-4 text-warning"
+                              weight="regular"
+                            />
                           </Button>
                           <Button
                             variant="ghost"
@@ -224,7 +284,10 @@ export function MembersPanel() {
                             onClick={() => setViewingRecords(member)}
                             title="积分记录"
                           >
-                            <ClockCounterClockwise className="w-4 h-4" weight="regular" />
+                            <ClockCounterClockwise
+                              className="w-4 h-4"
+                              weight="regular"
+                            />
                           </Button>
                           <Button
                             variant="ghost"
@@ -232,7 +295,10 @@ export function MembersPanel() {
                             onClick={() => setEditingMember(member)}
                             title="编辑"
                           >
-                            <PencilSimple className="w-4 h-4" weight="regular" />
+                            <PencilSimple
+                              className="w-4 h-4"
+                              weight="regular"
+                            />
                           </Button>
                           <Button
                             variant="ghost"
@@ -253,64 +319,90 @@ export function MembersPanel() {
             </div>
 
             {/* 分页 */}
-            {members && Math.ceil(members.total / members.pageSize) > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border-primary">
-                <span className="text-sm text-text-muted">
-                  共 {members.total} 条，第 {members.page} / {Math.ceil(members.total / members.pageSize)} 页
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                  >
-                    上一页
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(Math.ceil(members.total / members.pageSize), p + 1))}
-                    disabled={page >= Math.ceil(members.total / members.pageSize)}
-                  >
-                    下一页
-                  </Button>
+            {members &&
+              Math.ceil(members.total / (members.pageSize || pageSize)) > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border-primary">
+                  <span className="text-sm text-text-muted">
+                    共 {members.total} 条，第 {members.page} /{" "}
+                    {Math.ceil(members.total / (members.pageSize || pageSize))}{" "}
+                    页
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1}
+                    >
+                      上一页
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setPage((p) =>
+                          Math.min(
+                            Math.ceil(
+                              members.total / (members.pageSize || pageSize),
+                            ),
+                            p + 1,
+                          ),
+                        )
+                      }
+                      disabled={
+                        page >=
+                        Math.ceil(
+                          members.total / (members.pageSize || pageSize),
+                        )
+                      }
+                    >
+                      下一页
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </Card>
 
-          {members?.items.length === 0 && (
+          {(members?.items ?? []).length === 0 && (
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-accent-blue/20 to-accent-purple/20 flex items-center justify-center">
-                <Users className="w-8 h-8 text-text-secondary" weight="regular" />
+                <Users
+                  className="w-8 h-8 text-text-secondary"
+                  weight="regular"
+                />
               </div>
               <p className="text-text-secondary">暂无会员数据</p>
               <p className="text-sm text-text-muted mt-1">
                 请先在客户列表中为客户开通会员资格
               </p>
-              <Link href="/dashboard/crm/customers">
-                <Button variant="secondary" className="mt-4">
-                  前往客户列表
-                </Button>
-              </Link>
+              <Button variant="secondary" className="mt-4" asChild>
+                <Link href="/dashboard/crm/customers">前往客户列表</Link>
+              </Button>
             </div>
           )}
         </>
       )}
 
       {/* 编辑会员对话框 */}
-      <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
+      <Dialog
+        open={!!editingMember}
+        onOpenChange={() => setEditingMember(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-text-primary">编辑会员信息</DialogTitle>
+            <DialogTitle className="text-text-primary">
+              编辑会员信息
+            </DialogTitle>
           </DialogHeader>
           {editingMember && (
             <EditMemberForm
               member={editingMember}
               levels={levels ?? []}
               onSubmit={(data) =>
-                updateMutation.mutate({ customerId: editingMember.customerId, data })
+                updateMutation.mutate({
+                  customerId: editingMember.customerId,
+                  data,
+                })
               }
               onCancel={() => setEditingMember(null)}
               isLoading={updateMutation.isPending}
@@ -323,7 +415,9 @@ export function MembersPanel() {
       <Dialog open={!!pointsMember} onOpenChange={() => setPointsMember(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-text-primary">调整积分 - {pointsMember?.customerName}</DialogTitle>
+            <DialogTitle className="text-text-primary">
+              调整积分 - {pointsMember?.customerName}
+            </DialogTitle>
           </DialogHeader>
           {pointsMember && (
             <AddPointsForm
@@ -337,10 +431,15 @@ export function MembersPanel() {
       </Dialog>
 
       {/* 积分记录对话框 */}
-      <Dialog open={!!viewingRecords} onOpenChange={() => setViewingRecords(null)}>
+      <Dialog
+        open={!!viewingRecords}
+        onOpenChange={() => setViewingRecords(null)}
+      >
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-text-primary">积分记录 - {viewingRecords?.customerName}</DialogTitle>
+            <DialogTitle className="text-text-primary">
+              积分记录 - {viewingRecords?.customerName}
+            </DialogTitle>
           </DialogHeader>
           {viewingRecords && (
             <PointsRecordsPanel customerId={viewingRecords.customerId} />
@@ -360,7 +459,11 @@ function EditMemberForm({
 }: {
   member: CustomerMemberResponseDto;
   levels: MemberLevelResponseDto[];
-  onSubmit: (data: { levelId?: number; memberNo?: string; remark?: string }) => void;
+  onSubmit: (data: {
+    levelId?: number;
+    memberNo?: string;
+    remark?: string;
+  }) => void;
   onCancel: () => void;
   isLoading: boolean;
 }) {
@@ -382,7 +485,9 @@ function EditMemberForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-text-secondary">会员等级</label>
+        <label className="text-sm font-medium text-text-secondary">
+          会员等级
+        </label>
         <select
           className="rounded-lg border border-border-primary bg-bg-tertiary px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
           value={formData.levelId ?? ""}
@@ -466,15 +571,24 @@ function AddPointsForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="bg-accent-blue/10 border border-accent-blue/30 p-4 rounded-xl">
         <p className="text-sm text-text-muted">当前可用积分</p>
-        <p className="text-2xl font-bold text-text-primary">{member.availablePoints}</p>
+        <p className="text-2xl font-bold text-text-primary">
+          {member.availablePoints}
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-text-secondary">变动类型</label>
+        <label className="text-sm font-medium text-text-secondary">
+          变动类型
+        </label>
         <select
           className="rounded-lg border border-border-primary bg-bg-tertiary px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
           value={formData.type}
-          onChange={(e) => setFormData({ ...formData, type: e.target.value as PointsChangeType })}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              type: e.target.value as PointsChangeType,
+            })
+          }
         >
           <option value="adjust">手动调整</option>
           <option value="earn">奖励积分</option>
@@ -490,7 +604,9 @@ function AddPointsForm({
           type="number"
           className="rounded-lg border border-border-primary bg-bg-tertiary px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
           value={formData.points}
-          onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
+          onChange={(e) =>
+            setFormData({ ...formData, points: parseInt(e.target.value) || 0 })
+          }
           required
         />
       </div>
@@ -498,7 +614,9 @@ function AddPointsForm({
       <Input
         label="变动说明"
         value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
         placeholder="例如：生日奖励、活动赠送、兑换商品等"
       />
 
@@ -515,9 +633,6 @@ function AddPointsForm({
 }
 
 // 积分记录组件
-import { fetchPointsRecords } from "@/lib/api/crm";
-import { Users } from "@phosphor-icons/react";
-
 function PointsRecordsPanel({ customerId }: { customerId: number }) {
   const { data, isLoading } = useQuery({
     queryKey: ["crm", "points-records", customerId],
@@ -525,7 +640,9 @@ function PointsRecordsPanel({ customerId }: { customerId: number }) {
   });
 
   if (isLoading) {
-    return <div className="py-4 text-center text-text-secondary">加载中...</div>;
+    return (
+      <div className="py-4 text-center text-text-secondary">加载中...</div>
+    );
   }
 
   if (!data?.items.length) {
@@ -548,7 +665,7 @@ function PointsRecordsPanel({ customerId }: { customerId: number }) {
               <span
                 className={cn(
                   "inline-flex items-center px-2 py-0.5 rounded text-xs border",
-                  getPointsChangeTypeColor(record.type)
+                  getPointsChangeTypeColor(record.type),
                 )}
               >
                 {getPointsChangeTypeLabel(record.type)}
@@ -556,7 +673,7 @@ function PointsRecordsPanel({ customerId }: { customerId: number }) {
               <span
                 className={cn(
                   "font-medium",
-                  record.points > 0 ? "text-success" : "text-warning"
+                  record.points > 0 ? "text-success" : "text-warning",
                 )}
               >
                 {record.points > 0 ? "+" : ""}
@@ -564,7 +681,9 @@ function PointsRecordsPanel({ customerId }: { customerId: number }) {
               </span>
             </div>
             {record.description && (
-              <p className="text-sm text-text-secondary mt-1">{record.description}</p>
+              <p className="text-sm text-text-secondary mt-1">
+                {record.description}
+              </p>
             )}
             <p className="text-xs text-text-muted mt-1">
               {new Date(record.createdAt).toLocaleString("zh-CN")}

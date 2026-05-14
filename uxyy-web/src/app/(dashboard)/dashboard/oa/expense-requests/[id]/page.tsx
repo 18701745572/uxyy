@@ -23,21 +23,21 @@ export default function ExpenseRequestDetailPage() {
   });
 
   if (!Number.isFinite(id) || id <= 0) {
-    return (
-      <p className="text-sm text-red-600 p-6">无效的报销单 ID</p>
-    );
+    return <p className="text-sm text-red-600 p-6">无效的报销单 ID</p>;
   }
 
   return (
     <div className="space-y-6 max-w-xl">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/oa/expense-requests">
-          <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/oa/expense-requests">
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回
-          </Button>
-        </Link>
-        <h1 className="text-xl font-semibold text-text-primary">报销详情 #{id}</h1>
+          </Link>
+        </Button>
+        <h1 className="text-xl font-semibold text-text-primary">
+          报销详情 #{id}
+        </h1>
       </div>
 
       {q.isLoading && <OaDocumentDetailSkeleton />}
@@ -50,10 +50,14 @@ export default function ExpenseRequestDetailPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
+              <CardTitle className="text-base">
+                {q.data.type} · {q.data.status}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-text-secondary">
-              <p>金额：<span className="font-semibold">¥{q.data.amount}</span></p>
+              <p>
+                金额：<span className="font-semibold">¥{q.data.amount}</span>
+              </p>
               <p>说明：{q.data.description ?? "—"}</p>
               <p className="text-xs text-text-tertiary pt-2">
                 创建于 {String(q.data.createdAt).slice(0, 19).replace("T", " ")}

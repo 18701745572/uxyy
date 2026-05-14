@@ -45,7 +45,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       {children}
-      {/* <ReactQueryDevtoolsLazy /> */}
+      <ReactQueryDevtoolsLazy />
     </QueryClientProvider>
   );
 }

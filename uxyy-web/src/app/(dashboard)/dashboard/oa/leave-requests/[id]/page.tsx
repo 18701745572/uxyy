@@ -23,21 +23,21 @@ export default function LeaveRequestDetailPage() {
   });
 
   if (!Number.isFinite(id) || id <= 0) {
-    return (
-      <p className="text-sm text-red-600 p-6">无效的请假单 ID</p>
-    );
+    return <p className="text-sm text-red-600 p-6">无效的请假单 ID</p>;
   }
 
   return (
     <div className="space-y-6 max-w-xl">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/oa/leave-requests">
-          <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/oa/leave-requests">
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回
-          </Button>
-        </Link>
-        <h1 className="text-xl font-semibold text-text-primary">请假详情 #{id}</h1>
+          </Link>
+        </Button>
+        <h1 className="text-xl font-semibold text-text-primary">
+          请假详情 #{id}
+        </h1>
       </div>
 
       {q.isLoading && <OaDocumentDetailSkeleton />}
@@ -50,13 +50,20 @@ export default function LeaveRequestDetailPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{q.data.type} · {q.data.status}</CardTitle>
+              <CardTitle className="text-base">
+                {q.data.type} · {q.data.status}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-text-secondary">
               <p>
-                起止：<span className="font-medium">{String(q.data.startDate).slice(0, 10)}</span>
+                起止：
+                <span className="font-medium">
+                  {String(q.data.startDate).slice(0, 10)}
+                </span>
                 {" ～ "}
-                <span className="font-medium">{String(q.data.endDate).slice(0, 10)}</span>
+                <span className="font-medium">
+                  {String(q.data.endDate).slice(0, 10)}
+                </span>
               </p>
               <p>天数：{q.data.days}</p>
               <p>原因：{q.data.reason ?? "—"}</p>

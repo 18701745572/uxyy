@@ -19,8 +19,24 @@ import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, MapPin, WarningCircle, CheckCircle, XCircle, ClipboardText, Users, TrendUp, ArrowsClockwise } from "@/components/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  WarningCircle,
+  CheckCircle,
+  XCircle,
+  ClipboardText,
+  Users,
+  TrendUp,
+  ArrowsClockwise,
+} from "@/components/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { Permission } from "@/lib/permissions/role-matrix";
 
@@ -84,7 +100,10 @@ function getStatusName(status: AttendanceRecord["status"]): string {
 function formatTime(isoString?: string): string {
   if (!isoString) return "--:--";
   const date = new Date(isoString);
-  return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatDate(isoString: string): string {
@@ -150,7 +169,9 @@ function formatWorkHours(raw: unknown): string {
 }
 
 export function AttendancePanel() {
-  const [activeTab, setActiveTab] = useState<"personal" | "enterprise" | "make-up">("personal");
+  const [activeTab, setActiveTab] = useState<
+    "personal" | "enterprise" | "make-up"
+  >("personal");
   const [makeUpDate, setMakeUpDate] = useState("");
   const [makeUpType, setMakeUpType] = useState<"in" | "out">("in");
   const [makeUpReason, setMakeUpReason] = useState("");
@@ -229,15 +250,22 @@ export function AttendancePanel() {
           <h1 className="text-lg font-semibold text-text-primary">考勤管理</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleRefresh} className="hidden sm:flex">
-            <ArrowsClockwise className={`w-4 h-4 ${personalQuery.isRefetching ? "animate-spin" : ""}`} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            className="hidden sm:flex"
+          >
+            <ArrowsClockwise
+              className={`w-4 h-4 ${personalQuery.isRefetching ? "animate-spin" : ""}`}
+            />
           </Button>
           {canApproveAttendance ? (
-            <Link href="/dashboard/oa/attendance/make-up-approvals">
-              <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/dashboard/oa/attendance/make-up-approvals">
                 补卡审批
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -266,7 +294,7 @@ export function AttendancePanel() {
 
       <Card className="p-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-bg-secondary to-transparent opacity-50" />
-        
+
         <div className="relative">
           <p className="text-sm text-text-secondary mb-6">
             {new Date().toLocaleDateString("zh-CN", {
@@ -297,21 +325,37 @@ export function AttendancePanel() {
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-bold text-text-primary">今日已完成打卡</p>
+              <p className="text-xl font-bold text-text-primary">
+                今日已完成打卡
+              </p>
               <div className="flex flex-wrap justify-center gap-6 text-sm">
                 <div className="flex items-center gap-2 text-text-secondary">
                   <Clock className="w-4 h-4" />
-                  <span>上班：<span className="font-semibold text-text-primary">{formatTime(todayRecord.checkIn)}</span></span>
+                  <span>
+                    上班：
+                    <span className="font-semibold text-text-primary">
+                      {formatTime(todayRecord.checkIn)}
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-text-secondary">
                   <Clock className="w-4 h-4" />
-                  <span>下班：<span className="font-semibold text-text-primary">{formatTime(todayRecord.checkOut)}</span></span>
+                  <span>
+                    下班：
+                    <span className="font-semibold text-text-primary">
+                      {formatTime(todayRecord.checkOut)}
+                    </span>
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className={`${getStatusColor(todayRecord.status)} px-3 py-1`}>
+                <Badge
+                  className={`${getStatusColor(todayRecord.status)} px-3 py-1`}
+                >
                   {getStatusIcon(todayRecord.status)}
-                  <span className="ml-1">{getStatusName(todayRecord.status)}</span>
+                  <span className="ml-1">
+                    {getStatusName(todayRecord.status)}
+                  </span>
                 </Badge>
                 <span className="text-sm text-text-tertiary">
                   工时：{formatWorkHours(todayRecord.workHours)}h
@@ -328,7 +372,9 @@ export function AttendancePanel() {
                   <span className="text-white text-xs font-medium">班中</span>
                 </div>
               </div>
-              <p className="text-xl font-bold text-text-primary">等待下班打卡</p>
+              <p className="text-xl font-bold text-text-primary">
+                等待下班打卡
+              </p>
               <p className="text-sm text-text-secondary flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 上班时间：{formatTime(todayRecord.checkIn)}
@@ -349,7 +395,9 @@ export function AttendancePanel() {
                 </div>
                 <div className="absolute inset-0 rounded-full bg-blue-200 blur-xl opacity-0 group-hover:opacity-50 transition-opacity" />
               </div>
-              <p className="text-xl font-bold text-text-primary">开始今日工作</p>
+              <p className="text-xl font-bold text-text-primary">
+                开始今日工作
+              </p>
               <p className="text-sm text-text-secondary flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 请在工作地点打卡
@@ -407,30 +455,69 @@ export function AttendancePanel() {
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
                   {[
-                    { label: "正常", value: personalQuery.data.stats.normalDays, color: "text-green-600", bg: "bg-green-50" },
-                    { label: "迟到", value: personalQuery.data.stats.lateDays, color: "text-amber-600", bg: "bg-amber-50" },
-                    { label: "早退", value: personalQuery.data.stats.earlyLeaveDays, color: "text-orange-600", bg: "bg-orange-50" },
-                    { label: "缺勤", value: personalQuery.data.stats.absentDays, color: "text-red-600", bg: "bg-red-50" },
-                    { label: "请假", value: personalQuery.data.stats.leaveDays, color: "text-blue-600", bg: "bg-blue-50" },
+                    {
+                      label: "正常",
+                      value: personalQuery.data.stats.normalDays,
+                      color: "text-green-600",
+                      bg: "bg-green-50",
+                    },
+                    {
+                      label: "迟到",
+                      value: personalQuery.data.stats.lateDays,
+                      color: "text-amber-600",
+                      bg: "bg-amber-50",
+                    },
+                    {
+                      label: "早退",
+                      value: personalQuery.data.stats.earlyLeaveDays,
+                      color: "text-orange-600",
+                      bg: "bg-orange-50",
+                    },
+                    {
+                      label: "缺勤",
+                      value: personalQuery.data.stats.absentDays,
+                      color: "text-red-600",
+                      bg: "bg-red-50",
+                    },
+                    {
+                      label: "请假",
+                      value: personalQuery.data.stats.leaveDays,
+                      color: "text-blue-600",
+                      bg: "bg-blue-50",
+                    },
                   ].map((stat) => (
-                    <div key={stat.label} className={`${stat.bg} rounded-lg p-3 text-center transition-transform hover:scale-105`}>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                      <p className="text-xs text-text-secondary mt-1">{stat.label}</p>
+                    <div
+                      key={stat.label}
+                      className={`${stat.bg} rounded-lg p-3 text-center transition-transform hover:scale-105`}
+                    >
+                      <p className={`text-xl font-bold ${stat.color}`}>
+                        {stat.value}
+                      </p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        {stat.label}
+                      </p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-4 pt-4 border-t border-border-secondary">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-secondary">本月总工时</span>
+                    <span className="text-sm text-text-secondary">
+                      本月总工时
+                    </span>
                     <div className="flex items-center gap-2">
                       <div className="w-32 h-2 bg-bg-tertiary rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                          style={{ width: `${Math.min((parseFloat(formatWorkHours(personalQuery.data.stats.totalWorkHours)) / 180) * 100, 100)}%` }}
+                          style={{
+                            width: `${Math.min((parseFloat(formatWorkHours(personalQuery.data.stats.totalWorkHours)) / 180) * 100, 100)}%`,
+                          }}
                         />
                       </div>
                       <span className="font-semibold text-text-primary">
-                        {formatWorkHours(personalQuery.data.stats.totalWorkHours)}h
+                        {formatWorkHours(
+                          personalQuery.data.stats.totalWorkHours,
+                        )}
+                        h
                       </span>
                     </div>
                   </div>
@@ -445,22 +532,36 @@ export function AttendancePanel() {
                 {todayRecord ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-text-secondary">打卡状态</span>
+                      <span className="text-sm text-text-secondary">
+                        打卡状态
+                      </span>
                       <Badge className={getStatusColor(todayRecord.status)}>
                         {getStatusName(todayRecord.status)}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-text-secondary">上班时间</span>
-                      <span className="font-medium">{formatTime(todayRecord.checkIn)}</span>
+                      <span className="text-sm text-text-secondary">
+                        上班时间
+                      </span>
+                      <span className="font-medium">
+                        {formatTime(todayRecord.checkIn)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-text-secondary">下班时间</span>
-                      <span className="font-medium">{formatTime(todayRecord.checkOut)}</span>
+                      <span className="text-sm text-text-secondary">
+                        下班时间
+                      </span>
+                      <span className="font-medium">
+                        {formatTime(todayRecord.checkOut)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border-secondary">
-                      <span className="text-sm text-text-secondary">今日工时</span>
-                      <span className="font-bold text-blue-600">{formatWorkHours(todayRecord.workHours)}h</span>
+                      <span className="text-sm text-text-secondary">
+                        今日工时
+                      </span>
+                      <span className="font-bold text-blue-600">
+                        {formatWorkHours(todayRecord.workHours)}h
+                      </span>
                     </div>
                   </div>
                 ) : (
@@ -495,16 +596,24 @@ export function AttendancePanel() {
                           <span className="text-sm font-medium text-text-secondary">
                             {formatDate(record.date)}
                           </span>
-                          <Badge variant="default" className={getStatusColor(record.status)}>
+                          <Badge
+                            variant="default"
+                            className={getStatusColor(record.status)}
+                          >
                             {getStatusIcon(record.status)}
-                            <span className="ml-1 text-xs">{getStatusName(record.status)}</span>
+                            <span className="ml-1 text-xs">
+                              {getStatusName(record.status)}
+                            </span>
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="text-sm text-text-tertiary">
-                            {formatTime(record.checkIn)} - {formatTime(record.checkOut)}
+                            {formatTime(record.checkIn)} -{" "}
+                            {formatTime(record.checkOut)}
                           </span>
-                          <span className="text-sm font-medium text-text-secondary">{formatWorkHours(record.workHours)}h</span>
+                          <span className="text-sm font-medium text-text-secondary">
+                            {formatWorkHours(record.workHours)}h
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -538,19 +647,27 @@ export function AttendancePanel() {
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="p-5 text-center">
-                  <p className="text-3xl font-bold text-text-primary mb-1">{enterpriseQuery.data.totalEmployees}</p>
+                  <p className="text-3xl font-bold text-text-primary mb-1">
+                    {enterpriseQuery.data.totalEmployees}
+                  </p>
                   <p className="text-sm text-text-secondary">员工总数</p>
                 </Card>
                 <Card className="p-5 text-center bg-green-50 border-green-200">
-                  <p className="text-3xl font-bold text-green-600 mb-1">{enterpriseQuery.data.checkedIn}</p>
+                  <p className="text-3xl font-bold text-green-600 mb-1">
+                    {enterpriseQuery.data.checkedIn}
+                  </p>
                   <p className="text-sm text-green-600">已打卡</p>
                 </Card>
                 <Card className="p-5 text-center bg-amber-50 border-amber-200">
-                  <p className="text-3xl font-bold text-amber-600 mb-1">{enterpriseQuery.data.late}</p>
+                  <p className="text-3xl font-bold text-amber-600 mb-1">
+                    {enterpriseQuery.data.late}
+                  </p>
                   <p className="text-sm text-amber-600">迟到</p>
                 </Card>
                 <Card className="p-5 text-center bg-red-50 border-red-200">
-                  <p className="text-3xl font-bold text-red-600 mb-1">{enterpriseQuery.data.absent}</p>
+                  <p className="text-3xl font-bold text-red-600 mb-1">
+                    {enterpriseQuery.data.absent}
+                  </p>
                   <p className="text-sm text-red-600">缺勤</p>
                 </Card>
               </div>
@@ -560,10 +677,12 @@ export function AttendancePanel() {
                   <h3 className="font-medium text-text-primary">
                     {enterpriseQuery.data.date} 出勤率
                   </h3>
-                  <span className="text-4xl font-bold text-text-primary">{enterpriseQuery.data.checkInRate}%</span>
+                  <span className="text-4xl font-bold text-text-primary">
+                    {enterpriseQuery.data.checkInRate}%
+                  </span>
                 </div>
                 <div className="h-4 bg-bg-tertiary rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
                     style={{ width: `${enterpriseQuery.data.checkInRate}%` }}
                   />
@@ -587,27 +706,32 @@ export function AttendancePanel() {
                         <div className="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center">
                           <Users className="w-4 h-4 text-text-tertiary" />
                         </div>
-                        <span className="text-sm font-medium text-text-secondary">{detail.userName}</span>
+                        <span className="text-sm font-medium text-text-secondary">
+                          {detail.userName}
+                        </span>
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-text-tertiary">
-                          {detail.checkIn ? formatTime(detail.checkIn) : "--:--"}
-                          {detail.checkOut && ` - ${formatTime(detail.checkOut)}`}
+                          {detail.checkIn
+                            ? formatTime(detail.checkIn)
+                            : "--:--"}
+                          {detail.checkOut &&
+                            ` - ${formatTime(detail.checkOut)}`}
                         </span>
                         <Badge
                           className={
                             detail.status === "normal"
                               ? "bg-green-100 text-green-700"
                               : detail.status === "late"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-bg-tertiary text-text-secondary"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-bg-tertiary text-text-secondary"
                           }
                         >
                           {detail.status === "normal"
                             ? "正常"
                             : detail.status === "late"
-                            ? "迟到"
-                            : "未打卡"}
+                              ? "迟到"
+                              : "未打卡"}
                         </Badge>
                       </div>
                     </div>
@@ -633,7 +757,9 @@ export function AttendancePanel() {
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">补卡日期</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  补卡日期
+                </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <Input
@@ -645,17 +771,23 @@ export function AttendancePanel() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">补卡类型</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  补卡类型
+                </label>
                 <Select
                   value={makeUpType}
-                  onValueChange={(value) => setMakeUpType(value as "in" | "out")}
+                  onValueChange={(value) =>
+                    setMakeUpType(value as "in" | "out")
+                  }
                 >
                   <option value="in">上班打卡</option>
                   <option value="out">下班打卡</option>
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">补卡原因</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  补卡原因
+                </label>
                 <Textarea
                   value={makeUpReason}
                   onChange={(e) => setMakeUpReason(e.target.value)}
@@ -666,7 +798,11 @@ export function AttendancePanel() {
               </div>
               <Button
                 onClick={() => makeUpMutation.mutate()}
-                disabled={!makeUpDate || !makeUpReason || makeUpMutation.status === "pending"}
+                disabled={
+                  !makeUpDate ||
+                  !makeUpReason ||
+                  makeUpMutation.status === "pending"
+                }
                 className="w-full h-12 font-semibold"
               >
                 {makeUpMutation.status === "pending" ? (
@@ -681,13 +817,17 @@ export function AttendancePanel() {
               {makeUpMutation.isSuccess && (
                 <div className="p-3 bg-green-50 rounded-lg flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-700">补卡申请已提交，请查看右侧列表了解审批进度</span>
+                  <span className="text-sm text-green-700">
+                    补卡申请已提交，请查看右侧列表了解审批进度
+                  </span>
                 </div>
               )}
               {makeUpMutation.isError && (
                 <div className="p-3 bg-red-50 rounded-lg flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-red-600" />
-                  <span className="text-sm text-red-700">提交失败：{(makeUpMutation.error as Error).message}</span>
+                  <span className="text-sm text-red-700">
+                    提交失败：{(makeUpMutation.error as Error).message}
+                  </span>
                 </div>
               )}
             </div>
@@ -713,21 +853,27 @@ export function AttendancePanel() {
                 </p>
               </div>
             )}
-            {!myMakeUpQuery.isLoading && !myMakeUpQuery.isError && (myMakeUpQuery.data?.length ?? 0) === 0 && (
-              <div className="p-8 text-center">
-                <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
-                <p className="text-sm text-text-tertiary">暂无补卡申请记录</p>
-              </div>
-            )}
+            {!myMakeUpQuery.isLoading &&
+              !myMakeUpQuery.isError &&
+              (myMakeUpQuery.data?.length ?? 0) === 0 && (
+                <div className="p-8 text-center">
+                  <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
+                  <p className="text-sm text-text-tertiary">暂无补卡申请记录</p>
+                </div>
+              )}
             {myMakeUpQuery.data &&
               myMakeUpQuery.data.length > 0 &&
               !myMakeUpQuery.isLoading && (
                 <div className="divide-y divide-border-secondary max-h-96 overflow-y-auto">
                   {myMakeUpQuery.data.map((row) => (
-                    <div key={row.id} className="px-5 py-4 hover:bg-bg-secondary transition-colors">
+                    <div
+                      key={row.id}
+                      className="px-5 py-4 hover:bg-bg-secondary transition-colors"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-text-primary">
-                          {formatMakeUpDay(row.date)} · {formatMakeUpType(row.type)}
+                          {formatMakeUpDay(row.date)} ·{" "}
+                          {formatMakeUpType(row.type)}
                         </span>
                         <Badge className={makeUpStatusTone(row.status)}>
                           {makeUpStatusLabel(row.status)}
@@ -736,7 +882,9 @@ export function AttendancePanel() {
                       <p className="text-xs text-text-tertiary mb-2">
                         提交于 {formatDateTimeCn(row.createdAt)}
                       </p>
-                      <p className="text-sm text-text-secondary">{row.reason}</p>
+                      <p className="text-sm text-text-secondary">
+                        {row.reason}
+                      </p>
                       {row.status === "rejected" && row.remark && (
                         <div className="mt-2 p-2 bg-red-50 rounded text-xs text-red-700">
                           审批备注：{row.remark}

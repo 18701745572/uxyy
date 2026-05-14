@@ -27,10 +27,10 @@ COPY uxyy-api/ ./uxyy-api/
 RUN pnpm install --frozen-lockfile
 
 # 构建共享包
-RUN pnpm --filter uxyy-shared build
+RUN pnpm --filter @uxyy/shared build
 
 # 构建 API
-RUN pnpm --filter uxyy-api build
+RUN pnpm --filter @uxyy/api build
 
 # 生产阶段 - 使用 shamefully-hoist 确保依赖可用
 FROM node:20-alpine AS production

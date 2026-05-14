@@ -30,7 +30,10 @@ import {
 import { ApiError } from "@/lib/api/client";
 import type { PermissionCode } from "@/lib/permissions/role-matrix";
 import { Permission } from "@/lib/permissions/role-matrix";
-import { permissionSet, hasEveryPermission } from "@/lib/permissions/nav-access";
+import {
+  permissionSet,
+  hasEveryPermission,
+} from "@/lib/permissions/nav-access";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -166,8 +169,7 @@ export default function OaPage() {
     const permSetInner = permissionSet(permissions);
     return oaModules.filter(
       (m) =>
-        !m.everyOf?.length ||
-        hasEveryPermission(permSetInner, [...m.everyOf]),
+        !m.everyOf?.length || hasEveryPermission(permSetInner, [...m.everyOf]),
     );
   }, [permissions]);
 
@@ -201,10 +203,7 @@ export default function OaPage() {
 
   const leaves = useMemo(() => leavesQ.data ?? [], [leavesQ.data]);
   const expenses = useMemo(() => expensesQ.data ?? [], [expensesQ.data]);
-  const makeupsMine = useMemo(
-    () => makeupMineQ.data ?? [],
-    [makeupMineQ.data],
-  );
+  const makeupsMine = useMemo(() => makeupMineQ.data ?? [], [makeupMineQ.data]);
 
   const stats = useMemo(() => {
     const leaveExpense = [...leaves, ...expenses];
@@ -303,33 +302,41 @@ export default function OaPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/dashboard/oa/leave-requests/new">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="h-10 px-4 border-border-secondary hover:border-accent-blue/50 hover:bg-accent-blue/5 transition-all duration-200"
-            >
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 px-4 border-border-secondary hover:border-accent-blue/50 hover:bg-accent-blue/5 transition-all duration-200"
+            asChild
+          >
+            <Link href="/dashboard/oa/leave-requests/new">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500/20 to-green-500/20">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-400" weight="regular" />
+                  <Calendar
+                    className="w-3.5 h-3.5 text-emerald-400"
+                    weight="regular"
+                  />
                 </div>
                 <span className="text-text-secondary">请假申请</span>
               </div>
-            </Button>
-          </Link>
-          <Link href="/dashboard/oa/expense-requests/new">
-            <Button 
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-accent-blue via-accent-purple to-accent-pink hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-200"
-            >
+            </Link>
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 px-4 bg-gradient-to-r from-accent-blue via-accent-purple to-accent-pink hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-200"
+            asChild
+          >
+            <Link href="/dashboard/oa/expense-requests/new">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/20">
-                  <Receipt className="w-3.5 h-3.5 text-white" weight="regular" />
+                  <Receipt
+                    className="w-3.5 h-3.5 text-white"
+                    weight="regular"
+                  />
                 </div>
                 <span className="text-white font-medium">报销申请</span>
               </div>
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -347,12 +354,19 @@ export default function OaPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-lg bg-gradient-to-br from-accent-blue to-accent-purple p-2.5 shrink-0">
-                  <Tray className="w-5 h-5 text-white" weight="regular" aria-hidden />
+                  <Tray
+                    className="w-5 h-5 text-white"
+                    weight="regular"
+                    aria-hidden
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-text-primary">待您审批的工作量</p>
+                  <p className="font-medium text-text-primary">
+                    待您审批的工作量
+                  </p>
                   <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-                    以下为队列中<strong>需要当前账号处理</strong>的项（与上方「本人的申请进度」互不重复）。
+                    以下为队列中<strong>需要当前账号处理</strong>
+                    的项（与上方「本人的申请进度」互不重复）。
                   </p>
                   {inboxErr ? (
                     <p className="text-xs text-error mt-2">{inboxErr}</p>
@@ -385,9 +399,12 @@ export default function OaPage() {
       {/* 统计卡片 */}
       <div>
         <div className="mb-3">
-          <p className="text-sm font-medium text-text-primary">本人的申请进度</p>
+          <p className="text-sm font-medium text-text-primary">
+            本人的申请进度
+          </p>
           <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-            请假、报销与<strong>本人发起的补卡</strong>，按单据状态计数；与您作为审批人时需处理的队列
+            请假、报销与<strong>本人发起的补卡</strong>
+            ，按单据状态计数；与您作为审批人时需处理的队列
             （见上卡）不是同一数据源。
           </p>
         </div>
@@ -420,23 +437,33 @@ export default function OaPage() {
               },
             ] as const
           ).map((stat) => (
-            <Card key={stat.label} className="group hover:shadow-glow transition-all duration-300">
+            <Card
+              key={stat.label}
+              className="group hover:shadow-glow transition-all duration-300"
+            >
               <CardContent className="flex items-center justify-between p-6">
                 <div>
                   <p className="text-sm text-text-secondary">{stat.label}</p>
                   {stat.hint ? (
-                    <p className="text-xs text-text-muted mt-0.5">{stat.hint}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {stat.hint}
+                    </p>
                   ) : null}
                   <p className="text-3xl font-bold text-text-primary mt-1">
                     {loading ? "…" : stat.value}
                   </p>
                 </div>
-                <div className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-xl",
-                  "bg-gradient-to-br",
-                  stat.bgGradient
-                )}>
-                  <stat.icon className={cn("w-6 h-6", stat.color)} weight="regular" />
+                <div
+                  className={cn(
+                    "flex h-12 w-12 items-center justify-center rounded-xl",
+                    "bg-gradient-to-br",
+                    stat.bgGradient,
+                  )}
+                >
+                  <stat.icon
+                    className={cn("w-6 h-6", stat.color)}
+                    weight="regular"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -452,14 +479,21 @@ export default function OaPage() {
             <Link key={module.title} href={module.href} className="group">
               <Card className="group-hover:shadow-glow transition-all duration-300 cursor-pointer h-full">
                 <CardContent className="flex items-start gap-4 p-6">
-                  <div className={cn(
-                    "p-3 rounded-xl bg-gradient-to-br",
-                    module.gradient
-                  )}>
-                    <Icon className="w-6 h-6 text-text-primary" weight="regular" />
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl bg-gradient-to-br",
+                      module.gradient,
+                    )}
+                  >
+                    <Icon
+                      className="w-6 h-6 text-text-primary"
+                      weight="regular"
+                    />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-text-primary">{module.title}</h3>
+                    <h3 className="font-semibold text-text-primary">
+                      {module.title}
+                    </h3>
                     <p className="text-sm text-text-muted mt-1">
                       {module.description}
                     </p>
@@ -475,16 +509,24 @@ export default function OaPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2 text-text-primary">
-            <FileText className="w-5 h-5 text-text-secondary" weight="regular" />
+            <FileText
+              className="w-5 h-5 text-text-secondary"
+              weight="regular"
+            />
             最近动态
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-text-secondary py-8 text-center">加载中…</p>
+            <p className="text-sm text-text-secondary py-8 text-center">
+              加载中…
+            </p>
           ) : recentRows.length === 0 ? (
             <div className="text-center py-8 text-text-muted">
-              <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" weight="regular" />
+              <FileText
+                className="w-12 h-12 mx-auto mb-3 opacity-50"
+                weight="regular"
+              />
               <p>暂无记录</p>
               <p className="text-sm mt-1">
                 可使用上方按钮发起请假或报销，或在考勤模块申请补卡
@@ -505,7 +547,10 @@ export default function OaPage() {
                         </span>
                         <Badge
                           variant="secondary"
-                          className={cn("text-xs shrink-0", statusBadgeClass(row.status))}
+                          className={cn(
+                            "text-xs shrink-0",
+                            statusBadgeClass(row.status),
+                          )}
                         >
                           {statusLabel(row.status)}
                         </Badge>
@@ -518,9 +563,7 @@ export default function OaPage() {
                       </p>
                     </div>
                     <span className="text-sm text-text-muted shrink-0">
-                      {row.kind === "makeup"
-                        ? "打开考勤 →"
-                        : "查看详情 →"}
+                      {row.kind === "makeup" ? "打开考勤 →" : "查看详情 →"}
                     </span>
                   </Link>
                 </li>
