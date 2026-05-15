@@ -75,8 +75,14 @@ export interface SwitchEnterpriseResponse {
 export async function switchEnterprise(
   enterpriseId: number,
 ): Promise<SwitchEnterpriseResponse> {
-  return apiFetch<SwitchEnterpriseResponse>(
+  const data = await apiFetch<SwitchEnterpriseResponse>(
     `/auth/switch-enterprise/${enterpriseId}`,
     { method: "PUT" },
   );
+  // 保存新的 access token 和 refresh token
+  persistAccessToken(data.access_token);
+  if (data.refresh_token) {
+    persistRefreshToken(data.refresh_token);
+  }
+  return data;
 }

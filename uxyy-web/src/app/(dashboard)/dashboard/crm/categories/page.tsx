@@ -12,7 +12,7 @@ import {
   type CreateCustomerCategoryDto,
 } from "@/lib/api/crm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -315,13 +315,15 @@ function CategoryForm({
       </div>
       <div>
         <Label>排序</Label>
-        <Input
-          type="number"
+        <NumberInput
           value={form.sortOrder}
           onChange={(e) =>
             setForm({ ...form, sortOrder: Number(e.target.value) })
           }
           placeholder="输入排序号"
+          min={0}
+          step={1}
+          showControls={true}
         />
       </div>
       <div className="flex justify-end gap-2 pt-4">

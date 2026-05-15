@@ -13,7 +13,7 @@ import { fetchCustomers } from "@/lib/api/customers";
 import { fetchSalesOrders } from "@/lib/api/sales-orders";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -155,10 +155,10 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
         </select>
       </div>
 
-      <Input
+      <NumberInput
         label="回款金额 *"
-        type="number"
-        step="0.01"
+        step={0.01}
+        min={0}
         value={formData.amount}
         onChange={(e) =>
           setFormData((prev) => ({ ...prev, amount: e.target.value }))

@@ -221,7 +221,7 @@ export default function LoginPage() {
 
           {/* 版权信息 */}
           <p className="text-center text-[12px] text-text-secondary mt-6">
-            © 2024 优效营 uxyy. All rights reserved.
+            © 2026 优效营 uxyy.cn All rights reserved.
           </p>
         </div>
       </div>

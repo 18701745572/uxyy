@@ -3,7 +3,7 @@
  */
 export function readJwtAccessClaims(
   token: string,
-): { sub?: string; enterpriseId?: number; role?: string } | null {
+): { sub?: string; enterpriseId?: number; role?: string; nickname?: string; phone?: string } | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -18,7 +18,9 @@ export function readJwtAccessClaims(
     const enterpriseId =
       typeof payload.enterpriseId === "number" ? payload.enterpriseId : undefined;
     const role = typeof payload.role === "string" ? payload.role : undefined;
-    return { sub, enterpriseId, role };
+    const nickname = typeof payload.nickname === "string" ? payload.nickname : undefined;
+    const phone = typeof payload.phone === "string" ? payload.phone : undefined;
+    return { sub, enterpriseId, role, nickname, phone };
   } catch {
     return null;
   }

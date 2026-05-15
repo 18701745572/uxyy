@@ -94,6 +94,8 @@ export class AuthService {
       sub: String(user.id),
       enterpriseId,
       role: canonicalEnterpriseRoleForApi(membership?.role),
+      nickname: user.nickname,
+      phone: user.phone,
     });
 
     const refreshSecret = resolveJwtRefreshSecret(this.config);
@@ -169,6 +171,8 @@ export class AuthService {
       sub: String(user.id),
       enterpriseId,
       role: enterpriseId != null ? UxyyRole.BOSS : undefined,
+      nickname: user.nickname,
+      phone: user.phone,
     });
 
     const refreshSecret = resolveJwtRefreshSecret(this.config);
@@ -371,11 +375,23 @@ export class AuthService {
         ),
       );
 
+    // 获取用户信息以包含在 token 中
+    const [user] = await this.db
+      .select({
+        nickname: schema.users.nickname,
+        phone: schema.users.phone,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
     // 生成新的 Token
     const accessToken = await this.jwt.signAsync({
       sub: String(userId),
       enterpriseId,
       role: canonicalEnterpriseRoleForApi(membership.role),
+      nickname: user?.nickname,
+      phone: user?.phone,
     });
 
     const secret = resolveJwtRefreshSecret(this.config);

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
+import { NumberInput } from '@/components/ui/input';
 
 /** 列表展示用（由后端 ProductResponseDto 映射） */
 interface Product {
@@ -401,37 +402,38 @@ export default function ProductsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     销售价 *
                   </label>
-                  <input
+                  <NumberInput
                     name="price"
-                    type="number"
-                    step="0.01"
+                    step={0.01}
+                    min={0}
                     defaultValue={editingProduct?.price}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     成本价 *
                   </label>
-                  <input
+                  <NumberInput
                     name="cost"
-                    type="number"
-                    step="0.01"
+                    step={0.01}
+                    min={0}
                     defaultValue={editingProduct?.cost}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     最低库存
                   </label>
-                  <input
+                  <NumberInput
                     name="minStock"
-                    type="number"
+                    min={0}
+                    step={1}
                     defaultValue={editingProduct?.minStock || 10}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full"
                   />
                 </div>
               </div>

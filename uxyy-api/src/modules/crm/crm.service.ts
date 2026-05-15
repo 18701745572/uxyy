@@ -310,6 +310,8 @@ export class CrmService {
       行业: 'industry',
       备注: 'remark',
       授信额度: 'creditLimit',
+      信用额度: 'creditLimit',
+      创建时间: '_ignore',
       name: 'name',
       contactPerson: 'contactPerson',
       phone: 'phone',
@@ -319,6 +321,7 @@ export class CrmService {
       industry: 'industry',
       remark: 'remark',
       creditLimit: 'creditLimit',
+      createdAt: '_ignore',
     };
 
     const validTypes = new Set(['personal', 'enterprise']);
@@ -337,7 +340,7 @@ export class CrmService {
 
       for (const [header, val] of Object.entries(raw)) {
         const key = HEADER_MAP[String(header).trim()];
-        if (!key) continue;
+        if (!key || key === '_ignore') continue;
 
         if (key === 'creditLimit') {
           const n = Number(val);
@@ -363,15 +366,17 @@ export class CrmService {
             dto.address = str;
             break;
           case 'type': {
-            const t = str.toLowerCase();
+            const t = str.toLowerCase().replace(/\s/g, '');
             if (validTypes.has(t)) dto.type = t;
+            else if (/企业/.test(str)) dto.type = 'enterprise';
+            else if (/个人/.test(str)) dto.type = 'personal';
             break;
           }
           case 'level': {
-            const l = str.toLowerCase();
+            const l = str.toLowerCase().replace(/\s/g, '');
             if (l === 'vip') dto.level = 'VIP';
-            else if (l === 'regular') dto.level = 'regular';
-            else if (l === 'potential') dto.level = 'potential';
+            else if (l === 'regular' || str === '普通') dto.level = 'regular';
+            else if (l === 'potential' || str === '潜在') dto.level = 'potential';
             break;
           }
           case 'industry':

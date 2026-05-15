@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -171,11 +171,10 @@ export default function NewLeaveRequestPage() {
               <Label htmlFor="days">
                 请假天数 <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <NumberInput
                 id="days"
-                type="number"
-                step="0.5"
-                min="0.5"
+                step={0.5}
+                min={0.5}
                 value={formData.days}
                 onChange={(e) =>
                   setFormData({ ...formData, days: e.target.value })

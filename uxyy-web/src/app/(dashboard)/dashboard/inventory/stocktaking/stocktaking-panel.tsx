@@ -15,6 +15,7 @@ import { fetchWarehouses } from "@/lib/api/warehouses";
 import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { NumberInput } from "@/components/ui/input";
 
 const selectCls =
   "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
@@ -173,10 +174,10 @@ function StocktakingForm({
               <code className="text-xs">pnpm db:seed</code>{" "}
               自动创建「主仓库」，或用 API 新建仓库后再建盘点单。
             </p>
-            <input
+            <NumberInput
               className={selectCls}
-              type="number"
               min={1}
+              step={1}
               value={formData.warehouseId}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -439,9 +440,10 @@ function StocktakingDetail({
                   <td className="px-4 py-2 text-right">{item.systemQty}</td>
                   <td className="px-4 py-2 text-right">
                     {editingItem?.id === item.id ? (
-                      <input
-                        type="number"
-                        className="w-20 rounded-md border border-border-primary px-2 py-1 text-sm"
+                      <NumberInput
+                        className="w-20 !h-8 !py-1 !px-2"
+                        min={0}
+                        step={1}
                         value={actualQty}
                         onChange={(e) => setActualQty(e.target.value)}
                       />

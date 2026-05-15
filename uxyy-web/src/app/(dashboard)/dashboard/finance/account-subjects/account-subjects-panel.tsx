@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/account-subjects";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash } from "@/components/icons";
@@ -329,9 +329,8 @@ function AccountSubjectForm({
         </select>
       </div>
 
-      <Input
+      <NumberInput
         label="上级科目ID（可选）"
-        type="number"
         value={formData.parentId ?? ""}
         onChange={(e) =>
           setFormData({
@@ -340,6 +339,8 @@ function AccountSubjectForm({
           })
         }
         placeholder="留空为一级科目"
+        min={1}
+        step={1}
       />
 
       <div className="flex justify-end gap-2 pt-4">

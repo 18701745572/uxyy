@@ -20,7 +20,7 @@ import {
 } from "@/lib/api/crm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import {
   Dialog,
@@ -596,20 +596,14 @@ function AddPointsForm({
         </select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-text-secondary">
-          变动积分（正数增加，负数减少）
-        </label>
-        <input
-          type="number"
-          className="rounded-lg border border-border-primary bg-bg-tertiary px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all"
-          value={formData.points}
-          onChange={(e) =>
-            setFormData({ ...formData, points: parseInt(e.target.value) || 0 })
-          }
-          required
-        />
-      </div>
+      <NumberInput
+        label="变动积分（正数增加，负数减少）"
+        value={formData.points}
+        onChange={(e) =>
+          setFormData({ ...formData, points: parseInt(e.target.value) || 0 })
+        }
+        required
+      />
 
       <Input
         label="变动说明"

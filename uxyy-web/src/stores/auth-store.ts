@@ -21,6 +21,10 @@ import {
 
 interface AuthState {
   user: ProfilePayload | null;
+  /** 用户昵称 */
+  nickname: string | null;
+  /** 用户手机号 */
+  phone: string | null;
   /** 当前企业内角色的权限码，与 JWT 同步后再由 `/auth/permissions` 覆盖 */
   permissions: string[];
   /** 规范五种之一（若 JWT 可归一）*/
@@ -44,6 +48,8 @@ function syncJwtSession(set: (partial: Partial<AuthState>) => void): boolean {
   if (!token) {
     set({
       user: null,
+      nickname: null,
+      phone: null,
       permissions: [],
       canonicalRole: null,
       isLoading: false,
@@ -56,6 +62,8 @@ function syncJwtSession(set: (partial: Partial<AuthState>) => void): boolean {
     clearAllTokens();
     set({
       user: null,
+      nickname: null,
+      phone: null,
       permissions: [],
       canonicalRole: null,
       isLoading: false,
@@ -71,6 +79,8 @@ function syncJwtSession(set: (partial: Partial<AuthState>) => void): boolean {
       sub: claims.sub,
       enterpriseId: claims.enterpriseId,
     },
+    nickname: claims.nickname ?? null,
+    phone: claims.phone ?? null,
     permissions: jwtPerms,
     canonicalRole:
       canon ??
@@ -118,6 +128,8 @@ let isLoggingIn = false;
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
+  nickname: null,
+  phone: null,
   permissions: [],
   canonicalRole: null,
   isLoading: true,
@@ -157,6 +169,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     clearAllTokens();
     set({
       user: null,
+      nickname: null,
+      phone: null,
       permissions: [],
       canonicalRole: null,
       isLoading: false,
@@ -174,6 +188,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       clearAllTokens();
       set({
         user: null,
+        nickname: null,
+        phone: null,
         permissions: [],
         canonicalRole: null,
         isLoading: false,

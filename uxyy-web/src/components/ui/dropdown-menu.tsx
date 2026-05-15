@@ -80,7 +80,7 @@ export function DropdownMenuContent({ children, align = "end", className }: Drop
     <div
       ref={ref}
       className={cn(
-        "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border border-border-primary bg-white p-1 shadow-lg animate-in fade-in-0 zoom-in-95",
+        "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border border-border-primary bg-bg-elevated p-1 shadow-lg animate-in fade-in-0 zoom-in-95",
         align === "end" ? "right-0" : "left-0",
         className
       )}
@@ -111,10 +111,10 @@ export function DropdownMenuItem({ children, onClick, disabled, className }: Dro
         }
       }}
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none transition-colors",
+        "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none transition-colors",
         disabled
           ? "cursor-not-allowed opacity-50 text-text-muted"
-          : "hover:bg-bg-tertiary text-text-primary",
+          : "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary focus-visible:bg-bg-tertiary focus-visible:text-text-primary",
         className
       )}
     >

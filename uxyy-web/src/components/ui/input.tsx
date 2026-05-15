@@ -1,15 +1,16 @@
-import { type InputHTMLAttributes, forwardRef } from "react";
+import { type InputHTMLAttributes, forwardRef, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
  * Input 组件系统 - 深色主题设计
- * 
+ *
  * 设计原则：
  * 1. 深色主题适配：输入框背景适配深色界面
  * 2. 玻璃拟态：半透明背景效果
  * 3. 发光边框：聚焦时蓝色发光效果
  * 4. 自动填充覆盖：处理浏览器自动填充样式
- * 5. 无障碍：正确的 label 关联，支持键盘导航
+ * 5. 数字输入框：自定义上下箭头样式，匹配深色主题
+ * 6. 无障碍：正确的 label 关联，支持键盘导航
  */
 
 // ============================================================================
@@ -103,6 +104,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               // 图标偏移
               hasLeftIcon && "pl-10",
               hasRightIcon && "pr-10",
+              // Number 类型输入框 - 隐藏默认箭头，使用自定义样式
+              props.type === "number" && [
+                "[appearance:textfield]",
+                "[&::-webkit-outer-spin-button]:appearance-none",
+                "[&::-webkit-inner-spin-button]:appearance-none",
+                "[&::-webkit-outer-spin-button]:m-0",
+                "[&::-webkit-inner-spin-button]:m-0",
+              ],
               className,
             )}
             {...props}
@@ -289,3 +298,192 @@ export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(
 );
 
 InputGroup.displayName = "InputGroup";
+
+// ============================================================================
+// 数字输入框 - 带自定义上下箭头
+// ============================================================================
+
+import { CaretUp, CaretDown } from "@phosphor-icons/react";
+
+export interface NumberInputProps extends Omit<InputProps, "type" | "rightIcon" | "leftIcon" | "clearable" | "onClear"> {
+  /** 最小值 */
+  min?: number;
+  /** 最大值 */
+  max?: number;
+  /** 步进值 */
+  step?: number;
+  /** 是否显示控制按钮 */
+  showControls?: boolean;
+}
+
+export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
+  (
+    {
+      min,
+      max,
+      step = 1,
+      showControls = true,
+      className,
+      disabled,
+      onChange,
+      value,
+      defaultValue,
+      ...props
+    },
+    ref,
+  ) => {
+    const [internalValue, setInternalValue] = useState<string>(
+      String(defaultValue ?? value ?? "")
+    );
+
+    // 同步外部 value
+    useEffect(() => {
+      if (value !== undefined) {
+        setInternalValue(String(value));
+      }
+    }, [value]);
+
+    const updateValue = (newValue: number) => {
+      const stringValue = String(newValue);
+      setInternalValue(stringValue);
+      
+      // 触发 onChange 事件
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: stringValue },
+          currentTarget: { value: stringValue },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      }
+    };
+
+    const handleIncrement = () => {
+      const currentValue = parseFloat(internalValue) || 0;
+      const newValue = currentValue + step;
+      if (max === undefined || newValue <= max) {
+        updateValue(newValue);
+      }
+    };
+
+    const handleDecrement = () => {
+      const currentValue = parseFloat(internalValue) || 0;
+      const newValue = currentValue - step;
+      if (min === undefined || newValue >= min) {
+        updateValue(newValue);
+      }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInternalValue(e.target.value);
+      if (onChange) {
+        onChange(e);
+      }
+    };
+
+    const inputId = props.id ?? (props.label ? `input-${props.label}` : undefined);
+    const hasError = !!props.error;
+    const hasLabel = !!props.label;
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        {/* 标签 */}
+        {hasLabel && (
+          <label
+            htmlFor={inputId}
+            className="text-sm font-medium text-text-secondary"
+          >
+            {props.label}
+            {props.required && <span className="text-error ml-0.5">*</span>}
+          </label>
+        )}
+
+        {/* 输入框容器 */}
+        <div className={cn("relative", className)}>
+          <input
+            id={inputId}
+            ref={ref}
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            value={value !== undefined ? value : internalValue}
+            defaultValue={defaultValue}
+            onChange={handleChange}
+            placeholder={props.placeholder}
+            name={props.name}
+            required={props.required}
+            className={cn(
+              // 基础样式
+              "w-full h-11 px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted",
+              "bg-bg-tertiary border rounded-lg",
+              // 聚焦状态
+              "focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue",
+              // 禁用状态
+              "disabled:bg-bg-secondary disabled:text-text-muted disabled:cursor-not-allowed",
+              // 过渡动画
+              "transition-all duration-150 ease-out",
+              // 错误状态
+              hasError
+                ? "border-error focus:border-error focus:ring-error/20"
+                : "border-border-primary hover:border-border-secondary",
+              // 为控制按钮预留空间
+              showControls && "pr-10",
+              // 隐藏默认箭头
+              "[appearance:textfield]",
+              "[&::-webkit-outer-spin-button]:appearance-none",
+              "[&::-webkit-inner-spin-button]:appearance-none",
+              "[&::-webkit-outer-spin-button]:m-0",
+              "[&::-webkit-inner-spin-button]:m-0",
+            )}
+          />
+
+          {/* 自定义上下箭头按钮 */}
+          {showControls && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
+              <button
+                type="button"
+                onClick={handleIncrement}
+                disabled={disabled}
+                className={cn(
+                  "flex items-center justify-center w-5 h-[18px] rounded",
+                  "text-text-tertiary hover:text-text-secondary",
+                  "hover:bg-bg-secondary transition-colors duration-150",
+                  "focus:outline-none focus:ring-1 focus:ring-accent-blue/30",
+                  disabled && "opacity-50 cursor-not-allowed",
+                )}
+                tabIndex={-1}
+              >
+                <CaretUp className="w-3 h-3" weight="bold" />
+              </button>
+              <button
+                type="button"
+                onClick={handleDecrement}
+                disabled={disabled}
+                className={cn(
+                  "flex items-center justify-center w-5 h-[18px] rounded",
+                  "text-text-tertiary hover:text-text-secondary",
+                  "hover:bg-bg-secondary transition-colors duration-150",
+                  "focus:outline-none focus:ring-1 focus:ring-accent-blue/30",
+                  disabled && "opacity-50 cursor-not-allowed",
+                )}
+                tabIndex={-1}
+              >
+                <CaretDown className="w-3 h-3" weight="bold" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 帮助文字或错误信息 */}
+        {(props.helpText || props.error) && (
+          <p className={cn("text-xs", props.error ? "text-error" : "text-text-muted")}>
+            {props.error || props.helpText}
+          </p>
+        )}
+      </div>
+    );
+  },
+);
+
+NumberInput.displayName = "NumberInput";

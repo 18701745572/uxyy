@@ -6,6 +6,8 @@ export interface ExportOptions {
   filters?: Record<string, string>;
 }
 
+import { apiFetchBlob } from "./client";
+
 const endpointMap: Record<ExportOptions["type"], string> = {
   customers: "/export/customers",
   products: "/export/products",
@@ -25,18 +27,7 @@ export async function exportData(options: ExportOptions): Promise<Blob> {
   }
 
   const endpoint = endpointMap[options.type];
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`导出失败: ${response.status}`);
-  }
-
-  return response.blob();
+  return apiFetchBlob(`${endpoint}?${params.toString()}`, { method: "GET" });
 }
 
 export async function downloadExport(options: ExportOptions, filename?: string) {

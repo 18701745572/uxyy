@@ -35,8 +35,15 @@ interface HeaderProps {
 export function Header({ title, onMenuToggle }: HeaderProps) {
   const enterpriseId = useAuthStore((s) => s.user?.enterpriseId);
   const canonicalRole = useAuthStore((s) => s.canonicalRole);
-  const userDisplay = useAuthStore((s) => s.user?.sub);
+  const phone = useAuthStore((s) => s.phone);
+  const userSub = useAuthStore((s) => s.user?.sub);
   const logout = useAuthStore((s) => s.logout);
+
+  // 统一显示手机号后4位
+  const avatarText = phone?.slice(-4) || userSub || "U";
+
+  // 下拉菜单显示的用户名（优先显示完整手机号，其次用户ID）
+  const displayName = phone || userSub || "未登录";
   const enterprises = useEnterpriseStore((s) => s.enterprises);
   const fetchEnterprises = useEnterpriseStore((s) => s.fetch);
   const seedIfEmpty = useMessageInboxStore((s) => s.seedIfEmpty);
@@ -170,7 +177,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
               "cursor-pointer"
             )}
           >
-            <span>{userDisplay?.charAt(0).toUpperCase() || "U"}</span>
+            <span>{avatarText}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
@@ -183,7 +190,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
             {/* 用户信息头部 */}
             <div className="px-3 py-2.5">
               <p className="text-sm font-semibold text-text-primary truncate">
-                {userDisplay ?? "未登录"}
+                {displayName}
               </p>
               <p className="text-xs text-text-muted mt-0.5">
                 {enterpriseId != null

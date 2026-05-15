@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import type {
@@ -27,8 +27,9 @@ import {
 } from "@/lib/api/crm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
+import { CustomerImportDialog } from "@/components/crm/customer-import-dialog";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Crown } from "@/components/icons";
@@ -125,6 +126,7 @@ function CustomerForm({
   onDone: () => void;
 }) {
   const isEdit = !!init;
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState(init?.name ?? "");
   const [phone, setPhone] = useState(init?.phone ?? "");
   const [contactPerson, setContactPerson] = useState(init?.contactPerson ?? "");
@@ -192,6 +194,7 @@ function CustomerForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={(e) => {
         e.preventDefault();
         mutation.mutate();
@@ -266,19 +269,21 @@ function CustomerForm({
             ))}
           </select>
         </div>
-        <Input
+        <NumberInput
           label="归属销售ID"
-          type="number"
           value={assignedTo}
           onChange={(e) => setAssignedTo(e.target.value)}
           placeholder="1"
+          min={1}
+          step={1}
         />
-        <Input
+        <NumberInput
           label="信用额度"
-          type="number"
           value={creditLimit}
           onChange={(e) => setCreditLimit(e.target.value)}
           placeholder="50000"
+          min={0}
+          step={1000}
         />
         <Input
           label="标签（逗号分隔）"
@@ -489,6 +494,9 @@ export function CrmCustomersPanel() {
         <h1 className="text-lg font-semibold text-text-primary">客户列表</h1>
         <div className="flex items-center gap-2">
           <ExportMenu type="customers" filename="customers" />
+          {crm.write ? (
+            <CustomerImportDialog />
+          ) : null}
           {crm.write ? (
             <Button onClick={() => setCreating(true)}>+ 新建客户</Button>
           ) : (

@@ -105,6 +105,10 @@ import {
   Funnel,
   SortAscending,
   SortDescending,
+  CaretUpDown,
+  ArrowsVertical,
+  ArrowLineUp,
+  ArrowLineDown,
   MagnifyingGlassPlus,
   MagnifyingGlassMinus,
   
@@ -192,6 +196,14 @@ export const ActionIcons = {
   sortAsc: SortAscending,
   /** 降序 */
   sortDesc: SortDescending,
+  /** 排序（默认状态） */
+  sort: CaretUpDown,
+  /** 上下移动/拖拽排序 */
+  moveVertical: ArrowsVertical,
+  /** 置顶 */
+  moveToTop: ArrowLineUp,
+  /** 置底 */
+  moveToBottom: ArrowLineDown,
   /** 放大 */
   zoomIn: MagnifyingGlassPlus,
   /** 缩小 */

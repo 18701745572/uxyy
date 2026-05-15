@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Input, NumberInput } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
@@ -536,10 +536,10 @@ export default function BackupPanel() {
                   <Label className="text-base font-medium">备份保留天数</Label>
                   <p className="text-sm text-text-tertiary mt-1">超过此天数的备份将自动删除</p>
                   <div className="flex items-center gap-3 mt-3">
-                    <Input
-                      type="number"
-                      min="7"
-                      max="365"
+                    <NumberInput
+                      min={7}
+                      max={365}
+                      step={1}
                       value={configForm?.retentionDays || 30}
                       onChange={(e) => handleConfigChange('retentionDays', parseInt(e.target.value) || 30)}
                       className="w-32"

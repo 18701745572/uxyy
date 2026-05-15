@@ -17,7 +17,7 @@ import { fetchCustomersAllPages } from "@/lib/api/customers";
 import { fetchAllProducts } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Plus, Trash } from "@/components/icons";
 import {
@@ -291,11 +291,10 @@ function SalesOrderForm({
                         ))}
                       </select>
                     </div>
-                    <Input
+                    <NumberInput
                       label="数量 *"
-                      type="number"
                       min={0.01}
-                      step="any"
+                      step={0.01}
                       className="w-full sm:w-28"
                       value={row.quantity}
                       onChange={(e) =>
@@ -304,11 +303,10 @@ function SalesOrderForm({
                         })
                       }
                     />
-                    <Input
+                    <NumberInput
                       label="单价"
-                      type="number"
                       min={0}
-                      step="any"
+                      step={0.01}
                       className="w-full sm:w-28"
                       value={row.unitPrice}
                       onChange={(e) =>
@@ -706,10 +704,10 @@ export function SalesOrdersPanel() {
                 </p>
               </div>
 
-              <Input
+              <NumberInput
                 label="回款金额 *"
-                type="number"
-                step="0.01"
+                step={0.01}
+                min={0}
                 value={receiveAmount}
                 onChange={(e) => setReceiveAmount(e.target.value)}
               />

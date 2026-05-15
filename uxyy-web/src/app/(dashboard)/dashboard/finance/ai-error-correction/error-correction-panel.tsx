@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { NumberInput } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -254,14 +255,14 @@ export function ErrorCorrectionPanel() {
               <h2 className="font-semibold text-text-primary">输入凭证分录 ID</h2>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="number"
+              <NumberInput
                 min={1}
                 max={VOUCHER_ENTRY_ID_MAX}
+                step={1}
                 placeholder="请输入分录 ID（非凭证号）"
                 value={voucherId}
                 onChange={(e) => setVoucherId(e.target.value)}
-                className="flex-1 rounded-lg border border-border-primary px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                className="flex-1"
               />
               <Button
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20"

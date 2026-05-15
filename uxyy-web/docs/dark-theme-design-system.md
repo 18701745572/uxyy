@@ -450,6 +450,51 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px #1a1a1a inset !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+### 6.1.1 数字输入框 (Number Input)
+
+#### 视觉规范
+- **基础样式**: 同 Input 样式
+- **默认箭头**: 隐藏浏览器默认的上下箭头 (spin button)
+- **自定义箭头**: 右侧显示自定义上下箭头按钮
+
+#### 自定义箭头按钮样式
+| 元素 | 样式 |
+|------|------|
+| 容器 | 绝对定位右侧，垂直居中 |
+| 按钮尺寸 | 20px × 16px (宽 × 高) |
+| 按钮圆角 | 4px |
+| 图标大小 | 12px (w-3 h-3) |
+| 图标权重 | bold |
+| 默认颜色 | text-tertiary (#a1a1aa) |
+| 悬停颜色 | text-secondary (#e4e4e7) |
+| 悬停背景 | bg-secondary (#27272a) |
+| 过渡动画 | 150ms ease-out |
+
+#### 代码示例
+```tsx
+// 基础数字输入框（隐藏默认箭头）
+<Input 
+  type="number"
+  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+  placeholder="请输入数字"
+/>
+
+// 带自定义控制按钮的数字输入框
+<NumberInput
+  label="信用额度"
+  placeholder="50000"
+  min={0}
+  step={1000}
+  showControls={true}
+/>
+
+// 不带控制按钮的数字输入框
+<NumberInput
+  label="数量"
+  placeholder="1"
+  showControls={false}
+/>
 ```
 
 ### 6.2 选择器 (Select)
@@ -1430,9 +1475,173 @@ import { Spinner } from "@phosphor-icons/react";
   <X className="h-4 w-4" />
   <span className="sr-only">关闭</span>
 </button>
+
+### 17.5 排序与展开图标规范
+
+#### 排序图标 (Sort Icon)
+
+用于表格表头排序、列表排序等场景。
+
+**图标选择**:
+| 状态 | Phosphor 图标 | 说明 |
+|------|---------------|------|
+| 默认/未排序 | `CaretUpDown` | 上下箭头，表示可排序 |
+| 升序 | `CaretUp` | 向上箭头 |
+| 降序 | `CaretDown` | 向下箭头 |
+
+**视觉规范**:
+- **尺寸**: 16px (`h-4 w-4`)
+- **默认颜色**: `text-text-tertiary` (#a1a1aa)
+- **激活颜色**: `text-accent-blue` (#3b82f6)
+- **权重**: `regular` (默认)
+- **间距**: 与文字间距 4px (`gap-1`)
+
+**交互状态**:
+| 状态 | 样式 |
+|------|------|
+| 默认 | `text-text-tertiary` |
+| 悬停 | `text-text-secondary` |
+| 激活(升序/降序) | `text-accent-blue` |
+| 禁用 | `text-text-muted` |
+
+**代码示例**:
+```tsx
+import { CaretUpDown, CaretUp, CaretDown } from "@phosphor-icons/react";
+
+// 默认排序状态（可点击排序）
+<button className="flex items-center gap-1 text-text-secondary hover:text-text-primary">
+  <span>创建时间</span>
+  <CaretUpDown className="h-4 w-4 text-text-tertiary" weight="regular" />
+</button>
+
+// 升序排序状态
+<button className="flex items-center gap-1 text-text-primary">
+  <span>创建时间</span>
+  <CaretUp className="h-4 w-4 text-accent-blue" weight="regular" />
+</button>
+
+// 降序排序状态
+<button className="flex items-center gap-1 text-text-primary">
+  <span>创建时间</span>
+  <CaretDown className="h-4 w-4 text-accent-blue" weight="regular" />
+</button>
 ```
 
-### 17.5 统一入口配置
+#### 展开/折叠图标 (Expand/Collapse Icon)
+
+用于展开/折叠面板、手风琴、树形结构等场景。
+
+**图标选择**:
+| 状态 | Phosphor 图标 | 说明 |
+|------|---------------|------|
+| 折叠 | `CaretRight` | 向右箭头 |
+| 展开 | `CaretDown` | 向下箭头 |
+
+**视觉规范**:
+- **尺寸**: 16px (`h-4 w-4`)
+- **默认颜色**: `text-text-tertiary` (#a1a1aa)
+- **激活颜色**: `text-text-secondary` (#e4e4e7)
+- **权重**: `regular` (默认)
+- **动画**: 旋转过渡 200ms
+
+**交互状态**:
+| 状态 | 样式 |
+|------|------|
+| 默认 | `text-text-tertiary` |
+| 悬停 | `text-text-secondary` |
+| 展开 | `text-text-secondary` |
+
+**代码示例**:
+```tsx
+import { CaretRight, CaretDown } from "@phosphor-icons/react";
+import { useState } from "react";
+
+// 展开/折叠按钮
+function ExpandButton({ isExpanded, onClick }: { isExpanded: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-center w-6 h-6 rounded hover:bg-bg-tertiary transition-colors"
+    >
+      {isExpanded ? (
+        <CaretDown className="h-4 w-4 text-text-tertiary" weight="regular" />
+      ) : (
+        <CaretRight className="h-4 w-4 text-text-tertiary" weight="regular" />
+      )}
+    </button>
+  );
+}
+
+// 手风琴面板
+function AccordionItem({ title, children }: { title: string; children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="border-b border-border-primary">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full py-4 text-left"
+      >
+        <span className="text-text-primary font-medium">{title}</span>
+        <CaretDown 
+          className={`h-4 w-4 text-text-tertiary transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`} 
+          weight="regular" 
+        />
+      </button>
+      {isOpen && (
+        <div className="pb-4 text-text-secondary">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+#### 上下箭头图标 (Vertical Arrows Icon)
+
+用于调整顺序、拖拽排序、数值增减等场景。
+
+**图标选择**:
+| 场景 | Phosphor 图标 | 说明 |
+|------|---------------|------|
+| 调整顺序 | `ArrowsVertical` | 上下双向箭头 |
+| 上移 | `ArrowUp` | 向上箭头 |
+| 下移 | `ArrowDown` | 向下箭头 |
+| 置顶 | `ArrowLineUp` | 向上带线箭头 |
+| 置底 | `ArrowLineDown` | 向下带线箭头 |
+
+**视觉规范**:
+- **尺寸**: 16px (`h-4 w-4`)
+- **默认颜色**: `text-text-tertiary` (#a1a1aa)
+- **悬停颜色**: `text-text-secondary` (#e4e4e7)
+- **激活颜色**: `text-accent-blue` (#3b82f6)
+- **权重**: `regular` (默认)
+- **背景**: 悬停时显示 `bg-bg-tertiary` 圆形背景
+
+**代码示例**:
+```tsx
+import { ArrowsVertical, ArrowUp, ArrowDown } from "@phosphor-icons/react";
+
+// 拖拽排序手柄
+<div className="flex items-center justify-center w-8 h-8 rounded cursor-move hover:bg-bg-tertiary">
+  <ArrowsVertical className="h-4 w-4 text-text-tertiary" weight="regular" />
+</div>
+
+// 上移/下移按钮组
+<div className="flex flex-col gap-1">
+  <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-bg-tertiary">
+    <ArrowUp className="h-3.5 w-3.5 text-text-tertiary hover:text-text-secondary" weight="regular" />
+  </button>
+  <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-bg-tertiary">
+    <ArrowDown className="h-3.5 w-3.5 text-text-tertiary hover:text-text-secondary" weight="regular" />
+  </button>
+</div>
+```
+
+### 17.6 统一入口配置
 
 项目使用 `src/components/icons/index.tsx` 作为图标的统一入口：
 
@@ -1496,6 +1705,8 @@ export {
 | 2026-05-13 | v1.0 | 初始版本，包含完整设计规范 |
 | 2026-05-13 | v1.1 | 整合 Phosphor Icons 图标系统，统一图标管理 |
 | 2026-05-13 | v1.2 | 补充遗漏组件规范：文件上传、JSON 编辑器、任务卡片、OCR 结果展示 |
+| 2026-05-15 | v1.3 | 补充排序与展开图标规范：SortIcon、ExpandIcon 组件，统一排序/展开交互风格 |
+| 2026-05-15 | v1.4 | 补充数字输入框规范：NumberInput 组件，自定义上下箭头样式，匹配深色主题 |
 
 ---
 

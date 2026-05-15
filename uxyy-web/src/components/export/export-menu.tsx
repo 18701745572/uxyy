@@ -58,11 +58,13 @@ export function ExportMenu({
     exportMutation.mutate(format);
   };
 
-  const handleCloseDialog = () => {
-    setShowFormatDialog(false);
-    if (exportStatus === "success" || exportStatus === "error") {
-      setExportStatus("idle");
-      setErrorMessage(null);
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setShowFormatDialog(false);
+      if (exportStatus === "success" || exportStatus === "error") {
+        setExportStatus("idle");
+        setErrorMessage(null);
+      }
     }
   };
 
@@ -80,21 +82,25 @@ export function ExportMenu({
             {iconOnly ? null : label}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-[13.5rem]">
           <DropdownMenuItem onClick={() => handleSelectFormat("excel")} disabled={disabled}>
-            <FileXls className="w-4 h-4 mr-2 text-green-600" />
-            导出 Excel
-            <Badge variant="default" className="ml-auto text-xs">.xlsx</Badge>
+            <FileXls className="h-4 w-4 shrink-0 text-success" aria-hidden />
+            <span className="min-w-0 flex-1 text-left">导出 Excel</span>
+            <Badge variant="outline" className="ml-auto shrink-0 px-1.5 py-0 text-[10px] tabular-nums">
+              .xlsx
+            </Badge>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleSelectFormat("csv")} disabled={disabled}>
-            <FileText className="w-4 h-4 mr-2 text-blue-600" />
-            导出 CSV
-            <Badge variant="default" className="ml-auto text-xs">.csv</Badge>
+            <FileText className="h-4 w-4 shrink-0 text-info" aria-hidden />
+            <span className="min-w-0 flex-1 text-left">导出 CSV</span>
+            <Badge variant="outline" className="ml-auto shrink-0 px-1.5 py-0 text-[10px] tabular-nums">
+              .csv
+            </Badge>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={showFormatDialog} onOpenChange={handleCloseDialog}>
+      <Dialog open={showFormatDialog} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -160,7 +166,10 @@ export function ExportMenu({
 
           <div className="flex justify-center">
             {(exportStatus === "success" || exportStatus === "error") && (
-              <Button onClick={handleCloseDialog} variant="secondary">
+              <Button
+                onClick={() => handleOpenChange(false)}
+                variant="secondary"
+              >
                 关闭
               </Button>
             )}

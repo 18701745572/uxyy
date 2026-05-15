@@ -5,7 +5,30 @@ import type {
   CustomerDto,
   CustomerListQuery,
 } from "@uxyy/shared";
-import { apiFetch } from "./client";
+import { apiFetch, apiUploadFile, ApiError, formatApiErrorBody } from "./client";
+
+export type CustomerImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入客户（与导出表头对齐；mode=skip 跳过同企名称+电话重复） */
+export async function importCustomers(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<CustomerImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/crm/customers/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<CustomerImportResult>;
+}
 
 /** 与 `CustomerDto` 同义，供 CRM 模块页面类型引用 */
 export type CustomerResponseDto = CustomerDto;

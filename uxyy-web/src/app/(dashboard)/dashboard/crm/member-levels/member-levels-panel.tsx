@@ -16,7 +16,7 @@ import {
 } from "@/lib/api/crm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Crown, Plus, PencilSimple, Trash } from "@phosphor-icons/react";
@@ -267,16 +267,16 @@ function MemberLevelForm({
         </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Input
+        <NumberInput
           label="最小积分"
-          type="number"
           value={formData.minPoints}
           onChange={(e) => setFormData({ ...formData, minPoints: Number(e.target.value) })}
+          min={0}
+          step={100}
           required
         />
-        <Input
+        <NumberInput
           label="最大积分"
-          type="number"
           value={formData.maxPoints ?? ""}
           onChange={(e) =>
             setFormData({
@@ -285,13 +285,17 @@ function MemberLevelForm({
             })
           }
           placeholder="无上限"
+          min={0}
+          step={100}
         />
       </div>
-      <Input
+      <NumberInput
         label="折扣率 (%)"
-        type="number"
         value={formData.discountRate}
         onChange={(e) => setFormData({ ...formData, discountRate: e.target.value })}
+        min={0}
+        max={100}
+        step={1}
         required
       />
       <div>

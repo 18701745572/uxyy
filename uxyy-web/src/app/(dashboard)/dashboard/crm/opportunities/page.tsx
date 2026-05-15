@@ -17,7 +17,7 @@ import {
   type CustomerResponseDto,
 } from "@/lib/api/customers";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -539,8 +539,7 @@ function OpportunityForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>预计金额</Label>
-          <Input
-            type="number"
+          <NumberInput
             value={form.estimatedAmount || ""}
             onChange={(e) =>
               setForm({
@@ -551,12 +550,13 @@ function OpportunityForm({
               })
             }
             placeholder="输入预计金额"
+            min={0}
+            step={100}
           />
         </div>
         <div>
           <Label>实际金额</Label>
-          <Input
-            type="number"
+          <NumberInput
             value={form.actualAmount || ""}
             onChange={(e) =>
               setForm({
@@ -567,6 +567,8 @@ function OpportunityForm({
               })
             }
             placeholder="输入实际金额"
+            min={0}
+            step={100}
           />
         </div>
       </div>
@@ -594,10 +596,10 @@ function OpportunityForm({
       </div>
       <div>
         <Label>成交概率 (%)</Label>
-        <Input
-          type="number"
+        <NumberInput
           min={0}
           max={100}
+          step={1}
           value={form.probability}
           onChange={(e) =>
             setForm({ ...form, probability: Number(e.target.value) })
@@ -606,9 +608,9 @@ function OpportunityForm({
       </div>
       <div>
         <Label>负责人（用户 ID，可选）</Label>
-        <Input
-          type="number"
+        <NumberInput
           min={1}
+          step={1}
           value={form.assignedTo != null ? form.assignedTo : ""}
           onChange={(e) => {
             const raw = e.target.value;

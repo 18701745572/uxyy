@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
 
 interface ProductFormData {
@@ -110,9 +110,8 @@ function ProductForm({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
+        <NumberInput
           label="销售单价 *"
-          type="number"
           value={formData.unitPrice}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -121,10 +120,11 @@ function ProductForm({
             }))
           }
           placeholder="12.50"
+          min={0}
+          step={0.01}
         />
-        <Input
+        <NumberInput
           label="成本价"
-          type="number"
           value={formData.costPrice}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -133,13 +133,14 @@ function ProductForm({
             }))
           }
           placeholder="8.00"
+          min={0}
+          step={0.01}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
+        <NumberInput
           label="最低库存"
-          type="number"
           value={formData.minStock}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -148,10 +149,11 @@ function ProductForm({
             }))
           }
           placeholder="10"
+          min={0}
+          step={1}
         />
-        <Input
+        <NumberInput
           label="最高库存"
-          type="number"
           value={formData.maxStock}
           onChange={(e) =>
             setFormData((prev) => ({
@@ -160,6 +162,8 @@ function ProductForm({
             }))
           }
           placeholder="200"
+          min={0}
+          step={1}
         />
       </div>
 
