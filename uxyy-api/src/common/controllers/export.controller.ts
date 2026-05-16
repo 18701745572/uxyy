@@ -130,6 +130,35 @@ export class ExportController {
     res.send(result);
   }
 
+  @Get('suppliers')
+  @Permissions(Permission.INV_READ)
+  async exportSuppliers(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+  ) {
+    const suppliers = await this.db
+      .select()
+      .from(schema.suppliers)
+      .where(eq(schema.suppliers.enterpriseId, req.user.enterpriseId));
+
+    const columns = [
+      { key: 'name', header: '供应商名称', width: 25 },
+      { key: 'contactName', header: '联系人', width: 15 },
+      { key: 'phone', header: '联系电话', width: 15 },
+      { key: 'address', header: '地址', width: 30 },
+      { key: 'status', header: '状态', width: 10 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, suppliers, columns, '供应商列表');
+
+    const filename = `suppliers_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
   @Get('sales-orders')
   @Permissions(Permission.INV_SALES_ORDER)
   async exportSalesOrders(
@@ -271,6 +300,215 @@ export class ExportController {
     const result = this.exportService.export(format, invoices, columns, '发票列表');
 
     const filename = `invoices_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('stocktaking')
+  @Permissions(Permission.INV_READ)
+  async exportStocktaking(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    let conditions = eq(schema.stocktakingOrders.enterpriseId, req.user.enterpriseId);
+
+    if (startDate && endDate) {
+      conditions = and(
+        conditions,
+        gte(schema.stocktakingOrders.createdAt, new Date(startDate)),
+        lte(schema.stocktakingOrders.createdAt, new Date(endDate)),
+      ) as any;
+    }
+
+    const orders = await this.db.select().from(schema.stocktakingOrders).where(conditions);
+
+    const data = orders.map((order) => ({
+      ...order,
+      stocktakingNo: `ST${String(order.id).padStart(6, '0')}`,
+    }));
+
+    const columns = [
+      { key: 'stocktakingNo', header: '盘点单号', width: 20 },
+      { key: 'warehouseId', header: '仓库ID', width: 12 },
+      { key: 'status', header: '状态', width: 10 },
+      { key: 'remark', header: '备注', width: 30 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, data, columns, '库存盘点');
+
+    const filename = `stocktaking_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('member_levels')
+  @Permissions(Permission.CRM_READ)
+  async exportMemberLevels(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+  ) {
+    const levels = await this.db
+      .select()
+      .from(schema.memberLevels)
+      .where(
+        and(
+          eq(schema.memberLevels.enterpriseId, req.user.enterpriseId),
+          eq(schema.memberLevels.isDeleted, false),
+        ),
+      )
+      .orderBy(schema.memberLevels.sortOrder);
+
+    const columns = [
+      { key: 'name', header: '等级名称', width: 15 },
+      { key: 'code', header: '等级代码', width: 12 },
+      { key: 'minPoints', header: '最低积分', width: 12 },
+      { key: 'maxPoints', header: '最高积分', width: 12 },
+      { key: 'discountRate', header: '折扣率', width: 10 },
+      { key: 'description', header: '描述', width: 30 },
+      { key: 'color', header: '颜色', width: 10 },
+      { key: 'sortOrder', header: '排序', width: 8 },
+      { key: 'isDefault', header: '默认', width: 8 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, levels, columns, '会员等级');
+
+    const filename = `member_levels_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('customer_categories')
+  @Permissions(Permission.CRM_READ)
+  async exportCustomerCategories(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+  ) {
+    const categories = await this.db
+      .select()
+      .from(schema.customerCategories)
+      .where(
+        and(
+          eq(schema.customerCategories.enterpriseId, req.user.enterpriseId),
+          eq(schema.customerCategories.isDeleted, false),
+        ),
+      )
+      .orderBy(schema.customerCategories.sortOrder);
+
+    const columns = [
+      { key: 'name', header: '分类名称', width: 15 },
+      { key: 'type', header: '分类类型', width: 12 },
+      { key: 'description', header: '描述', width: 30 },
+      { key: 'color', header: '颜色', width: 10 },
+      { key: 'sortOrder', header: '排序', width: 8 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, categories, columns, '客户分类');
+
+    const filename = `customer_categories_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('employee_profiles')
+  @Permissions(Permission.OA_READ)
+  async exportEmployeeProfiles(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+  ) {
+    const profiles = await this.db
+      .select({
+        profile: schema.employeeProfiles,
+        user: {
+          id: schema.users.id,
+          phone: schema.users.phone,
+          nickname: schema.users.nickname,
+        },
+      })
+      .from(schema.employeeProfiles)
+      .innerJoin(schema.users, eq(schema.employeeProfiles.userId, schema.users.id))
+      .where(eq(schema.employeeProfiles.enterpriseId, req.user.enterpriseId))
+      .orderBy(schema.employeeProfiles.createdAt);
+
+    const data = profiles.map((p) => ({
+      userId: p.user.id,
+      nickname: p.user.nickname,
+      phone: p.user.phone,
+      department: p.profile.department,
+      position: p.profile.position,
+      employeeNo: p.profile.employeeNo,
+      email: p.profile.email,
+      joinDate: p.profile.joinDate,
+      createdAt: p.profile.createdAt,
+    }));
+
+    const columns = [
+      { key: 'userId', header: '用户ID', width: 10 },
+      { key: 'nickname', header: '姓名', width: 15 },
+      { key: 'phone', header: '电话', width: 15 },
+      { key: 'department', header: '部门', width: 15 },
+      { key: 'position', header: '职位', width: 15 },
+      { key: 'employeeNo', header: '员工号', width: 12 },
+      { key: 'email', header: '邮箱', width: 25 },
+      { key: 'joinDate', header: '入职日期', width: 12 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, data, columns, '员工档案');
+
+    const filename = `employee_profiles_${Date.now()}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('vouchers')
+  @Permissions(Permission.FIN_READ)
+  async exportVouchers(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    let conditions = eq(schema.voucherEntries.enterpriseId, req.user.enterpriseId);
+
+    if (startDate && endDate) {
+      conditions = and(
+        conditions,
+        gte(schema.voucherEntries.entryDate, new Date(startDate)),
+        lte(schema.voucherEntries.entryDate, new Date(endDate)),
+      ) as any;
+    }
+
+    const vouchers = await this.db.select().from(schema.voucherEntries).where(conditions);
+
+    const columns = [
+      { key: 'voucherNo', header: '凭证号', width: 20 },
+      { key: 'sourceType', header: '来源类型', width: 12 },
+      { key: 'entryDate', header: '日期', width: 12 },
+      { key: 'debitAccount', header: '借方科目', width: 15 },
+      { key: 'creditAccount', header: '贷方科目', width: 15 },
+      { key: 'amount', header: '金额', width: 12 },
+      { key: 'summary', header: '摘要', width: 30 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, vouchers, columns, '凭证列表');
+
+    const filename = `vouchers_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(result);
@@ -565,6 +803,70 @@ export class ExportController {
     const rows = arApCsvRows(report);
     const result = this.exportService.export(format, rows, arApCsvColumns, '应收应付');
     const filename = `finance_ar_ap_${ts}.${this.exportService.getFileExtension(format)}`;
+    res.setHeader('Content-Type', this.exportService.getMimeType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(result);
+  }
+
+  @Get('opportunities')
+  @Permissions(Permission.CRM_READ)
+  async exportOpportunities(
+    @Req() req: Request & { user: UserContext },
+    @Res() res: Response,
+    @Query('format') format: ExportFormat = 'excel',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    let conditions = and(
+      eq(schema.opportunities.enterpriseId, req.user.enterpriseId),
+      eq(schema.opportunities.isDeleted, false),
+    );
+
+    if (status) {
+      conditions = and(conditions, eq(schema.opportunities.status, status)) as any;
+    }
+
+    const opportunities = await this.db
+      .select({
+        opportunity: schema.opportunities,
+        customerName: schema.customers.name,
+      })
+      .from(schema.opportunities)
+      .leftJoin(schema.customers, eq(schema.opportunities.customerId, schema.customers.id))
+      .where(conditions);
+
+    // 如果有搜索条件，在前端过滤
+    let data = opportunities.map(({ opportunity, customerName }) => ({
+      ...opportunity,
+      customerName: customerName || '',
+    }));
+
+    if (search?.trim()) {
+      const keyword = search.trim().toLowerCase();
+      data = data.filter(
+        (item) =>
+          item.name.toLowerCase().includes(keyword) ||
+          item.customerName.toLowerCase().includes(keyword),
+      );
+    }
+
+    const columns = [
+      { key: 'name', header: '商机名称', width: 25 },
+      { key: 'customerName', header: '客户', width: 20 },
+      { key: 'status', header: '状态', width: 12 },
+      { key: 'estimatedAmount', header: '预计金额', width: 15 },
+      { key: 'actualAmount', header: '实际金额', width: 15 },
+      { key: 'probability', header: '概率(%)', width: 10 },
+      { key: 'expectedCloseAt', header: '预计成交日期', width: 18 },
+      { key: 'actualCloseAt', header: '实际成交日期', width: 18 },
+      { key: 'assignedTo', header: '负责人ID', width: 12 },
+      { key: 'remark', header: '备注', width: 30 },
+      { key: 'createdAt', header: '创建时间', width: 20 },
+    ];
+
+    const result = this.exportService.export(format, data, columns, '商机列表');
+
+    const filename = `opportunities_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(result);

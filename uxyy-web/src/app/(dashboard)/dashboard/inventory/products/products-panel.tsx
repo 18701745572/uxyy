@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
+import { ProductImportDialog } from "@/components/inventory/product-import-dialog";
 
 interface ProductFormData {
   code: string;
@@ -237,7 +238,8 @@ export function ProductsPanel() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">商品管理</h1>
         <div className="flex items-center gap-2">
-          <ExportMenu type="products" filename="products" />
+          <ExportMenu type="products" filename="products" dataCount={q.data?.total} />
+          <ProductImportDialog />
           <Button onClick={() => setCreating(true)}>+ 新建商品</Button>
         </div>
       </div>

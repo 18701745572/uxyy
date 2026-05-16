@@ -23,6 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
+import { InvoiceImportDialog } from "@/components/finance/invoice-import-dialog";
 
 const selectCls =
   "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
@@ -699,7 +701,11 @@ export function InvoicesPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">发票管理</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建发票</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="invoices" filename="invoices" dataCount={q.data?.total} />
+          <InvoiceImportDialog />
+          <Button onClick={() => setCreating(true)}>+ 新建发票</Button>
+        </div>
       </div>
 
       <div className="flex gap-2">

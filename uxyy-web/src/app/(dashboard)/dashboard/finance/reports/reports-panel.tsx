@@ -160,7 +160,6 @@ function CashFlowView({ data }: { data: CashFlowData }) {
   return (
     <div className="space-y-6">
       <p className="text-xs text-text-tertiary rounded-md bg-amber-50 border border-amber-100 px-3 py-2">
-        <strong>MVP 简版</strong>：
         「现金流入」= 借方记在银行存款 / 库存现金；「现金流出」= 贷方记在银行存款 / 库存现金。不涉及直接法逐项还原，投资 / 筹资活动本期可为
         0。
       </p>
@@ -295,7 +294,7 @@ export function ReportsPanel() {
           </select>
           <input
             type="month"
-            className="rounded-md border border-border-primary px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary bg-bg-tertiary px-3 py-2 text-sm text-text-primary [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -307,7 +306,7 @@ export function ReportsPanel() {
           <label className="text-sm text-text-secondary">截止日期</label>
           <input
             type="date"
-            className="rounded-md border border-border-primary px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary bg-bg-tertiary px-3 py-2 text-sm text-text-primary [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
             value={asOfDate}
             onChange={(e) => setAsOfDate(e.target.value)}
           />
@@ -319,7 +318,7 @@ export function ReportsPanel() {
           <label className="text-sm text-text-secondary">会计月度</label>
           <input
             type="month"
-            className="rounded-md border border-border-primary px-3 py-2 text-sm"
+            className="rounded-md border border-border-primary bg-bg-tertiary px-3 py-2 text-sm text-text-primary [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />

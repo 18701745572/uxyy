@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { and, count, desc, eq } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -148,5 +150,125 @@ export class SuppliersService {
 
     if (!deleted) throw new NotFoundException('供应商不存在');
     return { ok: true, id: deleted.id, enterpriseId: eid };
+  }
+
+  // Import from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      供应商名称: 'name',
+      名称: 'name',
+      name: 'name',
+      联系人: 'contactName',
+      联系人姓名: 'contactName',
+      contactName: 'contactName',
+      联系电话: 'phone',
+      电话: 'phone',
+      phone: 'phone',
+      地址: 'address',
+      address: 'address',
+      状态: 'status',
+      status: 'status',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const dto: CreateSupplierDto = {
+        name: '',
+      };
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        const str =
+          val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        switch (key) {
+          case 'name':
+            dto.name = str.slice(0, 200);
+            break;
+          case 'contactName':
+            dto.contactName = str.slice(0, 100);
+            break;
+          case 'phone':
+            dto.phone = str.slice(0, 50);
+            break;
+          case 'address':
+            dto.address = str.slice(0, 500);
+            break;
+          case 'status':
+            dto.status = str === 'inactive' ? 'inactive' : 'active';
+            break;
+        }
+      }
+
+      if (!dto.name) {
+        failures.push({ row: rowIndex, reason: '供应商名称为必填项' });
+        continue;
+      }
+
+      // Check for duplicate name
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.suppliers.id })
+          .from(schema.suppliers)
+          .where(
+            and(
+              eq(schema.suppliers.enterpriseId, eid),
+              eq(schema.suppliers.name, dto.name),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      try {
+        await this.create(eid, dto);
+        created++;
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

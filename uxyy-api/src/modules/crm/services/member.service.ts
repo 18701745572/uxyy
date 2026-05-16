@@ -1,5 +1,6 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { eq, and, desc, sql, ilike, or, count } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 import * as schema from '../../../db/schema';
@@ -503,5 +504,170 @@ export class MemberService {
       // 检查等级升级
       await this.checkAndUpgradeLevel(member.id, enterpriseId);
     }
+  }
+
+  // Import member levels from spreadsheet
+  async importLevelsFromSpreadsheet(
+    enterpriseId: number,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      等级名称: 'name',
+      name: 'name',
+      等级代码: 'code',
+      code: 'code',
+      最低积分: 'minPoints',
+      minPoints: 'minPoints',
+      最高积分: 'maxPoints',
+      maxPoints: 'maxPoints',
+      折扣率: 'discountRate',
+      discountRate: 'discountRate',
+      描述: 'description',
+      description: 'description',
+      颜色: 'color',
+      color: 'color',
+      排序: 'sortOrder',
+      sortOrder: 'sortOrder',
+      默认: 'isDefault',
+      isDefault: 'isDefault',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number | boolean> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'minPoints' || key === 'maxPoints' || key === 'sortOrder') {
+          const n = Number(val);
+          if (Number.isFinite(n)) rowData[key] = n;
+          continue;
+        }
+
+        if (key === 'isDefault') {
+          rowData[key] = String(val).toLowerCase() === 'true' || String(val) === '是' || String(val) === '1';
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const name = String(rowData['name'] || '');
+      const code = String(rowData['code'] || '');
+
+      if (!name) {
+        failures.push({ row: rowIndex, reason: '等级名称必填' });
+        continue;
+      }
+
+      if (!code) {
+        failures.push({ row: rowIndex, reason: '等级代码必填' });
+        continue;
+      }
+
+      // Validate code
+      const validCodes = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      if (!validCodes.includes(code)) {
+        failures.push({ row: rowIndex, reason: '等级代码必须是 bronze/silver/gold/platinum/diamond 之一' });
+        continue;
+      }
+
+      // Check for duplicate name
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.memberLevels.id })
+          .from(schema.memberLevels)
+          .where(
+            and(
+              eq(schema.memberLevels.enterpriseId, enterpriseId),
+              eq(schema.memberLevels.name, name),
+              eq(schema.memberLevels.isDeleted, false),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const minPoints = Number(rowData['minPoints'] || 0);
+      const maxPoints = Number(rowData['maxPoints'] || 0) || undefined;
+      const discountRate = String(rowData['discountRate'] || '100');
+      const description = String(rowData['description'] || '');
+      const color = String(rowData['color'] || '#999999');
+      const sortOrder = Number(rowData['sortOrder'] || 0);
+      const isDefault = Boolean(rowData['isDefault']);
+
+      try {
+        // If setting as default, unset other defaults first
+        if (isDefault) {
+          await this.db
+            .update(schema.memberLevels)
+            .set({ isDefault: false })
+            .where(eq(schema.memberLevels.enterpriseId, enterpriseId));
+        }
+
+        const [level] = await this.db
+          .insert(schema.memberLevels)
+          .values({
+            enterpriseId,
+            name,
+            code,
+            minPoints,
+            maxPoints,
+            discountRate,
+            description: description || null,
+            color,
+            sortOrder,
+            isDefault,
+          })
+          .returning();
+
+        if (level) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

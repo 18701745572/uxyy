@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -513,5 +514,178 @@ export class SalesOrdersService {
 
       return { ok: true, orderId: id, stockRestored };
     });
+  }
+
+  // Import from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+    userId: number,
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      订单编号: 'orderNo',
+      订单号: 'orderNo',
+      orderNo: 'orderNo',
+      客户: 'customerName',
+      客户名称: 'customerName',
+      customerName: 'customerName',
+      订单金额: 'totalAmount',
+      totalAmount: 'totalAmount',
+      折扣金额: 'discountAmount',
+      discountAmount: 'discountAmount',
+      应付金额: 'payableAmount',
+      payableAmount: 'payableAmount',
+      状态: 'status',
+      status: 'status',
+      配送方式: 'deliveryType',
+      deliveryType: 'deliveryType',
+      备注: 'remark',
+      remark: 'remark',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    const statusMap: Record<string, string> = {
+      草稿: 'draft',
+      待审批: 'pending',
+      已批准: 'approved',
+      已完成: 'completed',
+      已取消: 'cancelled',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'totalAmount' || key === 'discountAmount' || key === 'payableAmount') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const orderNo = String(rowData['orderNo'] || '');
+      const customerName = String(rowData['customerName'] || '');
+
+      if (!orderNo && !customerName) {
+        failures.push({ row: rowIndex, reason: '订单编号或客户名称至少填一项' });
+        continue;
+      }
+
+      // Check for duplicate orderNo
+      if (mode === 'skip' && orderNo) {
+        const existing = await this.db
+          .select({ id: schema.salesOrders.id })
+          .from(schema.salesOrders)
+          .where(
+            and(
+              eq(schema.salesOrders.enterpriseId, eid),
+              eq(schema.salesOrders.orderNo, orderNo),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      // Find customer by name
+      let customerId = 0;
+      if (customerName) {
+        const [customer] = await this.db
+          .select({ id: schema.customers.id })
+          .from(schema.customers)
+          .where(
+            and(
+              eq(schema.customers.enterpriseId, eid),
+              eq(schema.customers.name, customerName),
+            ),
+          )
+          .limit(1);
+        if (customer) {
+          customerId = customer.id;
+        }
+      }
+
+      if (!customerId) {
+        failures.push({ row: rowIndex, reason: `客户 "${customerName}" 不存在` });
+        continue;
+      }
+
+      const totalAmount = Number(rowData['totalAmount'] || 0);
+      const discountAmount = Number(rowData['discountAmount'] || 0);
+      const payableAmount = Number(rowData['payableAmount'] || totalAmount);
+      const rawStatus = String(rowData['status'] || 'draft');
+      const status = statusMap[rawStatus] || rawStatus || 'draft';
+      const deliveryType = String(rowData['deliveryType'] || 'self') === 'delivery' ? 'delivery' : 'self';
+      const remark = String(rowData['remark'] || '');
+
+      try {
+        const finalOrderNo = orderNo || genOrderNo('SO');
+        const [order] = await this.db
+          .insert(schema.salesOrders)
+          .values({
+            enterpriseId: eid,
+            customerId,
+            orderNo: finalOrderNo,
+            totalAmount: totalAmount.toFixed(2),
+            discountAmount: discountAmount.toFixed(2),
+            payableAmount: payableAmount.toFixed(2),
+            status: status as any,
+            deliveryType,
+            remark: remark || null,
+            createdBy: userId,
+          })
+          .returning();
+
+        if (order) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

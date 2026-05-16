@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
+import { SalesOrderImportDialog } from "@/components/inventory/sales-order-import-dialog";
 import { Plus, Trash } from "@/components/icons";
 import {
   Dialog,
@@ -507,7 +508,8 @@ export function SalesOrdersPanel() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">销售订单</h1>
         <div className="flex items-center gap-2">
-          <ExportMenu type="sales_orders" filename="sales-orders" />
+          <ExportMenu type="sales_orders" filename="sales-orders" dataCount={q.data?.total} />
+          <SalesOrderImportDialog />
           <Button onClick={() => setCreating(true)}>+ 新建销售订单</Button>
         </div>
       </div>

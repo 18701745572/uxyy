@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, NumberInput } from "@/components/ui/input";
 import { ExportMenu } from "@/components/export/export-menu";
+import { PurchaseOrderImportDialog } from "@/components/inventory/purchase-order-import-dialog";
 import { Plus, Trash } from "@/components/icons";
 import {
   Dialog,
@@ -452,6 +453,7 @@ export function PurchaseOrdersPanel() {
         <h1 className="text-lg font-semibold text-text-primary">采购订单</h1>
         <div className="flex items-center gap-2">
           <ExportMenu type="purchase_orders" filename="purchase-orders" />
+          <PurchaseOrderImportDialog />
           <Button onClick={() => setCreating(true)}>+ 新建采购订单</Button>
         </div>
       </div>

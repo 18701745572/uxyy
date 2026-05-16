@@ -1,6 +1,29 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUploadFile, ApiError, formatApiErrorBody } from "./client";
 import { readJwtAccessClaims } from "./jwt-payload";
 import { readStoredAccessToken } from "./token-store";
+
+export type EmployeeProfileImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入员工档案（与导出表头对齐；mode=skip 跳过同员工号重复） */
+export async function importEmployeeProfiles(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<EmployeeProfileImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/oa/employee-profiles/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<EmployeeProfileImportResult>;
+}
 
 export type EmployeeProfileRow = {
   profile: {

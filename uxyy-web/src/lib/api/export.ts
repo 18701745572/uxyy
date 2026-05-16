@@ -2,7 +2,7 @@ export type ExportFormat = "excel" | "csv";
 
 export interface ExportOptions {
   format: ExportFormat;
-  type: "customers" | "products" | "sales_orders" | "purchase_orders" | "invoices" | "vouchers";
+  type: "customers" | "opportunities" | "products" | "suppliers" | "sales_orders" | "purchase_orders" | "stocktaking" | "invoices" | "vouchers" | "member_levels" | "customer_categories" | "employee_profiles";
   filters?: Record<string, string>;
 }
 
@@ -10,11 +10,17 @@ import { apiFetchBlob } from "./client";
 
 const endpointMap: Record<ExportOptions["type"], string> = {
   customers: "/export/customers",
+  opportunities: "/export/opportunities",
   products: "/export/products",
+  suppliers: "/export/suppliers",
   sales_orders: "/export/sales-orders",
   purchase_orders: "/export/purchase-orders",
+  stocktaking: "/export/stocktaking",
   invoices: "/export/invoices",
   vouchers: "/export/vouchers",
+  member_levels: "/export/member_levels",
+  customer_categories: "/export/customer_categories",
+  employee_profiles: "/export/employee_profiles",
 };
 
 export async function exportData(options: ExportOptions): Promise<Blob> {

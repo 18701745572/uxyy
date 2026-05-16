@@ -1,4 +1,27 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUploadFile, ApiError, formatApiErrorBody } from "./client";
+
+export type VoucherImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入凭证（与导出表头对齐；mode=skip 跳过同凭证号重复） */
+export async function importVouchers(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<VoucherImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/finance/vouchers/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<VoucherImportResult>;
+}
 
 /** 与后端 `VoucherResponseDto` / `voucher_entries` 单行结构一致 */
 export type LedgerVoucherRow = {

@@ -9,6 +9,8 @@ import {
 } from "@/lib/api/vouchers";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ExportMenu } from "@/components/export/export-menu";
+import { VoucherImportDialog } from "@/components/finance/voucher-import-dialog";
 import { ApiError } from "@/lib/api/client";
 
 const selectCls =
@@ -103,6 +105,9 @@ export function VouchersPanel() {
             </option>
           ))}
         </select>
+        <div className="flex-1" />
+        <ExportMenu type="vouchers" filename="vouchers" />
+        <VoucherImportDialog />
       </div>
 
       <Card className="p-0 overflow-hidden">

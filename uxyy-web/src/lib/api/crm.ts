@@ -1,4 +1,50 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUploadFile, ApiError, formatApiErrorBody } from "./client";
+
+export type MemberLevelImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入会员等级（与导出表头对齐；mode=skip 跳过同名等级） */
+export async function importMemberLevels(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<MemberLevelImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/crm/members/levels/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<MemberLevelImportResult>;
+}
+
+export type CustomerCategoryImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入客户分类（与导出表头对齐；mode=skip 跳过同名分类） */
+export async function importCustomerCategories(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<CustomerCategoryImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/crm/categories/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<CustomerCategoryImportResult>;
+}
 
 // 商机相关类型
 export type OpportunityStatus =
@@ -197,6 +243,31 @@ export async function deleteOpportunity(id: number): Promise<{ ok: boolean; id: 
   return apiFetch<{ ok: boolean; id: number }>(`/crm/opportunities/${id}`, {
     method: "DELETE",
   });
+}
+
+// 商机导入类型
+export type OpportunityImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入商机（与导出表头对齐；mode=skip 跳过同企名称+客户重复） */
+export async function importOpportunities(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<OpportunityImportResult> {
+  const { apiUploadFile, ApiError, formatApiErrorBody } = await import("./client");
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/crm/opportunities/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<OpportunityImportResult>;
 }
 
 /** @see AiScriptService.generateScript */

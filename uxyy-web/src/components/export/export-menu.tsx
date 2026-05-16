@@ -21,6 +21,8 @@ interface ExportMenuProps {
   disabled?: boolean;
   iconOnly?: boolean;
   label?: string;
+  /** 当前筛选后的数据总数，用于显示导出范围 */
+  dataCount?: number;
 }
 
 type ExportStatus = "idle" | "preparing" | "downloading" | "success" | "error";
@@ -32,6 +34,7 @@ export function ExportMenu({
   disabled = false,
   iconOnly = false,
   label = "导出",
+  dataCount,
 }: ExportMenuProps) {
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [exportStatus, setExportStatus] = useState<ExportStatus>("idle");
@@ -82,7 +85,16 @@ export function ExportMenu({
             {iconOnly ? null : label}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[13.5rem]">
+        <DropdownMenuContent align="end" className="w-[15rem]">
+          {/* 导出范围提示 */}
+          {dataCount !== undefined && (
+            <div className="px-2 py-1.5 text-xs text-text-tertiary border-b border-border-secondary mb-1">
+              将导出 <span className="font-medium text-text-primary">{dataCount}</span> 条数据
+              {Object.keys(filters).length > 0 && (
+                <span className="ml-1">(已筛选)</span>
+              )}
+            </div>
+          )}
           <DropdownMenuItem onClick={() => handleSelectFormat("excel")} disabled={disabled}>
             <FileXls className="h-4 w-4 shrink-0 text-success" aria-hidden />
             <span className="min-w-0 flex-1 text-left">导出 Excel</span>
@@ -185,6 +197,7 @@ export function ExportButton({
   filters = {},
   filename,
   disabled = false,
+  dataCount,
 }: Omit<ExportMenuProps, "iconOnly" | "label">) {
   return (
     <ExportMenu
@@ -194,6 +207,7 @@ export function ExportButton({
       disabled={disabled}
       iconOnly={false}
       label="导出"
+      dataCount={dataCount}
     />
   );
 }

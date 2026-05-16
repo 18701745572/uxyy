@@ -371,6 +371,42 @@ export class CrmController {
     return this.crm.removeOpportunity(id, enterpriseIdFromRequest(req));
   }
 
+  @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
+  @Post('opportunities/import')
+  @ApiOperation({
+    summary:
+      'Excel/CSV 导入商机（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importOpportunities(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.crm.importOpportunitiesFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+    );
+  }
+
   // ─── Customer Categories ────────────────────────────────────────
 
   @ApiBearerAuth()
@@ -435,6 +471,41 @@ export class CrmController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.crm.removeCategory(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.CRM_WRITE)
+  @Post('categories/import')
+  @ApiOperation({
+    summary: 'Excel/CSV 导入客户分类（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importCategories(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.crm.importCategoriesFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+    );
   }
 
   // ─── Customer Category Relations ────────────────────────────────

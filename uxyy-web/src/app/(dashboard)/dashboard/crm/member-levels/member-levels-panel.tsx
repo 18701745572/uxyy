@@ -19,6 +19,8 @@ import { Card } from "@/components/ui/card";
 import { Input, NumberInput } from "@/components/ui/input";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExportMenu } from "@/components/export/export-menu";
+import { MemberLevelImportDialog } from "@/components/crm/member-level-import-dialog";
 import { Crown, Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 
 const levelCodes: MemberLevelCode[] = ["bronze", "silver", "gold", "platinum", "diamond"];
@@ -68,10 +70,14 @@ export function MemberLevelsPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">会员等级管理</h1>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" weight="regular" />
-          新建等级
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="member_levels" filename="member-levels" />
+          <MemberLevelImportDialog />
+          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" weight="regular" />
+            新建等级
+          </Button>
+        </div>
       </div>
 
       {isError && (

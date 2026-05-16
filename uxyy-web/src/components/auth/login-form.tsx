@@ -38,12 +38,14 @@ export function LoginForm() {
     setSubmitting(true);
     try {
       await login(parsed.data);
-      router.replace("/dashboard");
+      // 登录成功后直接跳转，保持 loading 状态直到页面跳转
+      // 这样用户不会看到按钮状态变化，体验更流畅
+      await router.replace("/dashboard");
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "登录失败，请重试");
-    } finally {
       setSubmitting(false);
     }
+    // 注意：成功时不重置 submitting，让 loading 状态保持到页面跳转
   }
 
   return (
@@ -80,7 +82,12 @@ export function LoginForm() {
           </p>
         )}
 
-        <Button type="submit" loading={submitting} className="w-full">
+        <Button
+          type="submit"
+          loading={submitting}
+          loadingText="登录中..."
+          className="w-full"
+        >
           登录
         </Button>
 

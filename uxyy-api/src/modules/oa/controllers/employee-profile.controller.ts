@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,9 +11,18 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/permissions.guard';
@@ -112,5 +122,37 @@ export class EmployeeProfileController {
   ) {
     const eid = requireEnterprise(req);
     return this.service.delete(id, eid);
+  }
+
+  @ApiBearerAuth()
+  @Post('import')
+  @UseGuards(PermissionsGuard)
+  @Permissions(Permission.OA_MANAGE)
+  @ApiOperation({
+    summary: 'Excel/CSV 导入员工档案（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importProfiles(
+    @Req() req: Request & { user: UserContext },
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    const eid = requireEnterprise(req);
+    return this.service.importFromSpreadsheet(eid, file.buffer, mode);
   }
 }
