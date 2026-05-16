@@ -451,7 +451,72 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-### 6.1.1 数字输入框 (Number Input)
+### 6.1.1 日期/时间输入框 (Date/Time Input)
+
+#### 视觉规范
+- **基础样式**: 同 Input 样式，背景 `bg-tertiary` (#1a1a1a)
+- **文字颜色**: `text-primary` (#fafafa)
+- **图标颜色**: 通过 CSS 覆盖浏览器默认图标颜色
+
+#### 深色主题覆盖样式
+```css
+/* 日期选择器深色主题样式 */
+input[type="date"],
+input[type="month"],
+input[type="datetime-local"] {
+  background-color: #1a1a1a;
+  color: #fafafa;
+  border: 1px solid #27272a;
+}
+
+/* Webkit 浏览器日期选择器图标颜色 */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+```
+
+#### React/Tailwind 代码示例
+```tsx
+// 月份选择器
+<input
+  type="month"
+  className="rounded-md border border-border-primary bg-bg-tertiary px-3 py-2 text-sm text-text-primary
+    [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60
+    [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+  value={date}
+  onChange={(e) => setDate(e.target.value)}
+/>
+
+// 日期选择器
+<input
+  type="date"
+  className="rounded-md border border-border-primary bg-bg-tertiary px-3 py-2 text-sm text-text-primary
+    [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60
+    [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+  value={asOfDate}
+  onChange={(e) => setAsOfDate(e.target.value)}
+/>
+```
+
+#### 设计原则
+1. **背景一致**: 日期选择器背景必须与表单其他输入框保持一致 (#1a1a1a)
+2. **图标可见**: 通过 `filter: invert(1)` 将黑色日历图标反转为白色
+3. **交互反馈**: 图标悬停时增加透明度变化
+4. **跨浏览器**: Webkit 内核浏览器（Chrome/Safari/Edge）支持良好
+
+---
+
+### 6.1.2 数字输入框 (Number Input)
 
 #### 视觉规范
 - **基础样式**: 同 Input 样式

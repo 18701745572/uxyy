@@ -17,6 +17,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../db/schema';
 import { DRIZZLE_DB } from '../database/database.constants';
 import type { AppDrizzleDb } from '../database/database.module';
@@ -1684,5 +1685,335 @@ export class FinanceService {
       payables,
       totalPayables: sumBalance(payables),
     };
+  }
+
+  // Import invoices from spreadsheet
+  async importInvoicesFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      发票号码: 'invoiceNo',
+      发票号: 'invoiceNo',
+      invoiceNo: 'invoiceNo',
+      发票代码: 'invoiceCode',
+      invoiceCode: 'invoiceCode',
+      发票类型: 'type',
+      type: 'type',
+      金额: 'amount',
+      amount: 'amount',
+      税率: 'taxRate',
+      taxRate: 'taxRate',
+      税额: 'taxAmount',
+      taxAmount: 'taxAmount',
+      价税合计: 'totalAmount',
+      totalAmount: 'totalAmount',
+      购方名称: 'buyerName',
+      buyerName: 'buyerName',
+      购买方名称: 'buyerName',
+      购方税号: 'buyerTaxNo',
+      buyerTaxNo: 'buyerTaxNo',
+      购买方税号: 'buyerTaxNo',
+      销方名称: 'sellerName',
+      sellerName: 'sellerName',
+      销售方名称: 'sellerName',
+      销方税号: 'sellerTaxNo',
+      sellerTaxNo: 'sellerTaxNo',
+      销售方税号: 'sellerTaxNo',
+      开票日期: 'issueDate',
+      issueDate: 'issueDate',
+      状态: 'status',
+      status: 'status',
+      录入时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    const typeMap: Record<string, string> = {
+      专用发票: 'special',
+      普通发票: 'normal',
+      电子发票: 'electronic',
+    };
+
+    const statusMap: Record<string, string> = {
+      未核验: 'unverified',
+      已核验: 'verified',
+      已入账: 'entered',
+      已作废: 'void',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'amount' || key === 'taxRate' || key === 'taxAmount' || key === 'totalAmount') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const invoiceNo = String(rowData['invoiceNo'] || '');
+
+      if (!invoiceNo) {
+        failures.push({ row: rowIndex, reason: '发票号码必填' });
+        continue;
+      }
+
+      // Check for duplicate invoiceNo
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.invoices.id })
+          .from(schema.invoices)
+          .where(
+            and(
+              eq(schema.invoices.enterpriseId, eid),
+              eq(schema.invoices.invoiceNo, invoiceNo),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const rawType = String(rowData['type'] || 'normal');
+      const type = typeMap[rawType] || rawType || 'normal';
+      const amount = Number(rowData['amount'] || 0);
+      const taxRate = Number(rowData['taxRate'] || 0);
+      const taxAmount = Number(rowData['taxAmount'] || 0);
+      const totalAmount = Number(rowData['totalAmount'] || amount + taxAmount);
+      const rawStatus = String(rowData['status'] || 'unverified');
+      const status = statusMap[rawStatus] || rawStatus || 'unverified';
+      const buyerName = String(rowData['buyerName'] || '');
+      const buyerTaxNo = String(rowData['buyerTaxNo'] || '');
+      const sellerName = String(rowData['sellerName'] || '');
+      const sellerTaxNo = String(rowData['sellerTaxNo'] || '');
+      const issueDate = String(rowData['issueDate'] || '');
+
+      try {
+        const [invoice] = await this.db
+          .insert(schema.invoices)
+          .values({
+            enterpriseId: eid,
+            invoiceNo,
+            invoiceCode: String(rowData['invoiceCode'] || '') || null,
+            type: type as any,
+            amount: amount.toFixed(2),
+            taxRate: taxRate > 0 ? taxRate.toFixed(2) : null,
+            taxAmount: taxAmount > 0 ? taxAmount.toFixed(2) : null,
+            totalAmount: totalAmount.toFixed(2),
+            buyerName: buyerName || null,
+            buyerTaxNo: buyerTaxNo || null,
+            sellerName: sellerName || null,
+            sellerTaxNo: sellerTaxNo || null,
+            issueDate: issueDate ? new Date(issueDate) : null,
+            status: status as any,
+            sourceType: 'manual',
+          })
+          .returning();
+
+        if (invoice) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
+  }
+
+  // Import vouchers from spreadsheet
+  async importVouchersFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+    userId: number,
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      凭证号: 'voucherNo',
+      voucherNo: 'voucherNo',
+      来源类型: 'sourceType',
+      sourceType: 'sourceType',
+      日期: 'entryDate',
+      entryDate: 'entryDate',
+      借方科目: 'debitAccount',
+      debitAccount: 'debitAccount',
+      贷方科目: 'creditAccount',
+      creditAccount: 'creditAccount',
+      金额: 'amount',
+      amount: 'amount',
+      摘要: 'summary',
+      summary: 'summary',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'amount') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n > 0) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const voucherNo = String(rowData['voucherNo'] || '');
+      const debitAccount = String(rowData['debitAccount'] || '');
+      const creditAccount = String(rowData['creditAccount'] || '');
+      const amount = Number(rowData['amount'] || 0);
+
+      if (!voucherNo) {
+        failures.push({ row: rowIndex, reason: '凭证号必填' });
+        continue;
+      }
+
+      if (!debitAccount) {
+        failures.push({ row: rowIndex, reason: '借方科目必填' });
+        continue;
+      }
+
+      if (!creditAccount) {
+        failures.push({ row: rowIndex, reason: '贷方科目必填' });
+        continue;
+      }
+
+      if (debitAccount === creditAccount) {
+        failures.push({ row: rowIndex, reason: '借方和贷方科目不能相同' });
+        continue;
+      }
+
+      if (amount <= 0) {
+        failures.push({ row: rowIndex, reason: '金额必须大于0' });
+        continue;
+      }
+
+      // Check for duplicate voucherNo
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.voucherEntries.id })
+          .from(schema.voucherEntries)
+          .where(
+            and(
+              eq(schema.voucherEntries.enterpriseId, eid),
+              eq(schema.voucherEntries.voucherNo, voucherNo),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const entryDate = String(rowData['entryDate'] || '');
+      const summary = String(rowData['summary'] || '');
+      const sourceType = String(rowData['sourceType'] || 'manual');
+
+      try {
+        const [voucher] = await this.db
+          .insert(schema.voucherEntries)
+          .values({
+            enterpriseId: eid,
+            voucherNo,
+            sourceType: sourceType as any,
+            entryDate: entryDate ? new Date(entryDate) : new Date(),
+            debitAccount,
+            creditAccount,
+            amount: amount.toFixed(2),
+            summary: summary || null,
+            createdBy: userId,
+          })
+          .returning();
+
+        if (voucher) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

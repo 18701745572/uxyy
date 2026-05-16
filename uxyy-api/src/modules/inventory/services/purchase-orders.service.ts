@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -528,5 +529,144 @@ export class PurchaseOrdersService {
     });
 
     return { ok: true, id };
+  }
+
+  // Import purchase orders from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+    userId: number,
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      采购单号: 'orderNo',
+      订单号: 'orderNo',
+      orderNo: 'orderNo',
+      供应商ID: 'supplierId',
+      supplierId: 'supplierId',
+      供应商: 'supplierId',
+      状态: 'status',
+      status: 'status',
+      备注: 'remark',
+      remark: 'remark',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    const statusMap: Record<string, string> = {
+      草稿: 'draft',
+      待审批: 'pending',
+      已批准: 'approved',
+      已完成: 'completed',
+      已取消: 'cancelled',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'supplierId') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n > 0) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const orderNo = String(rowData['orderNo'] || '');
+      const supplierId = Number(rowData['supplierId'] || 0);
+
+      if (!orderNo) {
+        failures.push({ row: rowIndex, reason: '采购单号必填' });
+        continue;
+      }
+
+      if (!supplierId) {
+        failures.push({ row: rowIndex, reason: '供应商ID必填' });
+        continue;
+      }
+
+      // Check for duplicate orderNo
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.purchaseOrders.id })
+          .from(schema.purchaseOrders)
+          .where(
+            and(
+              eq(schema.purchaseOrders.enterpriseId, eid),
+              eq(schema.purchaseOrders.orderNo, orderNo),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const rawStatus = String(rowData['status'] || 'draft');
+      const status = statusMap[rawStatus] || rawStatus || 'draft';
+      const remark = String(rowData['remark'] || '');
+
+      try {
+        const [order] = await this.db
+          .insert(schema.purchaseOrders)
+          .values({
+            enterpriseId: eid,
+            supplierId,
+            orderNo,
+            status: status as any,
+            totalAmount: '0',
+            remark: remark || null,
+            createdBy: userId,
+          })
+          .returning();
+
+        if (order) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

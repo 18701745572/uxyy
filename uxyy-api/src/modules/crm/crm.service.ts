@@ -885,6 +885,205 @@ export class CrmService {
     return { ok: true, id: deleted.id, enterpriseId: eid };
   }
 
+  async importOpportunitiesFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      商机名称: 'name',
+      客户: 'customerName',
+      客户名称: 'customerName',
+      状态: 'status',
+      预计金额: 'estimatedAmount',
+      实际金额: 'actualAmount',
+      概率: 'probability',
+      '概率(%)': 'probability',
+      预计成交日期: 'expectedCloseAt',
+      实际成交日期: 'actualCloseAt',
+      负责人ID: 'assignedTo',
+      负责人: 'assignedTo',
+      备注: 'remark',
+      创建时间: '_ignore',
+      name: 'name',
+      customerName: 'customerName',
+      status: 'status',
+      estimatedAmount: 'estimatedAmount',
+      actualAmount: 'actualAmount',
+      probability: 'probability',
+      expectedCloseAt: 'expectedCloseAt',
+      actualCloseAt: 'actualCloseAt',
+      assignedTo: 'assignedTo',
+      remark: 'remark',
+      createdAt: '_ignore',
+    };
+
+    const validStatuses = new Set(['potential', 'intention', 'quotation', 'deal', 'after_sales', 'lost']);
+    const statusMap: Record<string, string> = {
+      潜在: 'potential',
+      意向: 'intention',
+      报价: 'quotation',
+      成交: 'deal',
+      售后: 'after_sales',
+      流失: 'lost',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const dto: CreateOpportunityDto & { customerName?: string } = {
+        customerId: 0,
+        name: '',
+        status: 'potential',
+        probability: 0,
+      };
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'estimatedAmount' || key === 'actualAmount') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) dto[key] = n;
+          continue;
+        }
+
+        if (key === 'probability') {
+          const n = Number(val);
+          if (Number.isFinite(n)) dto.probability = Math.max(0, Math.min(100, Math.round(n)));
+          continue;
+        }
+
+        if (key === 'assignedTo') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n > 0) dto.assignedTo = n;
+          continue;
+        }
+
+        const str =
+          val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        switch (key) {
+          case 'name':
+            dto.name = str.slice(0, 200);
+            break;
+          case 'customerName':
+            dto.customerName = str.slice(0, 200);
+            break;
+          case 'status': {
+            const s = str.toLowerCase().replace(/\s/g, '');
+            if (validStatuses.has(s)) dto.status = s as any;
+            else if (statusMap[str]) dto.status = statusMap[str] as any;
+            break;
+          }
+          case 'expectedCloseAt':
+          case 'actualCloseAt': {
+            // 尝试解析日期
+            const date = val instanceof Date ? val : new Date(str);
+            if (!Number.isNaN(date.getTime())) {
+              dto[key] = date.toISOString().slice(0, 10);
+            }
+            break;
+          }
+          case 'remark':
+            dto.remark = str.slice(0, 4000);
+            break;
+          default:
+            break;
+        }
+      }
+
+      if (!dto.name?.trim()) {
+        failures.push({ row: rowIndex, reason: '缺少商机名称' });
+        continue;
+      }
+
+      if (!dto.customerName?.trim()) {
+        failures.push({ row: rowIndex, reason: '缺少客户名称' });
+        continue;
+      }
+
+      // 查找客户
+      const customer = await this.db
+        .select({ id: schema.customers.id })
+        .from(schema.customers)
+        .where(
+          and(
+            eq(schema.customers.enterpriseId, eid),
+            eq(schema.customers.isDeleted, false),
+            eq(schema.customers.name, dto.customerName.trim()),
+          ),
+        )
+        .limit(1);
+
+      if (customer.length === 0) {
+        failures.push({ row: rowIndex, reason: `客户 "${dto.customerName}" 不存在` });
+        continue;
+      }
+
+      dto.customerId = customer[0].id;
+      delete (dto as any).customerName;
+
+      try {
+        if (mode === 'skip') {
+          const existing = await this.db
+            .select({ id: schema.opportunities.id })
+            .from(schema.opportunities)
+            .where(
+              and(
+                eq(schema.opportunities.enterpriseId, eid),
+                eq(schema.opportunities.isDeleted, false),
+                eq(schema.opportunities.name, dto.name),
+                eq(schema.opportunities.customerId, dto.customerId),
+              ),
+            )
+            .limit(1);
+          if (existing.length > 0) {
+            skipped++;
+            continue;
+          }
+        }
+        await this.createOpportunity(eid, dto);
+        created++;
+      } catch (e) {
+        if (e instanceof ConflictException && mode === 'skip') {
+          skipped++;
+          continue;
+        }
+        const msg = e instanceof Error ? e.message : '创建失败';
+        failures.push({ row: rowIndex, reason: msg });
+      }
+    }
+
+    return { created, skipped, failures };
+  }
+
   // ─── Customer Categories ────────────────────────────────────────
 
   async findCategories(params: { enterpriseId?: number; type?: string }) {
@@ -1201,5 +1400,138 @@ export class CrmService {
         count: Number(r.c),
       })),
     };
+  }
+
+  // Import customer categories from spreadsheet
+  async importCategoriesFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      分类名称: 'name',
+      name: 'name',
+      分类类型: 'type',
+      type: 'type',
+      描述: 'description',
+      description: 'description',
+      颜色: 'color',
+      color: 'color',
+      排序: 'sortOrder',
+      sortOrder: 'sortOrder',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    const typeMap: Record<string, string> = {
+      成交状态: 'status',
+      行业: 'industry',
+      区域: 'region',
+      自定义: 'custom',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'sortOrder') {
+          const n = Number(val);
+          if (Number.isFinite(n)) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const name = String(rowData['name'] || '');
+
+      if (!name) {
+        failures.push({ row: rowIndex, reason: '分类名称必填' });
+        continue;
+      }
+
+      // Check for duplicate name
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.customerCategories.id })
+          .from(schema.customerCategories)
+          .where(
+            and(
+              eq(schema.customerCategories.enterpriseId, eid),
+              eq(schema.customerCategories.name, name),
+              eq(schema.customerCategories.isDeleted, false),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const rawType = String(rowData['type'] || 'custom');
+      const type = typeMap[rawType] || rawType || 'custom';
+      const description = String(rowData['description'] || '');
+      const color = String(rowData['color'] || '#999999');
+      const sortOrder = Number(rowData['sortOrder'] || 0);
+
+      try {
+        const [category] = await this.db
+          .insert(schema.customerCategories)
+          .values({
+            enterpriseId: eid,
+            name,
+            type: type as any,
+            description: description || null,
+            color,
+            sortOrder,
+          })
+          .returning();
+
+        if (category) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

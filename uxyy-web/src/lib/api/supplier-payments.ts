@@ -1,3 +1,5 @@
+import { apiFetch } from "./client";
+
 export interface SupplierPayment {
   id: number;
   enterpriseId: number;
@@ -64,34 +66,19 @@ export async function getSupplierPaymentPage(params: {
   if (params.startDate) searchParams.set('startDate', params.startDate);
   if (params.endDate) searchParams.set('endDate', params.endDate);
 
-  const res = await fetch(`/api/inventory/supplier-payments?${searchParams}`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('获取供应商付款记录失败');
-  return res.json();
+  return apiFetch<SupplierPaymentListResponse>(`/inventory/supplier-payments?${searchParams}`);
 }
 
 export async function getSupplierPayment(id: number): Promise<SupplierPayment> {
-  const res = await fetch(`/api/inventory/supplier-payments/${id}`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('获取付款记录详情失败');
-  const data = await res.json();
+  const data = await apiFetch<{ data?: SupplierPayment } & SupplierPayment>(`/inventory/supplier-payments/${id}`);
   return data.data ?? data;
 }
 
 export async function createSupplierPayment(dto: CreateSupplierPaymentDto): Promise<SupplierPayment> {
-  const res = await fetch('/api/inventory/supplier-payments', {
+  const data = await apiFetch<{ data?: SupplierPayment } & SupplierPayment>('/inventory/supplier-payments', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dto),
-    credentials: 'include',
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: '创建失败' }));
-    throw new Error(err.message || '创建供应商付款记录失败');
-  }
-  const data = await res.json();
   return data.data ?? data;
 }
 
@@ -99,43 +86,26 @@ export async function updateSupplierPayment(
   id: number,
   dto: Partial<CreateSupplierPaymentDto>,
 ): Promise<SupplierPayment> {
-  const res = await fetch(`/api/inventory/supplier-payments/${id}`, {
+  const data = await apiFetch<{ data?: SupplierPayment } & SupplierPayment>(`/inventory/supplier-payments/${id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dto),
-    credentials: 'include',
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: '更新失败' }));
-    throw new Error(err.message || '更新供应商付款记录失败');
-  }
-  const data = await res.json();
   return data.data ?? data;
 }
 
 export async function deleteSupplierPayment(id: number): Promise<void> {
-  const res = await fetch(`/api/inventory/supplier-payments/${id}`, {
+  await apiFetch<void>(`/inventory/supplier-payments/${id}`, {
     method: 'DELETE',
-    credentials: 'include',
   });
-  if (!res.ok) throw new Error('删除供应商付款记录失败');
 }
 
 export async function getSupplierPaymentStats(supplierId: number): Promise<SupplierPaymentStats> {
-  const res = await fetch(`/api/inventory/supplier-payments/supplier/${supplierId}/stats`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('获取供应商付款统计失败');
-  const data = await res.json();
+  const data = await apiFetch<{ data?: SupplierPaymentStats } & SupplierPaymentStats>(`/inventory/supplier-payments/supplier/${supplierId}/stats`);
   return data.data ?? data;
 }
 
 export async function getOrderPaymentStats(orderId: number): Promise<OrderPaymentStats> {
-  const res = await fetch(`/api/inventory/supplier-payments/order/${orderId}/stats`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('获取订单付款统计失败');
-  const data = await res.json();
+  const data = await apiFetch<{ data?: OrderPaymentStats } & OrderPaymentStats>(`/inventory/supplier-payments/order/${orderId}/stats`);
   return data.data ?? data;
 }
 

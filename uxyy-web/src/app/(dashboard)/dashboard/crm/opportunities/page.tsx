@@ -47,6 +47,8 @@ import { zhCN } from "date-fns/locale";
 import Link from "next/link";
 import { MagnifyingGlass, Plus, PencilSimple, Trash, FileText } from "@/components/icons";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
+import { ExportMenu } from "@/components/export/export-menu";
+import { OpportunityImportDialog } from "@/components/crm/opportunity-import-dialog";
 
 const statusLabels: Record<OpportunityStatus, string> = {
   potential: "潜在",
@@ -201,6 +203,11 @@ function OpportunitiesPanel() {
 
   const totalPages = q.data ? Math.ceil(q.data.total / pageSize) : 0;
 
+  // 构建筛选参数用于导出
+  const filterParams: Record<string, string> = {};
+  if (search.trim()) filterParams.search = search.trim();
+  if (status) filterParams.status = status;
+
   return (
     <div className="space-y-4">
       {/* 筛选和搜索 */}
@@ -236,6 +243,15 @@ function OpportunitiesPanel() {
             ))}
           </SelectContent>
         </Select>
+        <ExportMenu
+          type="opportunities"
+          filename="opportunities"
+          filters={filterParams}
+          dataCount={q.data?.total ?? 0}
+        />
+        {crm.write ? (
+          <OpportunityImportDialog />
+        ) : null}
         {crm.write ? (
           <Dialog open={creating} onOpenChange={setCreating}>
             <DialogTrigger asChild>

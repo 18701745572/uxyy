@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { eq, and, asc } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -213,5 +214,148 @@ export class EmployeeProfileService {
       .where(eq(schema.employeeProfiles.enterpriseId, enterpriseId));
 
     return results.map((r) => r.department).filter((d): d is string => d !== null && d !== undefined);
+  }
+
+  // Import employee profiles from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      用户ID: 'userId',
+      userId: 'userId',
+      部门: 'department',
+      department: 'department',
+      职位: 'position',
+      position: 'position',
+      员工号: 'employeeNo',
+      employeeNo: 'employeeNo',
+      电话: 'phone',
+      phone: 'phone',
+      邮箱: 'email',
+      email: 'email',
+      入职日期: 'joinDate',
+      joinDate: 'joinDate',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'userId') {
+          const n = Number(val);
+          if (Number.isFinite(n)) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const userId = Number(rowData['userId'] || 0);
+
+      if (!userId || userId <= 0) {
+        failures.push({ row: rowIndex, reason: '用户ID必填且必须为正整数' });
+        continue;
+      }
+
+      // Check if user exists in enterprise
+      const [member] = await this.db
+        .select({ id: schema.userEnterprises.id })
+        .from(schema.userEnterprises)
+        .where(
+          and(
+            eq(schema.userEnterprises.userId, userId),
+            eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          ),
+        )
+        .limit(1);
+
+      if (!member) {
+        failures.push({ row: rowIndex, reason: '所选用户不在本企业中' });
+        continue;
+      }
+
+      // Check for duplicate profile
+      if (mode === 'skip') {
+        const [existing] = await this.db
+          .select({ id: schema.employeeProfiles.id })
+          .from(schema.employeeProfiles)
+          .where(eq(schema.employeeProfiles.userId, userId))
+          .limit(1);
+        if (existing) {
+          skipped++;
+          continue;
+        }
+      }
+
+      const department = String(rowData['department'] || '');
+      const position = String(rowData['position'] || '');
+      const employeeNo = String(rowData['employeeNo'] || '');
+      const phone = String(rowData['phone'] || '');
+      const email = String(rowData['email'] || '');
+      const joinDate = String(rowData['joinDate'] || '');
+
+      try {
+        const [profile] = await this.db
+          .insert(schema.employeeProfiles)
+          .values({
+            userId,
+            enterpriseId,
+            department: department || null,
+            position: position || null,
+            employeeNo: employeeNo || null,
+            phone: phone || null,
+            email: email || null,
+            joinDate: joinDate || null,
+          })
+          .returning();
+
+        if (profile) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

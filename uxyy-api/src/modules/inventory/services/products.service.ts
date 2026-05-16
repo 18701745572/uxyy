@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, like, or } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -324,5 +326,155 @@ export class ProductsService {
 
     if (!deleted) throw new NotFoundException('分类不存在');
     return { ok: true, id: deleted.id, enterpriseId: eid };
+  }
+
+  // Import from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      商品编码: 'code',
+      编码: 'code',
+      code: 'code',
+      商品名称: 'name',
+      名称: 'name',
+      name: 'name',
+      规格: 'spec',
+      规格型号: 'spec',
+      spec: 'spec',
+      单位: 'unit',
+      unit: 'unit',
+      销售单价: 'unitPrice',
+      单价: 'unitPrice',
+      unitPrice: 'unitPrice',
+      成本价: 'costPrice',
+      成本: 'costPrice',
+      costPrice: 'costPrice',
+      最低库存: 'minStock',
+      minStock: 'minStock',
+      最高库存: 'maxStock',
+      maxStock: 'maxStock',
+      状态: 'status',
+      status: 'status',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const dto: CreateProductDto = {
+        code: '',
+        name: '',
+        unit: '件',
+        unitPrice: 0,
+      };
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'unitPrice' || key === 'costPrice') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) dto[key] = n;
+          continue;
+        }
+
+        if (key === 'minStock' || key === 'maxStock') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n >= 0) dto[key] = n;
+          continue;
+        }
+
+        const str =
+          val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        switch (key) {
+          case 'code':
+            dto.code = str.slice(0, 50);
+            break;
+          case 'name':
+            dto.name = str.slice(0, 200);
+            break;
+          case 'spec':
+            dto.spec = str.slice(0, 200);
+            break;
+          case 'unit':
+            dto.unit = str.slice(0, 20);
+            break;
+          case 'status':
+            dto.status = str === 'inactive' ? 'inactive' : 'active';
+            break;
+        }
+      }
+
+      if (!dto.code || !dto.name) {
+        failures.push({ row: rowIndex, reason: '商品编码和名称为必填项' });
+        continue;
+      }
+
+      if (dto.unitPrice <= 0) {
+        failures.push({ row: rowIndex, reason: '销售单价必须大于0' });
+        continue;
+      }
+
+      // Check for duplicate code
+      if (mode === 'skip') {
+        const existing = await this.db
+          .select({ id: schema.products.id })
+          .from(schema.products)
+          .where(
+            and(
+              eq(schema.products.enterpriseId, eid),
+              eq(schema.products.code, dto.code),
+            ),
+          )
+          .limit(1);
+        if (existing.length > 0) {
+          skipped++;
+          continue;
+        }
+      }
+
+      try {
+        await this.create(eid, dto);
+        created++;
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

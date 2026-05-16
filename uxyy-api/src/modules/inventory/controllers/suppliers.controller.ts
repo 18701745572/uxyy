@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,10 +10,15 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Express } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -92,5 +98,38 @@ export class SuppliersController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.service.remove(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Post('import')
+  @ApiOperation({
+    summary: 'Excel/CSV 导入供应商（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importSuppliers(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.service.importFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+    );
   }
 }

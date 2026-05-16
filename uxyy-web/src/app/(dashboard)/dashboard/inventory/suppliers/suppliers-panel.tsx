@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ExportMenu } from "@/components/export/export-menu";
+import { SupplierImportDialog } from "@/components/inventory/supplier-import-dialog";
 
 const selectCls =
   "rounded-md border border-border-primary bg-bg-secondary text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue transition-all";
@@ -190,7 +192,11 @@ export function SuppliersPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">供应商管理</h1>
-        <Button onClick={() => setCreating(true)}>+ 新建供应商</Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="suppliers" filename="suppliers" dataCount={q.data?.total} />
+          <SupplierImportDialog />
+          <Button onClick={() => setCreating(true)}>+ 新建供应商</Button>
+        </div>
       </div>
 
       <Card className="p-0 overflow-hidden">

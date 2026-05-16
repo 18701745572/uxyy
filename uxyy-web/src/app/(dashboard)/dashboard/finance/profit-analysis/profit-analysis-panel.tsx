@@ -275,7 +275,7 @@ export function ProfitAnalysisPanel() {
           </select>
           <input
             type="month"
-            className="text-sm rounded-md border border-border-primary px-2 py-1"
+            className="text-sm rounded-md border border-border-primary bg-bg-tertiary px-2 py-1 text-text-primary [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />

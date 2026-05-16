@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -371,5 +372,131 @@ export class StocktakingService {
       .where(eq(schema.stocktakingOrders.id, id));
 
     return { ok: true, orderId: id };
+  }
+
+  // Import from spreadsheet
+  async importFromSpreadsheet(
+    enterpriseId: number | undefined,
+    buffer: Buffer,
+    mode: 'skip' | 'force',
+    userId: number,
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failures: Array<{ row: number; reason: string }>;
+  }> {
+    const eid = requireEnterpriseId(enterpriseId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    } catch {
+      throw new BadRequestException('无法解析表格文件，请使用 xlsx/xls/csv');
+    }
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new BadRequestException('表格为空');
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+      blankrows: false,
+    });
+
+    const HEADER_MAP: Record<string, string> = {
+      盘点单号: 'stocktakingNo',
+      单号: 'stocktakingNo',
+      stocktakingNo: 'stocktakingNo',
+      仓库ID: 'warehouseId',
+      warehouseId: 'warehouseId',
+      状态: 'status',
+      status: 'status',
+      备注: 'remark',
+      remark: 'remark',
+      创建时间: '_ignore',
+      createdAt: '_ignore',
+    };
+
+    const statusMap: Record<string, string> = {
+      草稿: 'draft',
+      已确认: 'confirmed',
+    };
+
+    let created = 0;
+    let skipped = 0;
+    const failures: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const rowIndex = i + 2;
+      const raw = rawRows[i];
+      const rowData: Record<string, string | number> = {};
+
+      for (const [header, val] of Object.entries(raw)) {
+        const key = HEADER_MAP[String(header).trim()];
+        if (!key || key === '_ignore') continue;
+
+        if (key === 'warehouseId') {
+          const n = Number(val);
+          if (Number.isFinite(n) && n > 0) rowData[key] = n;
+          continue;
+        }
+
+        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        if (!str) continue;
+
+        rowData[key] = str;
+      }
+
+      const warehouseId = Number(rowData['warehouseId'] || 0);
+
+      if (!warehouseId || warehouseId <= 0) {
+        failures.push({ row: rowIndex, reason: '仓库ID必填且必须大于0' });
+        continue;
+      }
+
+      // Check warehouse exists
+      const [warehouse] = await this.db
+        .select({ id: schema.warehouses.id })
+        .from(schema.warehouses)
+        .where(
+          and(
+            eq(schema.warehouses.id, warehouseId),
+            eq(schema.warehouses.enterpriseId, eid),
+          ),
+        )
+        .limit(1);
+
+      if (!warehouse) {
+        failures.push({ row: rowIndex, reason: `仓库ID ${warehouseId} 不存在` });
+        continue;
+      }
+
+      const rawStatus = String(rowData['status'] || 'draft');
+      const status = statusMap[rawStatus] || rawStatus || 'draft';
+      const remark = String(rowData['remark'] || '');
+
+      try {
+        const [order] = await this.db
+          .insert(schema.stocktakingOrders)
+          .values({
+            enterpriseId: eid,
+            warehouseId,
+            status: status as any,
+            remark: remark || null,
+            createdBy: userId,
+          })
+          .returning();
+
+        if (order) {
+          created++;
+        }
+      } catch (err) {
+        failures.push({
+          row: rowIndex,
+          reason: err instanceof Error ? err.message : '创建失败',
+        });
+      }
+    }
+
+    return { created, skipped, failures };
   }
 }

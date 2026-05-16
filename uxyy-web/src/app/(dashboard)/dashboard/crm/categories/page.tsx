@@ -37,6 +37,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ExportMenu } from "@/components/export/export-menu";
+import { CustomerCategoryImportDialog } from "@/components/crm/customer-category-import-dialog";
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { useCrmCaps } from "@/lib/permissions/crm-capabilities";
 
@@ -108,7 +110,9 @@ function CategoriesPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <ExportMenu type="customer_categories" filename="customer-categories" />
+        {crm.write && <CustomerCategoryImportDialog />}
         {crm.write ? (
           <Dialog open={creating} onOpenChange={setCreating}>
             <DialogTrigger asChild>

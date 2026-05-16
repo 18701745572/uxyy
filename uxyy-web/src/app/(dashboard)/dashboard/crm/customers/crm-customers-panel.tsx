@@ -423,18 +423,35 @@ export function CrmCustomersPanel() {
   const [editing, setEditing] = useState<CustomerDto | null>(null);
   const [creating, setCreating] = useState(false);
   const [memberCustomer, setMemberCustomer] = useState<CustomerDto | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // 筛选状态
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [filterLevel, setFilterLevel] = useState<string>("");
+  const [filterType, setFilterType] = useState<string>("");
+  const [filterIndustry, setFilterIndustry] = useState("");
   const pageSize = 10;
 
   const qc = useQueryClient();
 
+  // 构建筛选参数
+  const filterParams = useMemo(() => {
+    const params: Record<string, string> = {};
+    if (searchKeyword.trim()) params.search = searchKeyword.trim();
+    if (filterLevel) params.level = filterLevel;
+    if (filterType) params.type = filterType;
+    if (filterIndustry.trim()) params.industry = filterIndustry.trim();
+    return params;
+  }, [searchKeyword, filterLevel, filterType, filterIndustry]);
+
   const queryKey = useMemo(
-    () => ["crm", "customers", page, pageSize],
-    [page],
+    () => ["crm", "customers", page, pageSize, filterParams],
+    [page, filterParams],
   );
 
   const q = useQuery({
     queryKey,
-    queryFn: () => fetchCustomers({ page, pageSize }),
+    queryFn: () => fetchCustomers({ page, pageSize, ...filterParams }),
     placeholderData: (prev) => prev,
   });
 
@@ -493,7 +510,12 @@ export function CrmCustomersPanel() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <h1 className="text-lg font-semibold text-text-primary">客户列表</h1>
         <div className="flex items-center gap-2">
-          <ExportMenu type="customers" filename="customers" />
+          <ExportMenu
+            type="customers"
+            filename="customers"
+            filters={filterParams}
+            dataCount={q.data?.total ?? 0}
+          />
           {crm.write ? (
             <CustomerImportDialog />
           ) : null}
@@ -506,6 +528,92 @@ export function CrmCustomersPanel() {
           )}
         </div>
       </div>
+
+      {/* 筛选栏 */}
+      <Card className="p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="搜索客户名称、联系人、电话..."
+              value={searchKeyword}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setPage(1);
+              }}
+              className="flex-1 min-w-[200px] h-9 px-3 rounded-md border border-border-primary bg-bg-secondary text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue"
+            />
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
+                showFilters || filterLevel || filterType || filterIndustry
+                  ? "border-accent-blue bg-accent-blue/10 text-accent-blue"
+                  : "border-border-primary bg-bg-secondary text-text-secondary hover:border-border-tertiary"
+              }`}
+            >
+              筛选 {(filterLevel || filterType || filterIndustry) && "· 已启用"}
+            </button>
+            {(searchKeyword || filterLevel || filterType || filterIndustry) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchKeyword("");
+                  setFilterLevel("");
+                  setFilterType("");
+                  setFilterIndustry("");
+                  setPage(1);
+                }}
+                className="h-9 px-3 rounded-md text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+              >
+                重置
+              </button>
+            )}
+          </div>
+
+          {showFilters && (
+            <div className="flex flex-wrap gap-3 pt-2 border-t border-border-secondary">
+              <select
+                value={filterLevel}
+                onChange={(e) => {
+                  setFilterLevel(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 px-3 rounded-md border border-border-primary bg-bg-secondary text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue"
+              >
+                <option value="">所有等级</option>
+                <option value="VIP">VIP</option>
+                <option value="regular">普通</option>
+                <option value="potential">潜在</option>
+              </select>
+
+              <select
+                value={filterType}
+                onChange={(e) => {
+                  setFilterType(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 px-3 rounded-md border border-border-primary bg-bg-secondary text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue"
+              >
+                <option value="">所有类型</option>
+                <option value="enterprise">企业客户</option>
+                <option value="personal">个人客户</option>
+              </select>
+
+              <input
+                type="text"
+                placeholder="行业"
+                value={filterIndustry}
+                onChange={(e) => {
+                  setFilterIndustry(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 px-3 rounded-md border border-border-primary bg-bg-secondary text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue"
+              />
+            </div>
+          )}
+        </div>
+      </Card>
 
       <Card className="p-0 overflow-hidden">
         {q.isLoading ? (

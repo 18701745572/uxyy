@@ -19,6 +19,8 @@ import {
   type EmployeeProfileRow,
 } from "@/lib/api/employee-profiles";
 import { ApiError } from "@/lib/api/client";
+import { ExportMenu } from "@/components/export/export-menu";
+import { EmployeeProfileImportDialog } from "@/components/oa/employee-profile-import-dialog";
 import { EmployeeProfileDialog } from "./employee-profile-dialog";
 
 function displayName(row: {
@@ -151,26 +153,30 @@ export default function EmployeeProfilesPage() {
             关联本企业成员的 OA 扩展信息；数据来源 users + employee_profiles
           </p>
         </div>
-        <Button
-          type="button"
-          variant="primary"
-          disabled={!canManage}
-          title={
-            canManage
-              ? undefined
-              : "仅需老板（boss）或行政（oa/admin）等有通讯录管理权限的角色操作"
-          }
-          onClick={() => {
-            if (!canManage) return;
-            setAddOpen(true);
-            void qc.prefetchQuery({
-              queryKey: ["oa", "employee-profiles", "members"],
-              queryFn: fetchEnterpriseMembers,
-            });
-          }}
-        >
-          添加员工
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportMenu type="employee_profiles" filename="employee-profiles" />
+          {canManage && <EmployeeProfileImportDialog />}
+          <Button
+            type="button"
+            variant="primary"
+            disabled={!canManage}
+            title={
+              canManage
+                ? undefined
+                : "仅需老板（boss）或行政（oa/admin）等有通讯录管理权限的角色操作"
+            }
+            onClick={() => {
+              if (!canManage) return;
+              setAddOpen(true);
+              void qc.prefetchQuery({
+                queryKey: ["oa", "employee-profiles", "members"],
+                queryFn: fetchEnterpriseMembers,
+              });
+            }}
+          >
+            添加员工
+          </Button>
+        </div>
       </div>
 
       {!canManage && (

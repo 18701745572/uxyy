@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { Permission } from '../auth/role-permissions';
+import { requireJwtUserId } from '../../common/utils/jwt-request-context';
 import { FinanceService } from './finance.service';
 import {
   CreateAccountSubjectDto,
@@ -187,6 +189,40 @@ export class FinanceController {
     return this.finance.enterInvoice(id, enterpriseIdFromRequest(req));
   }
 
+  @ApiBearerAuth()
+  @Post('invoices/import')
+  @Permissions(Permission.FIN_WRITE)
+  @ApiOperation({
+    summary: 'Excel/CSV 导入发票（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importInvoices(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.finance.importInvoicesFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+    );
+  }
+
   // ==================== 会计科目 ====================
 
   @ApiBearerAuth()
@@ -283,6 +319,41 @@ export class FinanceController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<VoucherResponseDto> {
     return this.finance.findOneVoucher(id, enterpriseIdFromRequest(req));
+  }
+
+  @ApiBearerAuth()
+  @Post('vouchers/import')
+  @Permissions(Permission.FIN_VOUCHER)
+  @ApiOperation({
+    summary: 'Excel/CSV 导入凭证（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async importVouchers(
+    @Req() req: Express.Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('mode') modeRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传表格文件（xlsx / xls / csv）');
+    }
+    const mode = modeRaw === 'force' ? 'force' : 'skip';
+    return this.finance.importVouchersFromSpreadsheet(
+      enterpriseIdFromRequest(req),
+      file.buffer,
+      mode,
+      requireJwtUserId(req),
+    );
   }
 
   // ==================== 报表 ====================

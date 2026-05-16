@@ -5,7 +5,30 @@ import type {
   SalesOrderResponseDto,
   UpdateSalesOrderDto,
 } from "@uxyy/shared";
-import { apiFetch } from "./client";
+import { apiFetch, apiUploadFile, ApiError, formatApiErrorBody } from "./client";
+
+export type SalesOrderImportResult = {
+  created: number;
+  skipped: number;
+  failures: Array<{ row: number; reason: string }>;
+};
+
+/** multipart 导入销售订单（与导出表头对齐；mode=skip 跳过同订单号重复） */
+export async function importSalesOrders(
+  file: File,
+  mode: "skip" | "force" = "skip",
+): Promise<SalesOrderImportResult> {
+  const q = new URLSearchParams({ mode });
+  const res = await apiUploadFile(`/inventory/sales-orders/import?${q.toString()}`, file);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new ApiError(
+      res.status,
+      formatApiErrorBody(text, `导入失败（${res.status}）`),
+    );
+  }
+  return res.json() as Promise<SalesOrderImportResult>;
+}
 
 export async function fetchSalesOrders(
   query: SalesOrderQueryDto,

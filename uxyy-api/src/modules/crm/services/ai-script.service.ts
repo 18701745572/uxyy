@@ -284,21 +284,70 @@ export class AiScriptService {
   ): Promise<GeneratedScript> {
     let content = template.content;
 
-    // 替换变量
+    // 替换客户相关变量
     content = content.replace(/{customer_name}/g, customer.name || '张总');
     content = content.replace(/{company}/g, customer.name || '我们公司');
     content = content.replace(/{industry}/g, customer.industry || '相关');
+    content = content.replace(/{name}/g, customer.contactPerson || '张总');
+
+    // 替换需求挖掘相关变量
+    content = content.replace(/{area}/g, customer.industry || '业务');
+    content = content.replace(/{common_pain_point}/g, '效率提升和成本控制');
+
+    // 替换产品介绍相关变量
+    content = content.replace(/{problem}/g, '效率低下和成本过高的问题');
+    content = content.replace(/{benefit1}/g, '提升30%的工作效率');
+    content = content.replace(/{benefit2}/g, '降低20%的运营成本');
+    content = content.replace(/{benefit3}/g, '提供专业的技术支持');
+    content = content.replace(/{case_company}/g, '同行业标杆企业');
+    content = content.replace(/{case_result}/g, '实现了显著的效益提升');
+
+    // 替换价格谈判相关变量
+    content = content.replace(/{value_point}/g, '产品质量和售后服务');
+    content = content.replace(/{roi_calculation}/g, '长期使用成本更低');
+
+    // 替换异议处理相关变量
+    content = content.replace(/{objection}/g, '顾虑');
+    content = content.replace(/{explanation}/g, '我们有完善的解决方案');
+    content = content.replace(/{guarantee}/g, '全程技术支持和售后保障');
+
+    // 替换促成成交相关变量
+    content = content.replace(/{special_offer}/g, '特别优惠');
+    content = content.replace(/{urgency_reason}/g, '活动即将结束');
+    content = content.replace(/{option1}/g, '标准版');
+    content = content.replace(/{option2}/g, '专业版');
+
+    // 替换挽回客户相关变量
+    content = content.replace(/{new_feature}/g, '新功能');
+    content = content.replace(/{topic}/g, '行业解决方案');
+    content = content.replace(/{product}/g, '产品');
+    content = content.replace(/{option}/g, '推荐方案');
+
+    // 清理未被替换的变量（兜底处理）
+    content = content.replace(/\{[a-zA-Z_]+\}/g, '');
 
     // 根据模板类型添加提示
     const tips = this.getTipsByCategory(template.category);
     const alternatives = this.getAlternativesByCategory(template.category);
+
+    // 清理替代话术中的变量
+    const cleanedAlternatives = alternatives.map(alt => {
+      let cleaned = alt;
+      cleaned = cleaned.replace(/{name}/g, customer.contactPerson || '张总');
+      cleaned = cleaned.replace(/{company}/g, customer.name || '我们公司');
+      cleaned = cleaned.replace(/{product}/g, '产品');
+      cleaned = cleaned.replace(/{topic}/g, '行业解决方案');
+      cleaned = cleaned.replace(/{option}/g, '推荐方案');
+      cleaned = cleaned.replace(/\{[a-zA-Z_]+\}/g, '');
+      return cleaned;
+    });
 
     return {
       type: template.category,
       title: template.title,
       content,
       tips,
-      alternatives,
+      alternatives: cleanedAlternatives,
     };
   }
 

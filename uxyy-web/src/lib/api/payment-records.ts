@@ -1,3 +1,5 @@
+import { apiFetch } from "./client";
+
 export interface PaymentRecord {
   id: number;
   enterpriseId: number;
@@ -60,34 +62,19 @@ export async function getPaymentRecordPage(params: {
   if (params.startDate) searchParams.set("startDate", params.startDate);
   if (params.endDate) searchParams.set("endDate", params.endDate);
 
-  const res = await fetch(`/api/inventory/payment-records?${searchParams}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("获取回款记录失败");
-  return res.json();
+  return apiFetch<PaymentRecordListResponse>(`/inventory/payment-records?${searchParams}`);
 }
 
 export async function getPaymentRecord(id: number): Promise<PaymentRecord> {
-  const res = await fetch(`/api/inventory/payment-records/${id}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("获取回款记录详情失败");
-  const data = await res.json();
+  const data = await apiFetch<{ data?: PaymentRecord } & PaymentRecord>(`/inventory/payment-records/${id}`);
   return data.data ?? data;
 }
 
 export async function createPaymentRecord(dto: CreatePaymentRecordDto): Promise<PaymentRecord> {
-  const res = await fetch("/api/inventory/payment-records", {
+  const data = await apiFetch<{ data?: PaymentRecord } & PaymentRecord>("/inventory/payment-records", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
-    credentials: "include",
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "创建失败" }));
-    throw new Error(err.message || "创建回款记录失败");
-  }
-  const data = await res.json();
   return data.data ?? data;
 }
 
@@ -95,24 +82,15 @@ export async function updatePaymentRecord(
   id: number,
   dto: Partial<CreatePaymentRecordDto>,
 ): Promise<PaymentRecord> {
-  const res = await fetch(`/api/inventory/payment-records/${id}`, {
+  const data = await apiFetch<{ data?: PaymentRecord } & PaymentRecord>(`/inventory/payment-records/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
-    credentials: "include",
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "更新失败" }));
-    throw new Error(err.message || "更新回款记录失败");
-  }
-  const data = await res.json();
   return data.data ?? data;
 }
 
 export async function deletePaymentRecord(id: number): Promise<void> {
-  const res = await fetch(`/api/inventory/payment-records/${id}`, {
+  await apiFetch<void>(`/inventory/payment-records/${id}`, {
     method: "DELETE",
-    credentials: "include",
   });
-  if (!res.ok) throw new Error("删除回款记录失败");
 }
