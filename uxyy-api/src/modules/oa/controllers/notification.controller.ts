@@ -68,4 +68,30 @@ export class NotificationController {
   ) {
     return this.service.delete(id, req.user.userId);
   }
+
+  /**
+   * 生成示例通知数据（用于演示）
+   * 仅在开发环境使用
+   */
+  @Post('seed-demo')
+  async seedDemoNotifications(@Req() req: Request & { user: UserContext }) {
+    const userId = req.user.userId;
+
+    // 价格预警通知
+    await this.service.sendPriceAlertNotification({
+      userId,
+      productId: 1,
+      productName: '示例商品 SKU-001',
+      priceChange: 18.5,
+      threshold: 15,
+    });
+
+    // 系统欢迎通知
+    await this.service.sendWelcomeNotification(userId);
+
+    // 经营洞察通知
+    await this.service.sendInsightFeatureNotification(userId);
+
+    return { ok: true, message: '示例通知已生成' };
+  }
 }

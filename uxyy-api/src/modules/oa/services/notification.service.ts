@@ -4,7 +4,21 @@ import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 
-export type NotificationType = 'approval' | 'system' | 'reminder';
+/**
+ * 通知类型
+ * - approval: 审批通知
+ * - system: 系统通知
+ * - reminder: 提醒
+ * - price_alert: 价格/成本预警
+ * - insight: 经营洞察
+ */
+export type NotificationType =
+  | 'approval'
+  | 'system'
+  | 'reminder'
+  | 'price_alert'
+  | 'insight';
+
 export type NotificationPriority = 'low' | 'normal' | 'high';
 
 export interface CreateNotificationDto {
@@ -267,6 +281,81 @@ export class NotificationService {
       title: params.title,
       content: params.content,
       priority: params.priority ?? 'normal',
+    });
+  }
+
+  /**
+   * 发送价格预警通知
+   */
+  async sendPriceAlertNotification(params: {
+    userId: number;
+    productId: number;
+    productName: string;
+    priceChange: number; // 价格变化百分比
+    threshold: number; // 设定的阈值
+  }) {
+    const { userId, productId, productName, priceChange, threshold } = params;
+    const isIncrease = priceChange > 0;
+
+    return this.create({
+      userId,
+      type: 'price_alert',
+      title: `${isIncrease ? '上涨' : '下跌'}预警：${productName}`,
+      content: `监测到「${productName}」本期采购均价较上期${isIncrease ? '上升' : '下降'}约 ${Math.abs(priceChange).toFixed(1)}%，超过企业设定提醒线 ${threshold}%。建议核对供应商报价单与最近一次入库单价，排除录错或合同变更未同步。`,
+      priority: 'high',
+      sourceType: 'product',
+      sourceId: productId,
+      actionUrl: '/dashboard/inventory',
+    });
+  }
+
+  /**
+   * 发送经营洞察通知
+   */
+  async sendInsightNotification(params: {
+    userId: number;
+    title: string;
+    content: string;
+    link?: string;
+    linkLabel?: string;
+  }) {
+    const { userId, title, content, link, linkLabel } = params;
+
+    return this.create({
+      userId,
+      type: 'insight',
+      title,
+      content,
+      priority: 'normal',
+      actionUrl: link,
+    });
+  }
+
+  /**
+   * 发送欢迎通知（新用户首次登录）
+   */
+  async sendWelcomeNotification(userId: number) {
+    return this.create({
+      userId,
+      type: 'system',
+      title: '欢迎使用优效营',
+      content: '通知中心已启用。系统、价格类提醒与审批摘要将统一收拢在此页。后续若对接服务端推送，未读角标将与之同步。',
+      priority: 'normal',
+      actionUrl: '/dashboard/finance/reports',
+    });
+  }
+
+  /**
+   * 发送经营分析增强通知
+   */
+  async sendInsightFeatureNotification(userId: number) {
+    return this.create({
+      userId,
+      type: 'insight',
+      title: '经营分析图表已增强',
+      content: '在「财务报表 → 经营仪表盘」可查看销售/采购对比与热销商品条形图；利润表页提供收入/成本/费用结构图，便于周会快速过数。',
+      priority: 'normal',
+      actionUrl: '/dashboard/finance/reports',
     });
   }
 
