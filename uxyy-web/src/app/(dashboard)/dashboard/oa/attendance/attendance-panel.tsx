@@ -43,19 +43,19 @@ import { Permission } from "@/lib/permissions/role-matrix";
 function getStatusColor(status: AttendanceRecord["status"]): string {
   switch (status) {
     case "normal":
-      return "bg-green-100 text-green-700";
+      return "bg-green-500/20 text-green-500 border border-green-500/30";
     case "late":
-      return "bg-amber-100 text-amber-700";
+      return "bg-amber-500/20 text-amber-500 border border-amber-500/30";
     case "early_leave":
-      return "bg-orange-100 text-orange-700";
+      return "bg-orange-500/20 text-orange-500 border border-orange-500/30";
     case "absent":
-      return "bg-red-100 text-red-700";
+      return "bg-red-500/20 text-red-500 border border-red-500/30";
     case "leave":
-      return "bg-blue-100 text-blue-700";
+      return "bg-blue-500/20 text-blue-500 border border-blue-500/30";
     case "overtime":
-      return "bg-purple-100 text-purple-700";
+      return "bg-purple-500/20 text-purple-500 border border-purple-500/30";
     default:
-      return "bg-bg-tertiary text-text-secondary";
+      return "bg-bg-tertiary text-text-secondary border border-border-primary";
   }
 }
 
@@ -281,7 +281,7 @@ export function AttendancePanel() {
               size="sm"
               className={`gap-2 rounded-md transition-all duration-200 ${
                 activeTab === tab.id
-                  ? "bg-white shadow-sm text-text-primary"
+                  ? "bg-accent-blue text-white shadow-sm"
                   : "text-text-secondary hover:text-text-primary"
               }`}
             >
@@ -458,42 +458,47 @@ export function AttendancePanel() {
                     {
                       label: "正常",
                       value: personalQuery.data.stats.normalDays,
-                      color: "text-green-600",
-                      bg: "bg-green-50",
+                      color: "text-green-500",
+                      bg: "bg-green-500/10",
+                      borderColor: "border-green-500/20",
                     },
                     {
                       label: "迟到",
                       value: personalQuery.data.stats.lateDays,
-                      color: "text-amber-600",
-                      bg: "bg-amber-50",
+                      color: "text-amber-500",
+                      bg: "bg-amber-500/10",
+                      borderColor: "border-amber-500/20",
                     },
                     {
                       label: "早退",
                       value: personalQuery.data.stats.earlyLeaveDays,
-                      color: "text-orange-600",
-                      bg: "bg-orange-50",
+                      color: "text-orange-500",
+                      bg: "bg-orange-500/10",
+                      borderColor: "border-orange-500/20",
                     },
                     {
                       label: "缺勤",
                       value: personalQuery.data.stats.absentDays,
-                      color: "text-red-600",
-                      bg: "bg-red-50",
+                      color: "text-red-500",
+                      bg: "bg-red-500/10",
+                      borderColor: "border-red-500/20",
                     },
                     {
                       label: "请假",
                       value: personalQuery.data.stats.leaveDays,
-                      color: "text-blue-600",
-                      bg: "bg-blue-50",
+                      color: "text-blue-500",
+                      bg: "bg-blue-500/10",
+                      borderColor: "border-blue-500/20",
                     },
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className={`${stat.bg} rounded-lg p-3 text-center transition-transform hover:scale-105`}
+                      className={`${stat.bg} ${stat.borderColor} border rounded-lg p-3 text-center transition-transform hover:scale-105`}
                     >
                       <p className={`text-xl font-bold ${stat.color}`}>
                         {stat.value}
                       </p>
-                      <p className="text-xs text-text-secondary mt-1">
+                      <p className="text-xs text-text-primary mt-1 font-medium">
                         {stat.label}
                       </p>
                     </div>
@@ -646,29 +651,29 @@ export function AttendancePanel() {
           {enterpriseQuery.data && (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="p-5 text-center">
+                <Card className="p-5 text-center bg-bg-secondary border-border-primary">
                   <p className="text-3xl font-bold text-text-primary mb-1">
                     {enterpriseQuery.data.totalEmployees}
                   </p>
                   <p className="text-sm text-text-secondary">员工总数</p>
                 </Card>
-                <Card className="p-5 text-center bg-green-50 border-green-200">
-                  <p className="text-3xl font-bold text-green-600 mb-1">
+                <Card className="p-5 text-center bg-green-500/10 border-green-500/20">
+                  <p className="text-3xl font-bold text-green-500 mb-1">
                     {enterpriseQuery.data.checkedIn}
                   </p>
-                  <p className="text-sm text-green-600">已打卡</p>
+                  <p className="text-sm text-green-500 font-medium">已打卡</p>
                 </Card>
-                <Card className="p-5 text-center bg-amber-50 border-amber-200">
-                  <p className="text-3xl font-bold text-amber-600 mb-1">
+                <Card className="p-5 text-center bg-amber-500/10 border-amber-500/20">
+                  <p className="text-3xl font-bold text-amber-500 mb-1">
                     {enterpriseQuery.data.late}
                   </p>
-                  <p className="text-sm text-amber-600">迟到</p>
+                  <p className="text-sm text-amber-500 font-medium">迟到</p>
                 </Card>
-                <Card className="p-5 text-center bg-red-50 border-red-200">
-                  <p className="text-3xl font-bold text-red-600 mb-1">
+                <Card className="p-5 text-center bg-red-500/10 border-red-500/20">
+                  <p className="text-3xl font-bold text-red-500 mb-1">
                     {enterpriseQuery.data.absent}
                   </p>
-                  <p className="text-sm text-red-600">缺勤</p>
+                  <p className="text-sm text-red-500 font-medium">缺勤</p>
                 </Card>
               </div>
 
@@ -761,12 +766,12 @@ export function AttendancePanel() {
                   补卡日期
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted z-10" />
                   <Input
                     type="date"
                     value={makeUpDate}
                     onChange={(e) => setMakeUpDate(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 dark:bg-bg-secondary dark:text-text-primary dark:border-border-primary [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50"
                   />
                 </div>
               </div>
