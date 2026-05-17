@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useEnterpriseStore } from "@/stores/enterprise-store";
 import Link from "next/link";
 import { List, Bell, MagnifyingGlass, User, SignOut, Gear } from "@phosphor-icons/react";
-import { useMessageInboxStore } from "@/stores/message-inbox-store";
+
 import { roleLabel } from "@/lib/permissions/role-matrix";
 import { fetchUnreadCount } from "@/lib/api/notifications";
 import { cn } from "@/lib/utils";
@@ -46,10 +46,8 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   const displayName = phone || userSub || "未登录";
   const enterprises = useEnterpriseStore((s) => s.enterprises);
   const fetchEnterprises = useEnterpriseStore((s) => s.fetch);
-  const seedIfEmpty = useMessageInboxStore((s) => s.seedIfEmpty);
 
-  // 仅 OA 通知接口未读数：铃铛跳转 /dashboard/notifications，与列表数据源一致。
-  // 本地「消息中心」见 /dashboard/messages（message-inbox-store），不计入此角标以免与页面不一致。
+  // 通知中心未读数：铃铛跳转 /dashboard/notifications
   const { data: notificationData } = useQuery({
     queryKey: ["unread-count"],
     queryFn: fetchUnreadCount,
@@ -61,10 +59,6 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
   useEffect(() => {
     void fetchEnterprises();
   }, [fetchEnterprises]);
-
-  useEffect(() => {
-    seedIfEmpty();
-  }, [seedIfEmpty]);
 
   const enterpriseName =
     enterprises.find((e) => e.id === enterpriseId)?.name ?? null;

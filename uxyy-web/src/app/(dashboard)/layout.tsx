@@ -10,7 +10,6 @@ import { SimpleGridBackdrop } from "@/components/ui/simple-grid-backdrop";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "工作台",
-  "/dashboard/messages": "消息中心",
   "/dashboard/notifications": "通知中心",
   "/dashboard/crm": "客户管理",
   "/dashboard/crm/customers": "客户列表",
