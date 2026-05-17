@@ -46,6 +46,20 @@ $ pnpm install
 
 Schema 源码目录：`src/db/schema/`（与 PRD **8.2、11.5.2** Auth 共享表对齐；首期 migration：`drizzle/0000_init_auth_core.sql`）。
 
+### 核心依赖说明
+
+| 依赖 | 用途 |
+|------|------|
+| `@nestjs/schedule` | 定时任务调度（价格监控、经营洞察定时任务） |
+| `@nestjs/websockets` | WebSocket 网关（实时通知推送） |
+| `@nestjs/platform-socket.io` | Socket.io 适配器 |
+| `socket.io` | WebSocket 通信库 |
+| `@nestjs/bullmq` | 队列处理（AI 任务队列） |
+| `bullmq` | 队列核心库 |
+| `drizzle-orm` | ORM 数据库操作 |
+| `xlsx` | Excel 导入导出 |
+| `json2csv` | CSV 导出 |
+
 5. （推荐）写入开发账号：在 `uxyy-api` 执行 **`pnpm run db:seed`**（默认手机号 `13800138000`，密码 **`Dev12345!`**）。  
    若需 **清空应用数据并按五种企业角色写入 5 个测试账号**（及 CRM/库存等演示数据），使用 **`pnpm run db:seed:purge-five-roles`**；账号与环境变量详见仓库根 **`docs/开发-五角色purge种子说明.md`**。
 

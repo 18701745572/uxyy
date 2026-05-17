@@ -1,11 +1,20 @@
 # 优效营 API 文档
 
-**版本**: v1.0.3
+**版本**: v1.0.4
 **基础URL**: `http://localhost:3000/api/v1`
 **Swagger UI**: `http://localhost:3000/docs`
-**最后更新**: 2026-05-09
+**最后更新**: 2026-05-17
 
 ## 更新说明
+
+### v1.0.4
+
+- **通知中心 - 第二阶段：自动化通知**
+  - 新增价格监控定时任务 API，自动检测采购均价波动
+  - 新增经营分析定时任务 API，每周自动生成经营洞察
+  - 新增 WebSocket 实时推送服务 `/notifications`
+  - 新增示例数据生成接口 `POST /oa/notifications/seed-demo`
+- **依赖更新**：新增 `@nestjs/schedule`、`@nestjs/websockets`、`@nestjs/platform-socket.io`、`socket.io`
 
 ### v1.0.3
 
@@ -1942,6 +1951,107 @@ POST /oa/approval-flows/:id/submit
   }
 }
 ```
+
+### 5.3 通知中心
+
+**权限**：查看通知需登录；管理通知设置需 **`oa:manage`**。
+
+#### 获取通知列表
+
+```http
+GET /oa/notifications?page=1&pageSize=20&type=price_alert&isRead=false
+```
+
+**查询参数**:
+- `page`: 页码，默认 1
+- `pageSize`: 每页数量，默认 20
+- `type`: 通知类型（可选）`approval` | `system` | `reminder` | `price_alert` | `insight`
+- `isRead`: 是否已读（可选）`true` | `false`
+
+**响应**:
+```json
+{
+  "list": [
+    {
+      "id": 1,
+      "type": "price_alert",
+      "title": "上涨预警：示例商品 SKU-001",
+      "content": "监测到「示例商品 SKU-001」本期采购均价较上期上升约 18.5%，超过企业设定提醒线 15%...",
+      "priority": "high",
+      "isRead": false,
+      "sourceType": "product",
+      "sourceId": 1,
+      "actionUrl": "/dashboard/inventory",
+      "createdAt": "2026-05-17T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 100
+  }
+}
+```
+
+#### 获取未读通知数量
+
+```http
+GET /oa/notifications/unread-count
+```
+
+**响应**:
+```json
+{
+  "count": 5
+}
+```
+
+#### 标记通知为已读
+
+```http
+PUT /oa/notifications/:id/read
+```
+
+#### 标记所有通知为已读
+
+```http
+PUT /oa/notifications/read-all
+```
+
+#### 删除通知
+
+```http
+DELETE /oa/notifications/:id
+```
+
+#### 生成示例通知数据
+
+```http
+POST /oa/notifications/seed-demo
+```
+
+**说明**: 仅在开发环境可用，用于生成价格预警、系统欢迎、经营洞察等示例通知。
+
+**响应**:
+```json
+{
+  "ok": true,
+  "message": "示例通知已生成"
+}
+```
+
+#### WebSocket 实时推送
+
+**连接地址**: `ws://localhost:3000/notifications`
+
+**事件**:
+- `join`: 用户加入通知房间
+  ```json
+  { "userId": 1, "token": "<jwt_token>" }
+  ```
+- `new_notification`: 收到新通知
+- `unread_count`: 未读数量更新
+- `system_notification`: 系统广播通知
 
 ---
 
