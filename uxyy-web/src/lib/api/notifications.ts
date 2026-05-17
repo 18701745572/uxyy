@@ -101,6 +101,15 @@ export async function deleteNotification(id: number): Promise<{ ok: boolean }> {
 }
 
 /**
+ * 生成示例通知数据（用于演示）
+ */
+export async function seedDemoNotifications(): Promise<{ ok: boolean; message: string }> {
+  return apiFetch<{ ok: boolean; message: string }>("/oa/notifications/seed-demo", {
+    method: "POST",
+  });
+}
+
+/**
  * 获取通知优先级对应的颜色
  */
 export function getNotificationPriorityColor(priority: NotificationPriority): string {

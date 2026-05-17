@@ -8,7 +8,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
-  getNotificationPriorityColor,
+  seedDemoNotifications,
   getNotificationTypeIcon,
   getNotificationTypeLabel,
   getNotificationTypeStyle,
@@ -71,6 +71,14 @@ export function NotificationsPanel() {
     },
   });
 
+  const seedDemoMutation = useMutation({
+    mutationFn: seedDemoNotifications,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unread-count"] });
+    },
+  });
+
   function handleMarkAsRead(id: number) {
     markAsReadMutation.mutate(id);
   }
@@ -84,6 +92,12 @@ export function NotificationsPanel() {
   function handleDelete(id: number) {
     if (confirm("确定要删除这条通知吗？")) {
       deleteMutation.mutate(id);
+    }
+  }
+
+  function handleSeedDemo() {
+    if (confirm("确定要生成示例通知数据吗？\n\n这将为您创建：\n• 价格预警通知\n• 系统欢迎通知\n• 经营洞察通知")) {
+      seedDemoMutation.mutate();
     }
   }
 
@@ -269,7 +283,15 @@ export function NotificationsPanel() {
         ) : data?.data.length === 0 ? (
           <div className="py-12 text-center">
             <div className="text-4xl mb-3">🔔</div>
-            <p className="text-text-tertiary">暂无通知</p>
+            <p className="text-text-tertiary mb-4">暂无通知</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSeedDemo}
+              disabled={seedDemoMutation.isPending}
+            >
+              {seedDemoMutation.isPending ? "生成中..." : "生成示例数据"}
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
