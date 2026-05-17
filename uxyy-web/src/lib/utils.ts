@@ -6,6 +6,18 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * 格式化货币金额
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("zh-CN", {
+    style: "currency",
+    currency: "CNY",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/**
  * 格式化日期为相对时间（如：2分钟前、1小时前、昨天等）
  */
 export function formatDistanceToNow(dateString: string): string {

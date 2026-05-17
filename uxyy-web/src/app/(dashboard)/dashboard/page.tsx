@@ -8,6 +8,9 @@ import { Permission, type PermissionCode } from "@/lib/permissions/role-matrix";
 import { permissionSet, hasAnyPermission } from "@/lib/permissions/nav-access";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import { OverviewCards } from "./_components/overview-cards";
+import { QuickActions } from "./_components/quick-actions";
+import { TodoList } from "./_components/todo-list";
 
 interface HomeTile {
   href: string;
@@ -63,6 +66,12 @@ const modules: HomeTile[] = [
 /**
  * Dashboard 首页 - 深色主题
  * 
+ * 页面结构：
+ * 1. 经营概览卡片（今日销售额、待处理订单、库存预警）
+ * 2. 快捷操作（新建客户、新建订单、录入发票）
+ * 3. 待办事项（待审批、待跟进客户、库存预警列表）
+ * 4. 功能模块快捷入口
+ * 
  * 设计原则：
  * 1. 深色背景适配
  * 2. 渐变图标背景
@@ -79,6 +88,15 @@ export default function DashboardHome() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 经营概览 */}
+      <OverviewCards />
+
+      {/* 快捷操作 */}
+      <QuickActions />
+
+      {/* 待办事项 */}
+      <TodoList />
+
       {/* 欢迎区域 */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-secondary to-bg-tertiary border border-border-primary p-6">
         {/* 装饰背景 */}

@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
@@ -32,6 +33,7 @@ import { CommonModule } from './common/common.module';
     DatabaseModule,
     AuthModule,
     CrmModule,
+    DashboardModule,
     InventoryModule,
     FinanceModule,
     HealthModule,

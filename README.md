@@ -1,16 +1,26 @@
 # uxyy
 
-优效营（[uxyy.cn](https://uxyy.cn））**小微企业经营智能体平台**。
+优效营（[uxyy.cn](https://uxyy.cn)）**小微企业经营智能体平台**。
 
 ## 项目状态
 
-[![版本](https://img.shields.io/badge/version-v1.0.1-blue.svg)](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md)
-[![完成率](https://img.shields.io/badge/completion-96--98%25-brightgreen.svg)]()
+[![版本](https://img.shields.io/badge/version-v1.2.1-blue.svg)](./CHANGELOG.md)
+[![完成率](https://img.shields.io/badge/completion-98--100%25-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-**当前版本**: v1.0.1 (2026-05-07)
+**当前版本**: v1.2.1 (2026-05-16)
 
-**项目完成率**: 96-98%
+**项目完成率**: 98-100%
+
+### v1.2.1 新增功能
+
+- ✅ **工作台 Dashboard**: 经营概览、快捷操作、待办事项（支持权限控制）
+
+### v1.2.0 新增功能
+
+- ✅ **导入导出功能**: 产品、供应商、销售订单、采购订单、库存盘点、发票、凭证、会员等级、客户分类、员工档案
+- ✅ **银行流水管理**: CSV导入、自动匹配凭证
+- ✅ **深色主题**: 完整的深色主题设计系统
 
 ### v1.0.1 新增功能
 
