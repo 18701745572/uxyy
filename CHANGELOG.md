@@ -5,6 +5,50 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.0] - 2026-05-17
+
+### 新增
+
+#### 通知中心 - 第二阶段：自动化通知
+- **价格监控定时任务**
+  - 自动检测采购均价波动
+  - 每天凌晨2点执行价格检查
+  - 超过阈值时自动发送价格预警通知
+  - 24小时内避免重复通知同一商品
+
+- **经营分析定时任务**
+  - 每周一上午9点自动生成经营洞察
+  - 包含销售趋势分析
+  - 库存周转预警
+  - 热销商品TOP3统计
+  - 利润分析（毛利率计算）
+  - 7天内避免重复发送相同洞察
+
+- **消息推送服务**
+  - WebSocket 实时推送通知
+  - 支持多端同步未读数量
+  - 支持向企业管理员广播通知
+  - 用户在线状态管理
+
+- **示例数据生成**
+  - 新增 `POST /oa/notifications/seed-demo` 接口
+  - 支持生成价格预警、系统欢迎、经营洞察等示例通知
+  - 前端通知中心添加"生成示例数据"按钮
+
+### 依赖更新
+
+#### 后端 (uxyy-api)
+- 新增 `@nestjs/schedule` - 定时任务调度
+- 新增 `@nestjs/websockets` - WebSocket 网关
+- 新增 `@nestjs/platform-socket.io` - Socket.io 适配器
+- 新增 `socket.io` - WebSocket 通信库
+
+### 新增文件
+- `uxyy-api/src/modules/oa/services/price-monitor.service.ts`
+- `uxyy-api/src/modules/oa/services/insight-generator.service.ts`
+- `uxyy-api/src/modules/oa/services/notification-scheduler.service.ts`
+- `uxyy-api/src/modules/oa/services/notification-push.service.ts`
+
 ## [1.2.1] - 2026-05-16
 
 ### 新增
