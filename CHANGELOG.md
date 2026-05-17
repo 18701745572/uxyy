@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.1] - 2026-05-16
+
+### 新增
+
+#### 工作台 Dashboard
+- 新增工作台首页功能 (`/dashboard`)
+  - **经营概览**: 显示今日销售额、待处理订单数、库存预警数量
+  - **快捷操作**: 新建客户、新建订单、录入发票的快速入口（根据权限显示）
+  - **待办事项**: 待审批、待跟进客户、库存预警列表（根据权限显示）
+- 新增工作台数据 API (`/dashboard/overview`, `/dashboard/todos`)
+
+### 技术改进
+- 新增 `Skeleton` 骨架屏组件
+- 新增 `formatCurrency` 货币格式化工具函数
+
 ## [1.2.0] - 2026-05-16
 
 ### 新增
