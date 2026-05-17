@@ -45,12 +45,6 @@ export const SIDEBAR_NAV: NavItem[] = [
     anyOf: [],
   },
   {
-    href: "/dashboard/messages",
-    label: "消息中心",
-    icon: Bell,
-    anyOf: [],
-  },
-  {
     href: "/dashboard/crm",
     label: "客户管理",
     icon: Users,

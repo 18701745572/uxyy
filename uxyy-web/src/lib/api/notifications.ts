@@ -1,6 +1,20 @@
 import { apiFetch } from "./client";
 
-export type NotificationType = "approval" | "system" | "reminder";
+/**
+ * 通知类型
+ * - approval: 审批通知
+ * - system: 系统通知
+ * - reminder: 提醒
+ * - price_alert: 价格/成本预警（原消息中心类型）
+ * - insight: 经营洞察（原消息中心类型）
+ */
+export type NotificationType =
+  | "approval"
+  | "system"
+  | "reminder"
+  | "price_alert"
+  | "insight";
+
 export type NotificationPriority = "low" | "normal" | "high";
 
 export interface Notification {
@@ -113,6 +127,10 @@ export function getNotificationTypeIcon(type: NotificationType): string {
       return "🔔";
     case "reminder":
       return "⏰";
+    case "price_alert":
+      return "💰";
+    case "insight":
+      return "📊";
     default:
       return "📌";
   }
@@ -129,7 +147,59 @@ export function getNotificationTypeLabel(type: NotificationType): string {
       return "系统";
     case "reminder":
       return "提醒";
+    case "price_alert":
+      return "价格预警";
+    case "insight":
+      return "经营洞察";
     default:
       return "通知";
+  }
+}
+
+/**
+ * 获取通知类型对应的样式类名（深色主题）
+ */
+export function getNotificationTypeStyle(type: NotificationType): {
+  bg: string;
+  text: string;
+  border: string;
+} {
+  switch (type) {
+    case "approval":
+      return {
+        bg: "bg-sky-500/20",
+        text: "text-sky-300",
+        border: "border-sky-500/30",
+      };
+    case "system":
+      return {
+        bg: "bg-text-tertiary/20",
+        text: "text-text-secondary",
+        border: "border-text-tertiary/30",
+      };
+    case "reminder":
+      return {
+        bg: "bg-amber-500/20",
+        text: "text-amber-300",
+        border: "border-amber-500/30",
+      };
+    case "price_alert":
+      return {
+        bg: "bg-amber-500/20",
+        text: "text-amber-300",
+        border: "border-amber-500/30",
+      };
+    case "insight":
+      return {
+        bg: "bg-violet-500/20",
+        text: "text-violet-300",
+        border: "border-violet-500/30",
+      };
+    default:
+      return {
+        bg: "bg-bg-tertiary",
+        text: "text-text-secondary",
+        border: "border-border-secondary",
+      };
   }
 }

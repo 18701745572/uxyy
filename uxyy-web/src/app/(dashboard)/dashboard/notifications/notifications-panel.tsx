@@ -11,9 +11,11 @@ import {
   getNotificationPriorityColor,
   getNotificationTypeIcon,
   getNotificationTypeLabel,
+  getNotificationTypeStyle,
   type Notification,
   type NotificationType,
 } from "@/lib/api/notifications";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ApiErrorCallout } from "@/components/ui/api-error-callout";
@@ -86,22 +88,27 @@ export function NotificationsPanel() {
   }
 
   function NotificationCard({ notification }: { notification: Notification }) {
-    const priorityClass = getNotificationPriorityColor(notification.priority);
+    const typeStyle = getNotificationTypeStyle(notification.type);
     const typeIcon = getNotificationTypeIcon(notification.type);
     const typeLabel = getNotificationTypeLabel(notification.type);
 
     return (
       <div
-        className={`relative p-4 border rounded-lg transition-all ${
+        className={cn(
+          "relative p-4 border rounded-lg transition-all",
           notification.isRead
-            ? "bg-white border-border-primary"
-            : "bg-blue-50/30 border-blue-200"
-        }`}
+            ? "bg-bg-secondary border-border-primary"
+            : "bg-accent-blue/5 border-accent-blue/30"
+        )}
       >
         <div className="flex items-start gap-3">
           {/* 类型图标 */}
           <div
-            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${priorityClass}`}
+            className={cn(
+              "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm",
+              typeStyle.bg,
+              typeStyle.text
+            )}
           >
             {typeIcon}
           </div>
@@ -110,22 +117,30 @@ export function NotificationsPanel() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span
-                className={`text-xs px-2 py-0.5 rounded-full ${priorityClass}`}
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded-full border",
+                  typeStyle.bg,
+                  typeStyle.text,
+                  typeStyle.border
+                )}
               >
                 {typeLabel}
               </span>
               {!notification.isRead && (
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-accent-blue rounded-full animate-pulse"></span>
               )}
               <span className="text-xs text-text-muted ml-auto">
                 {formatDistanceToNow(notification.createdAt)}
               </span>
             </div>
 
-            <h3 className="text-sm font-medium text-text-primary mb-1">
+            <h3 className={cn(
+              "text-sm font-medium mb-1",
+              notification.isRead ? "text-text-secondary" : "text-text-primary"
+            )}>
               {notification.title}
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
+            <p className="text-sm text-text-tertiary leading-relaxed whitespace-pre-wrap">
               {notification.content}
             </p>
 
@@ -143,7 +158,13 @@ export function NotificationsPanel() {
               )}
               {notification.actionUrl && (
                 <Button variant="primary" size="sm" asChild>
-                  <Link href={notification.actionUrl}>查看详情</Link>
+                  <Link href={notification.actionUrl}>
+                    {notification.actionUrl.includes("inventory")
+                      ? "前往处理"
+                      : notification.actionUrl.includes("reports")
+                      ? "查看报表"
+                      : "查看详情"}
+                  </Link>
                 </Button>
               )}
               <Button
@@ -151,7 +172,7 @@ export function NotificationsPanel() {
                 size="sm"
                 onClick={() => handleDelete(notification.id)}
                 disabled={deleteMutation.isPending}
-                className="text-text-muted hover:text-red-600"
+                className="text-text-muted hover:text-red-400"
               >
                 删除
               </Button>
@@ -201,6 +222,8 @@ export function NotificationsPanel() {
               <option value="approval">审批</option>
               <option value="system">系统</option>
               <option value="reminder">提醒</option>
+              <option value="price_alert">价格预警</option>
+              <option value="insight">经营洞察</option>
             </select>
           </div>
 
