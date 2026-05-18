@@ -63,7 +63,7 @@ test.describe("API 集成测试 · CRM", () => {
 
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
-    expect(Array.isArray(body.data ?? body)).toBeTruthy();
+    expect(Array.isArray(body.items ?? body.data ?? body)).toBeTruthy();
   });
 });
 

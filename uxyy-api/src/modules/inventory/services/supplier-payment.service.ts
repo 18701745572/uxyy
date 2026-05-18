@@ -59,7 +59,9 @@ export class SupplierPaymentService {
       eq(schema.supplierPayments.enterpriseId, eid),
     ];
     if (params.supplierId) {
-      conditions.push(eq(schema.supplierPayments.supplierId, params.supplierId));
+      conditions.push(
+        eq(schema.supplierPayments.supplierId, params.supplierId),
+      );
     }
     if (params.orderId) {
       conditions.push(eq(schema.supplierPayments.orderId, params.orderId));
@@ -72,12 +74,20 @@ export class SupplierPaymentService {
         lte(schema.supplierPayments.paymentDate, new Date(params.endDate)),
       );
     } else if (params.startDate) {
-      dateCondition = gte(schema.supplierPayments.paymentDate, new Date(params.startDate));
+      dateCondition = gte(
+        schema.supplierPayments.paymentDate,
+        new Date(params.startDate),
+      );
     } else if (params.endDate) {
-      dateCondition = lte(schema.supplierPayments.paymentDate, new Date(params.endDate));
+      dateCondition = lte(
+        schema.supplierPayments.paymentDate,
+        new Date(params.endDate),
+      );
     }
 
-    const whereClause = dateCondition ? and(...conditions, dateCondition) : and(...conditions);
+    const whereClause = dateCondition
+      ? and(...conditions, dateCondition)
+      : and(...conditions);
 
     const [data, totalResult, sumResult] = await Promise.all([
       this.db
@@ -86,7 +96,10 @@ export class SupplierPaymentService {
           supplierName: schema.suppliers.name,
         })
         .from(schema.supplierPayments)
-        .leftJoin(schema.suppliers, eq(schema.supplierPayments.supplierId, schema.suppliers.id))
+        .leftJoin(
+          schema.suppliers,
+          eq(schema.supplierPayments.supplierId, schema.suppliers.id),
+        )
         .where(whereClause)
         .orderBy(desc(schema.supplierPayments.paymentDate))
         .limit(params.pageSize)
@@ -137,7 +150,10 @@ export class SupplierPaymentService {
         supplierName: schema.suppliers.name,
       })
       .from(schema.supplierPayments)
-      .leftJoin(schema.suppliers, eq(schema.supplierPayments.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.supplierPayments.supplierId, schema.suppliers.id),
+      )
       .where(
         and(
           eq(schema.supplierPayments.id, id),
@@ -248,7 +264,10 @@ export class SupplierPaymentService {
     // 检查订单是否满足完成条件：入库完成 + 付款完成
     if (dto.orderId) {
       try {
-        const paymentStats = await this.getOrderPaymentStats(dto.orderId, enterpriseId);
+        const paymentStats = await this.getOrderPaymentStats(
+          dto.orderId,
+          enterpriseId,
+        );
         if (paymentStats.isFullyPaid) {
           const [order] = await this.db
             .select()
@@ -285,9 +304,12 @@ export class SupplierPaymentService {
 
     const patch: Record<string, unknown> = {};
     if (dto.amount !== undefined) patch.amount = dto.amount.toString();
-    if (dto.paymentMethod !== undefined) patch.paymentMethod = dto.paymentMethod;
-    if (dto.paymentDate !== undefined) patch.paymentDate = new Date(dto.paymentDate);
-    if (dto.referenceNo !== undefined) patch.referenceNo = dto.referenceNo || null;
+    if (dto.paymentMethod !== undefined)
+      patch.paymentMethod = dto.paymentMethod;
+    if (dto.paymentDate !== undefined)
+      patch.paymentDate = new Date(dto.paymentDate);
+    if (dto.referenceNo !== undefined)
+      patch.referenceNo = dto.referenceNo || null;
     if (dto.remark !== undefined) patch.remark = dto.remark || null;
 
     const [updated] = await this.db
@@ -324,7 +346,10 @@ export class SupplierPaymentService {
   /**
    * 获取供应商的付款统计
    */
-  async getSupplierPaymentStats(supplierId: number, enterpriseId: number | undefined) {
+  async getSupplierPaymentStats(
+    supplierId: number,
+    enterpriseId: number | undefined,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const [result] = await this.db
@@ -350,7 +375,10 @@ export class SupplierPaymentService {
   /**
    * 获取订单的付款统计
    */
-  async getOrderPaymentStats(orderId: number, enterpriseId: number | undefined) {
+  async getOrderPaymentStats(
+    orderId: number,
+    enterpriseId: number | undefined,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const [result] = await this.db
@@ -380,7 +408,9 @@ export class SupplierPaymentService {
 
     const totalPayments = result?.totalPayments ?? '0';
     const orderAmount = order?.totalAmount ?? '0';
-    const remainingAmount = (parseFloat(orderAmount) - parseFloat(totalPayments)).toFixed(2);
+    const remainingAmount = (
+      parseFloat(orderAmount) - parseFloat(totalPayments)
+    ).toFixed(2);
 
     return {
       orderId,
@@ -434,7 +464,10 @@ export class SupplierPaymentService {
       paymentsMap.set(row.supplierId, row.totalPaidAmount);
     });
 
-    const allSupplierIds = new Set([...ordersMap.keys(), ...paymentsMap.keys()]);
+    const allSupplierIds = new Set([
+      ...ordersMap.keys(),
+      ...paymentsMap.keys(),
+    ]);
 
     const results = await Promise.all(
       Array.from(allSupplierIds).map(async (supplierId) => {
@@ -451,7 +484,9 @@ export class SupplierPaymentService {
 
         const orderAmount = ordersMap.get(supplierId) ?? '0';
         const paidAmount = paymentsMap.get(supplierId) ?? '0';
-        const payableAmount = (parseFloat(orderAmount) - parseFloat(paidAmount)).toFixed(2);
+        const payableAmount = (
+          parseFloat(orderAmount) - parseFloat(paidAmount)
+        ).toFixed(2);
 
         return {
           supplierId,
@@ -464,9 +499,18 @@ export class SupplierPaymentService {
     );
 
     // 计算总计
-    const totalOrderAmount = results.reduce((sum, r) => sum + parseFloat(r.totalOrderAmount), 0);
-    const totalPaidAmount = results.reduce((sum, r) => sum + parseFloat(r.totalPaidAmount), 0);
-    const totalPayableAmount = results.reduce((sum, r) => sum + parseFloat(r.payableAmount), 0);
+    const totalOrderAmount = results.reduce(
+      (sum, r) => sum + parseFloat(r.totalOrderAmount),
+      0,
+    );
+    const totalPaidAmount = results.reduce(
+      (sum, r) => sum + parseFloat(r.totalPaidAmount),
+      0,
+    );
+    const totalPayableAmount = results.reduce(
+      (sum, r) => sum + parseFloat(r.payableAmount),
+      0,
+    );
 
     return {
       total: {
@@ -495,7 +539,10 @@ export class SupplierPaymentService {
         createdAt: schema.purchaseOrders.createdAt,
       })
       .from(schema.purchaseOrders)
-      .leftJoin(schema.suppliers, eq(schema.purchaseOrders.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.purchaseOrders.supplierId, schema.suppliers.id),
+      )
       .where(
         and(
           eq(schema.purchaseOrders.enterpriseId, eid),
@@ -521,34 +568,40 @@ export class SupplierPaymentService {
     });
 
     const today = new Date();
-    const result = orders.map((order) => {
-      const totalPaid = paymentsMap.get(order.id) ?? '0';
-      const payableAmount = (parseFloat(order.totalAmount) - parseFloat(totalPaid)).toFixed(2);
+    const result = orders
+      .map((order) => {
+        const totalPaid = paymentsMap.get(order.id) ?? '0';
+        const payableAmount = (
+          parseFloat(order.totalAmount) - parseFloat(totalPaid)
+        ).toFixed(2);
 
-      if (parseFloat(payableAmount) <= 0) return null;
+        if (parseFloat(payableAmount) <= 0) return null;
 
-      const createdDate = new Date(order.createdAt);
-      const daysDiff = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        const createdDate = new Date(order.createdAt);
+        const daysDiff = Math.floor(
+          (today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
 
-      let agingBucket: string;
-      if (daysDiff <= 30) agingBucket = '0-30天';
-      else if (daysDiff <= 60) agingBucket = '31-60天';
-      else if (daysDiff <= 90) agingBucket = '61-90天';
-      else agingBucket = '90天以上';
+        let agingBucket: string;
+        if (daysDiff <= 30) agingBucket = '0-30天';
+        else if (daysDiff <= 60) agingBucket = '31-60天';
+        else if (daysDiff <= 90) agingBucket = '61-90天';
+        else agingBucket = '90天以上';
 
-      return {
-        orderId: order.id,
-        orderNo: order.orderNo,
-        supplierId: order.supplierId,
-        supplierName: order.supplierName,
-        totalAmount: order.totalAmount,
-        totalPaid,
-        payableAmount,
-        daysAging: daysDiff,
-        agingBucket,
-        createdAt: order.createdAt.toISOString(),
-      };
-    }).filter((r): r is NonNullable<typeof r> => r !== null);
+        return {
+          orderId: order.id,
+          orderNo: order.orderNo,
+          supplierId: order.supplierId,
+          supplierName: order.supplierName,
+          totalAmount: order.totalAmount,
+          totalPaid,
+          payableAmount,
+          daysAging: daysDiff,
+          agingBucket,
+          createdAt: order.createdAt.toISOString(),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
 
     // 按账龄分组统计
     const bucketStats: Record<string, { count: number; amount: number }> = {
@@ -565,7 +618,10 @@ export class SupplierPaymentService {
       }
     });
 
-    const totalPayable = result.reduce((sum, r) => sum + parseFloat(r.payableAmount), 0);
+    const totalPayable = result.reduce(
+      (sum, r) => sum + parseFloat(r.payableAmount),
+      0,
+    );
 
     return {
       totalPayable: totalPayable.toFixed(2),
@@ -573,7 +629,10 @@ export class SupplierPaymentService {
         bucket,
         count: stats.count,
         amount: stats.amount.toFixed(2),
-        percentage: totalPayable > 0 ? ((stats.amount / totalPayable) * 100).toFixed(1) : '0',
+        percentage:
+          totalPayable > 0
+            ? ((stats.amount / totalPayable) * 100).toFixed(1)
+            : '0',
       })),
       details: result,
     };

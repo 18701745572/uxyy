@@ -12,7 +12,11 @@ import type { AppDrizzleDb } from '../../database/database.module';
 export interface AutoAccountingRule {
   sourceType: string;
   condition?: (data: any) => boolean;
-  generateVoucher: (data: any, enterpriseId: number, userId: number) => {
+  generateVoucher: (
+    data: any,
+    enterpriseId: number,
+    userId: number,
+  ) => {
     debitAccount: string;
     creditAccount: string;
     amount: string;
@@ -39,7 +43,8 @@ export class AutoAccountingService {
     // 销售单（现结）记账规则
     {
       sourceType: 'sales_order_cash',
-      condition: (order: any) => order.paymentMethod === 'cash' || order.isCashSale,
+      condition: (order: any) =>
+        order.paymentMethod === 'cash' || order.isCashSale,
       generateVoucher: (order: any) => ({
         debitAccount: '库存现金',
         creditAccount: '主营业务收入',
@@ -158,7 +163,9 @@ export class AutoAccountingService {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
     return `PZ${y}${m}${d}${random}`;
   }
 
@@ -172,7 +179,13 @@ export class AutoAccountingService {
     userId: number;
     skipIfExists?: boolean;
   }): Promise<typeof schema.voucherEntries.$inferSelect | null> {
-    const { sourceType, sourceData, enterpriseId, userId, skipIfExists = true } = params;
+    const {
+      sourceType,
+      sourceData,
+      enterpriseId,
+      userId,
+      skipIfExists = true,
+    } = params;
 
     // 检查是否已生成凭证
     if (skipIfExists && sourceData.id) {
@@ -228,12 +241,17 @@ export class AutoAccountingService {
    * 1. 确认收入：借 应收账款 / 贷 主营业务收入
    * 2. 结转成本：借 主营业务成本 / 贷 库存商品
    */
-  async autoAccountSalesOrder(order: any, enterpriseId: number, userId: number) {
+  async autoAccountSalesOrder(
+    order: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     const results = [];
 
     // 1. 收入确认凭证
     const incomeVoucher = await this.autoGenerateVoucher({
-      sourceType: order.paymentMethod === 'cash' ? 'sales_order_cash' : 'sales_order',
+      sourceType:
+        order.paymentMethod === 'cash' ? 'sales_order_cash' : 'sales_order',
       sourceData: order,
       enterpriseId,
       userId,
@@ -258,9 +276,16 @@ export class AutoAccountingService {
    * 采购单自动记账
    * 借 库存商品 / 贷 应付账款
    */
-  async autoAccountPurchaseOrder(order: any, enterpriseId: number, userId: number) {
+  async autoAccountPurchaseOrder(
+    order: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     return this.autoGenerateVoucher({
-      sourceType: order.paymentMethod === 'cash' ? 'purchase_order_cash' : 'purchase_order',
+      sourceType:
+        order.paymentMethod === 'cash'
+          ? 'purchase_order_cash'
+          : 'purchase_order',
       sourceData: order,
       enterpriseId,
       userId,
@@ -272,7 +297,11 @@ export class AutoAccountingService {
    * 1. 费用确认：借 费用科目 / 贷 其他应付款
    * 2. 付款：借 其他应付款 / 贷 库存现金/银行存款
    */
-  async autoAccountExpenseRequest(expense: any, enterpriseId: number, userId: number) {
+  async autoAccountExpenseRequest(
+    expense: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     const results = [];
 
     // 1. 费用确认凭证
@@ -302,7 +331,8 @@ export class AutoAccountingService {
    * 发票自动入账
    */
   async autoAccountInvoice(invoice: any, enterpriseId: number, userId: number) {
-    const sourceType = invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales';
+    const sourceType =
+      invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales';
 
     return this.autoGenerateVoucher({
       sourceType,
@@ -316,7 +346,11 @@ export class AutoAccountingService {
    * 回款自动记账
    * 借 银行存款 / 贷 应收账款
    */
-  async autoAccountPaymentReceived(payment: any, enterpriseId: number, userId: number) {
+  async autoAccountPaymentReceived(
+    payment: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     return this.autoGenerateVoucher({
       sourceType: 'payment_received',
       sourceData: payment,
@@ -329,7 +363,11 @@ export class AutoAccountingService {
    * 付款自动记账
    * 借 应付账款 / 贷 银行存款
    */
-  async autoAccountPaymentMade(payment: any, enterpriseId: number, userId: number) {
+  async autoAccountPaymentMade(
+    payment: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     return this.autoGenerateVoucher({
       sourceType: 'payment_made',
       sourceData: payment,
@@ -342,7 +380,11 @@ export class AutoAccountingService {
    * 采购入库自动记账
    * 借 库存商品 / 贷 在途物资
    */
-  async autoAccountPurchaseInbound(inbound: any, enterpriseId: number, userId: number) {
+  async autoAccountPurchaseInbound(
+    inbound: any,
+    enterpriseId: number,
+    userId: number,
+  ) {
     return this.autoGenerateVoucher({
       sourceType: 'purchase_inbound',
       sourceData: inbound,

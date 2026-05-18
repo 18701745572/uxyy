@@ -156,9 +156,9 @@ describe('AuthController', () => {
     });
 
     it('should throw UnauthorizedException when user is missing on request', () => {
-      expect(() => controller.listEnterprises(mockReq({ user: undefined }))).toThrow(
-        UnauthorizedException,
-      );
+      expect(() =>
+        controller.listEnterprises(mockReq({ user: undefined })),
+      ).toThrow(UnauthorizedException);
       expect(auth.listEnterprises).not.toHaveBeenCalled();
     });
   });

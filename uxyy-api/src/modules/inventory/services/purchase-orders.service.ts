@@ -185,11 +185,12 @@ export class PurchaseOrdersService {
       throw new BadRequestException('采购明细不能为空');
     }
 
-    const priceValidation = await this.priceAnomalyService.validatePurchaseOrder(
-      eid,
-      dto.supplierId,
-      dto.items,
-    );
+    const priceValidation =
+      await this.priceAnomalyService.validatePurchaseOrder(
+        eid,
+        dto.supplierId,
+        dto.items,
+      );
 
     let totalAmount = 0;
     for (const item of dto.items) {
@@ -433,7 +434,11 @@ export class PurchaseOrdersService {
 
       if (allFullyReceived) {
         // 检查付款是否完成
-        const paymentStats = await this.supplierPaymentService.getOrderPaymentStats(id, enterpriseId);
+        const paymentStats =
+          await this.supplierPaymentService.getOrderPaymentStats(
+            id,
+            enterpriseId,
+          );
         if (paymentStats.isFullyPaid) {
           await tx
             .update(schema.purchaseOrders)
@@ -447,7 +452,11 @@ export class PurchaseOrdersService {
           // 自动记账：采购入库完成且付款完成时生成凭证
           try {
             const order = await this.findOne(id, enterpriseId);
-            await this.autoAccountingService.autoAccountPurchaseInbound(order, eid, userId);
+            await this.autoAccountingService.autoAccountPurchaseInbound(
+              order,
+              eid,
+              userId,
+            );
           } catch (err) {
             console.error('采购入库自动记账失败:', err);
           }
@@ -601,7 +610,10 @@ export class PurchaseOrdersService {
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;

@@ -36,7 +36,10 @@ export class PredictionController {
     @Param('opportunityId', ParseIntPipe) opportunityId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.opportunityPredictionService.predictOpportunity(opportunityId, req.user.enterpriseId);
+    return this.opportunityPredictionService.predictOpportunity(
+      opportunityId,
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -47,7 +50,10 @@ export class PredictionController {
     @Req() req: Request & { user: UserContext },
     @Query('stage') stage?: string,
   ) {
-    return this.opportunityPredictionService.batchPredictOpportunities(req.user.enterpriseId, stage);
+    return this.opportunityPredictionService.batchPredictOpportunities(
+      req.user.enterpriseId,
+      stage,
+    );
   }
 
   /**
@@ -55,7 +61,9 @@ export class PredictionController {
    */
   @Get('sales-funnel')
   getSalesFunnelPrediction(@Req() req: Request & { user: UserContext }) {
-    return this.opportunityPredictionService.getSalesFunnelPrediction(req.user.enterpriseId);
+    return this.opportunityPredictionService.getSalesFunnelPrediction(
+      req.user.enterpriseId,
+    );
   }
 
   // ========== 客户流失预警 ==========
@@ -68,7 +76,10 @@ export class PredictionController {
     @Param('customerId', ParseIntPipe) customerId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.churnPredictionService.predictCustomerChurn(customerId, req.user.enterpriseId);
+    return this.churnPredictionService.predictCustomerChurn(
+      customerId,
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -79,7 +90,10 @@ export class PredictionController {
     @Req() req: Request & { user: UserContext },
     @Query('riskLevel') riskLevel?: 'high' | 'medium' | 'low',
   ) {
-    return this.churnPredictionService.batchPredictChurn(req.user.enterpriseId, riskLevel);
+    return this.churnPredictionService.batchPredictChurn(
+      req.user.enterpriseId,
+      riskLevel,
+    );
   }
 
   /**

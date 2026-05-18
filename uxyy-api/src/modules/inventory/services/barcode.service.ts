@@ -12,15 +12,16 @@ export interface BarcodeScanResult {
 
 @Injectable()
 export class BarcodeService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 扫码识别
    * 支持：商品条码、批次码、订单号
    */
-  async scan(barcode: string, enterpriseId: number): Promise<BarcodeScanResult> {
+  async scan(
+    barcode: string,
+    enterpriseId: number,
+  ): Promise<BarcodeScanResult> {
     // 1. 尝试识别为商品条码
     const product = await this.findProductByBarcode(barcode, enterpriseId);
     if (product) {
@@ -81,7 +82,7 @@ export class BarcodeService {
       .from(schema.products)
       .where(eq(schema.products.enterpriseId, enterpriseId));
 
-    return products.find(p => {
+    return products.find((p) => {
       const ext = p.retailExt as any;
       return ext?.barcode === barcode;
     });
@@ -97,7 +98,10 @@ export class BarcodeService {
         product: schema.products,
       })
       .from(schema.productBatches)
-      .leftJoin(schema.products, eq(schema.productBatches.productId, schema.products.id))
+      .leftJoin(
+        schema.products,
+        eq(schema.productBatches.productId, schema.products.id),
+      )
       .where(
         and(
           eq(schema.productBatches.batchNo, batchNo),
@@ -119,7 +123,10 @@ export class BarcodeService {
         customer: schema.customers,
       })
       .from(schema.salesOrders)
-      .leftJoin(schema.customers, eq(schema.salesOrders.customerId, schema.customers.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.salesOrders.customerId, schema.customers.id),
+      )
       .where(
         and(
           eq(schema.salesOrders.orderNo, orderNo),
@@ -138,7 +145,10 @@ export class BarcodeService {
         supplier: schema.suppliers,
       })
       .from(schema.purchaseOrders)
-      .leftJoin(schema.suppliers, eq(schema.purchaseOrders.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.purchaseOrders.supplierId, schema.suppliers.id),
+      )
       .where(
         and(
           eq(schema.purchaseOrders.orderNo, orderNo),
@@ -293,7 +303,8 @@ export class BarcodeService {
   private generateBatchNo(): string {
     const date = new Date();
     const prefix = 'B';
-    const timestamp = date.getFullYear().toString().slice(2) +
+    const timestamp =
+      date.getFullYear().toString().slice(2) +
       String(date.getMonth() + 1).padStart(2, '0') +
       String(date.getDate()).padStart(2, '0');
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();

@@ -33,8 +33,7 @@ function toStocktakingItemDto(
   productName?: string | null,
 ) {
   const bookQty = Number(row.bookQty ?? 0);
-  const actualQty =
-    row.actualQty != null ? Number(row.actualQty) : bookQty;
+  const actualQty = row.actualQty != null ? Number(row.actualQty) : bookQty;
   const difference =
     row.diffQty != null ? Number(row.diffQty) : actualQty - bookQty;
   return {
@@ -422,7 +421,7 @@ export class StocktakingService {
     };
 
     let created = 0;
-    let skipped = 0;
+    const skipped = 0;
     const failures: Array<{ row: number; reason: string }> = [];
 
     for (let i = 0; i < rawRows.length; i++) {
@@ -440,7 +439,10 @@ export class StocktakingService {
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;
@@ -466,7 +468,10 @@ export class StocktakingService {
         .limit(1);
 
       if (!warehouse) {
-        failures.push({ row: rowIndex, reason: `仓库ID ${warehouseId} 不存在` });
+        failures.push({
+          row: rowIndex,
+          reason: `仓库ID ${warehouseId} 不存在`,
+        });
         continue;
       }
 

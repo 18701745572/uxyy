@@ -53,7 +53,7 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
       }),
   });
 
-  const selectedOrder = ordersData?.list.find((o) => o.id === formData.orderId);
+  const selectedOrder = ordersData?.list?.find((o) => o.id === formData.orderId);
 
   const mutation = useMutation({
     mutationFn: (dto: CreateOutboundDto) => createSalesOutbound(dto),
@@ -106,7 +106,7 @@ function CreateOutboundForm({ onDone }: { onDone: () => void }) {
           }}
         >
           <option value="">请选择销售订单</option>
-          {ordersData?.list.map((o) => (
+          {ordersData?.list?.map((o) => (
             <option key={o.id} value={o.id}>
               {o.orderNo} - {o.customerName} - ¥{o.totalAmount}
             </option>

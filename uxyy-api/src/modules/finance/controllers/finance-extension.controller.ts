@@ -58,7 +58,8 @@ export class FinanceExtensionController {
   @ApiOperation({ summary: '导入银行流水' })
   async importBankStatement(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       bankCode: string;
       bankAccount: string;
       csvContent: string;
@@ -110,17 +111,14 @@ export class FinanceExtensionController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    return this.bankStatementService.getStatementList(
-      req.user.enterpriseId,
-      {
-        matchStatus,
-        bankAccount,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-        page: page ? parseInt(page, 10) : 1,
-        pageSize: pageSize ? parseInt(pageSize, 10) : 20,
-      },
-    );
+    return this.bankStatementService.getStatementList(req.user.enterpriseId, {
+      matchStatus,
+      bankAccount,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      pageSize: pageSize ? parseInt(pageSize, 10) : 20,
+    });
   }
 
   @Post('bank/statements/:id/match')
@@ -133,7 +131,7 @@ export class FinanceExtensionController {
     const results = await this.bankStatementService.matchTransactions(
       req.user.enterpriseId,
     );
-    return results.find(r => r.statementId === id) || null;
+    return results.find((r) => r.statementId === id) || null;
   }
 
   @Post('bank/statements/:id/generate-voucher')
@@ -155,9 +153,7 @@ export class FinanceExtensionController {
   @Post('bank/batch-match')
   @Permissions(Permission.FIN_WRITE)
   @ApiOperation({ summary: '批量匹配所有未匹配流水' })
-  async batchMatch(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async batchMatch(@Req() req: Request & { user: UserContext }) {
     return this.bankStatementService.matchTransactions(req.user.enterpriseId);
   }
 
@@ -211,23 +207,18 @@ export class FinanceExtensionController {
       req.user.userId,
     );
 
-    return this.voucherTemplateService.getTemplates(
-      req.user.enterpriseId,
-      {
-        category,
-        keyword,
-        page: page ? parseInt(page, 10) : 1,
-        pageSize: pageSize ? parseInt(pageSize, 10) : 20,
-      },
-    );
+    return this.voucherTemplateService.getTemplates(req.user.enterpriseId, {
+      category,
+      keyword,
+      page: page ? parseInt(page, 10) : 1,
+      pageSize: pageSize ? parseInt(pageSize, 10) : 20,
+    });
   }
 
   @Get('templates/categories')
   @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '获取模板分类列表' })
-  async getTemplateCategories(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async getTemplateCategories(@Req() req: Request & { user: UserContext }) {
     return this.voucherTemplateService.getCategories(req.user.enterpriseId);
   }
 
@@ -253,7 +244,8 @@ export class FinanceExtensionController {
   @ApiOperation({ summary: '创建自定义凭证模板' })
   async createTemplate(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       templateCode: string;
       templateName: string;
       description?: string;
@@ -279,7 +271,7 @@ export class FinanceExtensionController {
         category: data.category,
         isSystem: false,
         summary: data.summary,
-        entries: data.entries.map(e => ({
+        entries: data.entries.map((e) => ({
           accountId: 0,
           accountCode: e.accountCode,
           accountName: e.accountName,
@@ -315,7 +307,8 @@ export class FinanceExtensionController {
   async updateTemplate(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       templateName?: string;
       description?: string;
       category?: string;
@@ -337,10 +330,7 @@ export class FinanceExtensionController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    await this.voucherTemplateService.deleteTemplate(
-      id,
-      req.user.enterpriseId,
-    );
+    await this.voucherTemplateService.deleteTemplate(id, req.user.enterpriseId);
     return { success: true };
   }
 
@@ -350,7 +340,8 @@ export class FinanceExtensionController {
   async useTemplate(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       totalAmount: string;
       voucherDate?: string;
       remark?: string;
@@ -388,9 +379,7 @@ export class FinanceExtensionController {
   @Post('templates/initialize')
   @Permissions(Permission.FIN_CONFIG)
   @ApiOperation({ summary: '初始化企业模板库' })
-  async initializeTemplates(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async initializeTemplates(@Req() req: Request & { user: UserContext }) {
     await this.voucherTemplateService.initializeEnterpriseTemplates(
       req.user.enterpriseId,
       req.user.userId,

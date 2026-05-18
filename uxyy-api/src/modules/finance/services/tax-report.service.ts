@@ -162,8 +162,8 @@ export class TaxReportService {
     let purchaseAmount = 0;
     let purchaseTax = 0;
     let taxableSales = 0;
-    let taxExemptSales = 0;
-    let zeroRateSales = 0;
+    const taxExemptSales = 0;
+    const zeroRateSales = 0;
 
     for (const invoice of invoices) {
       if (invoice.status !== 'verified') continue;
@@ -261,7 +261,9 @@ export class TaxReportService {
     };
   }
 
-  async generateTaxFilingGuide(enterpriseId: number): Promise<TaxFilingGuide[]> {
+  async generateTaxFilingGuide(
+    enterpriseId: number,
+  ): Promise<TaxFilingGuide[]> {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
@@ -348,10 +350,7 @@ export class TaxReportService {
         filingPeriod: '月报/季报',
         deadline: '与增值税同步',
         applicableEnterprises: '增值税纳税人',
-        requiredDocuments: [
-          '附加税费申报表',
-          '增值税申报表',
-        ],
+        requiredDocuments: ['附加税费申报表', '增值税申报表'],
         steps: [
           '登录电子税务局',
           '选择「附加税费申报」',
@@ -410,7 +409,10 @@ export class TaxReportService {
   ): Promise<{ fileName: string; htmlContent: string }> {
     const summary = await this.generateTaxReport(enterpriseId, period);
     const vatReport = await this.generateVATReport(enterpriseId, period);
-    const incomeTaxReport = await this.generateIncomeTaxReport(enterpriseId, period);
+    const incomeTaxReport = await this.generateIncomeTaxReport(
+      enterpriseId,
+      period,
+    );
     const guides = await this.generateTaxFilingGuide(enterpriseId);
 
     const htmlContent = `
@@ -466,18 +468,22 @@ export class TaxReportService {
   </table>
 
   <h2>三、申报操作指南</h2>
-  ${guides.map((guide, index) => `
+  ${guides
+    .map(
+      (guide, index) => `
   <div class="guide-box">
     <h3>${index + 1}. ${guide.taxType}（${guide.taxTypeCode}）</h3>
     <p><strong>申报周期：</strong>${guide.filingPeriod}</p>
     <p><strong>申报截止日：</strong>${guide.deadline}</p>
     <p><strong>适用企业：</strong>${guide.applicableEnterprises}</p>
     <p><strong>操作步骤：</strong></p>
-    <ol>${guide.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    <ol>${guide.steps.map((s) => `<li>${s}</li>`).join('')}</ol>
     <p><strong>注意事项：</strong></p>
-    <ul>${guide.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+    <ul>${guide.notes.map((n) => `<li>${n}</li>`).join('')}</ul>
   </div>
-  `).join('')}
+  `,
+    )
+    .join('')}
 
   <div class="footer">
     <p>本报告由优效营（uxyy.cn）自动生成</p>
@@ -508,11 +514,11 @@ export class TaxReportService {
 
   private getTaxTypeCode(taxType: string): string {
     const codeMap: Record<string, string> = {
-      '增值税': '10100',
-      '企业所得税': '10200',
-      '个人所得税': '10300',
-      '附加税费': '10400',
-      '其他税费': '10900',
+      增值税: '10100',
+      企业所得税: '10200',
+      个人所得税: '10300',
+      附加税费: '10400',
+      其他税费: '10900',
     };
     return codeMap[taxType] || '10900';
   }

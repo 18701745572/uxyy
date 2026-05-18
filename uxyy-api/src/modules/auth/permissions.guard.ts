@@ -5,9 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  PERMISSIONS_KEY,
-} from '../../common/decorators/permissions.decorator';
+import { PERMISSIONS_KEY } from '../../common/decorators/permissions.decorator';
 import { roleHasAnyPermission } from './role-permissions';
 
 @Injectable()

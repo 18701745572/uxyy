@@ -81,7 +81,9 @@ export const accounts = pgTable('accounts', {
   name: varchar('name', { length: 50 }).notNull(),
   category: varchar('category', { length: 20 }).notNull(), // asset, liability, equity, revenue, expense
   parentId: integer('parent_id'),
-  balanceDirection: varchar('balance_direction', { length: 10 }).default('debit'),
+  balanceDirection: varchar('balance_direction', { length: 10 }).default(
+    'debit',
+  ),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -143,8 +145,12 @@ export const voucherItems = pgTable('voucher_items', {
   accountId: integer('account_id')
     .references(() => accounts.id)
     .notNull(),
-  debitAmount: decimal('debit_amount', { precision: 12, scale: 2 }).default('0'),
-  creditAmount: decimal('credit_amount', { precision: 12, scale: 2 }).default('0'),
+  debitAmount: decimal('debit_amount', { precision: 12, scale: 2 }).default(
+    '0',
+  ),
+  creditAmount: decimal('credit_amount', { precision: 12, scale: 2 }).default(
+    '0',
+  ),
   summary: text('summary'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -185,10 +191,8 @@ export const accountMappingRules = pgTable('account_mapping_rules', {
     .notNull(),
   businessType: varchar('business_type', { length: 50 }).notNull(), // 业务类型：sales_order, purchase_order等
   subType: varchar('sub_type', { length: 50 }), // 子类型：cash_sale, credit_sale等
-  debitAccountId: integer('debit_account_id')
-    .references(() => accounts.id),
-  creditAccountId: integer('credit_account_id')
-    .references(() => accounts.id),
+  debitAccountId: integer('debit_account_id').references(() => accounts.id),
+  creditAccountId: integer('credit_account_id').references(() => accounts.id),
   description: text('description'),
   priority: integer('priority').default(0), // 优先级，用于冲突解决
   isActive: boolean('is_active').default(true).notNull(),
@@ -323,9 +327,13 @@ export const bankStatements = pgTable('bank_statements', {
   purpose: varchar('purpose', { length: 200 }), // 用途
   referenceNo: varchar('reference_no', { length: 50 }), // 流水号/参考号
   // 智能处理
-  matchStatus: varchar('match_status', { length: 20 }).default('unmatched').notNull(), // unmatched, matched, voucher_created
+  matchStatus: varchar('match_status', { length: 20 })
+    .default('unmatched')
+    .notNull(), // unmatched, matched, voucher_created
   matchedVoucherId: integer('matched_voucher_id').references(() => vouchers.id),
-  suggestedAccountId: integer('suggested_account_id').references(() => accounts.id),
+  suggestedAccountId: integer('suggested_account_id').references(
+    () => accounts.id,
+  ),
   confidence: decimal('confidence', { precision: 3, scale: 2 }), // 匹配置信度 0-1
   // 导入信息
   importBatchId: varchar('import_batch_id', { length: 50 }), // 批次号
@@ -398,31 +406,37 @@ export const accountSubjectsRelations = relations(
 
 // ==================== 新增关系定义 ====================
 
-export const accountMappingRulesRelations = relations(accountMappingRules, ({ one }) => ({
-  enterprise: one(enterprises, {
-    fields: [accountMappingRules.enterpriseId],
-    references: [enterprises.id],
+export const accountMappingRulesRelations = relations(
+  accountMappingRules,
+  ({ one }) => ({
+    enterprise: one(enterprises, {
+      fields: [accountMappingRules.enterpriseId],
+      references: [enterprises.id],
+    }),
+    createdByUser: one(users, {
+      fields: [accountMappingRules.createdBy],
+      references: [users.id],
+    }),
+    debitAccount: one(accounts, {
+      fields: [accountMappingRules.debitAccountId],
+      references: [accounts.id],
+    }),
+    creditAccount: one(accounts, {
+      fields: [accountMappingRules.creditAccountId],
+      references: [accounts.id],
+    }),
   }),
-  createdByUser: one(users, {
-    fields: [accountMappingRules.createdBy],
-    references: [users.id],
-  }),
-  debitAccount: one(accounts, {
-    fields: [accountMappingRules.debitAccountId],
-    references: [accounts.id],
-  }),
-  creditAccount: one(accounts, {
-    fields: [accountMappingRules.creditAccountId],
-    references: [accounts.id],
-  }),
-}));
+);
 
-export const voucherItemAuxiliariesRelations = relations(voucherItemAuxiliaries, ({ one }) => ({
-  voucherItem: one(voucherItems, {
-    fields: [voucherItemAuxiliaries.voucherItemId],
-    references: [voucherItems.id],
+export const voucherItemAuxiliariesRelations = relations(
+  voucherItemAuxiliaries,
+  ({ one }) => ({
+    voucherItem: one(voucherItems, {
+      fields: [voucherItemAuxiliaries.voucherItemId],
+      references: [voucherItems.id],
+    }),
   }),
-}));
+);
 
 export const voucherAuditsRelations = relations(voucherAudits, ({ one }) => ({
   voucher: one(vouchers, {
@@ -436,30 +450,33 @@ export const voucherAuditsRelations = relations(voucherAudits, ({ one }) => ({
 }));
 
 // 更新vouchersRelations以包含审核相关关系
-export const vouchersRelationsExtended = relations(vouchers, ({ one, many }) => ({
-  enterprise: one(enterprises, {
-    fields: [vouchers.enterpriseId],
-    references: [enterprises.id],
+export const vouchersRelationsExtended = relations(
+  vouchers,
+  ({ one, many }) => ({
+    enterprise: one(enterprises, {
+      fields: [vouchers.enterpriseId],
+      references: [enterprises.id],
+    }),
+    createdByUser: one(users, {
+      fields: [vouchers.createdBy],
+      references: [users.id],
+    }),
+    submittedByUser: one(users, {
+      fields: [vouchers.submittedBy],
+      references: [users.id],
+    }),
+    approvedByUser: one(users, {
+      fields: [vouchers.approvedBy],
+      references: [users.id],
+    }),
+    postedByUser: one(users, {
+      fields: [vouchers.postedBy],
+      references: [users.id],
+    }),
+    items: many(voucherItems),
+    audits: many(voucherAudits),
   }),
-  createdByUser: one(users, {
-    fields: [vouchers.createdBy],
-    references: [users.id],
-  }),
-  submittedByUser: one(users, {
-    fields: [vouchers.submittedBy],
-    references: [users.id],
-  }),
-  approvedByUser: one(users, {
-    fields: [vouchers.approvedBy],
-    references: [users.id],
-  }),
-  postedByUser: one(users, {
-    fields: [vouchers.postedBy],
-    references: [users.id],
-  }),
-  items: many(voucherItems),
-  audits: many(voucherAudits),
-}));
+);
 
 // 银行流水关系
 export const bankStatementsRelations = relations(bankStatements, ({ one }) => ({
@@ -478,20 +495,26 @@ export const bankStatementsRelations = relations(bankStatements, ({ one }) => ({
 }));
 
 // 凭证模板关系
-export const voucherTemplatesRelations = relations(voucherTemplates, ({ one }) => ({
-  enterprise: one(enterprises, {
-    fields: [voucherTemplates.enterpriseId],
-    references: [enterprises.id],
+export const voucherTemplatesRelations = relations(
+  voucherTemplates,
+  ({ one }) => ({
+    enterprise: one(enterprises, {
+      fields: [voucherTemplates.enterpriseId],
+      references: [enterprises.id],
+    }),
   }),
-}));
+);
 
 // AI学习记录关系
-export const aiLearningRecordsRelations = relations(aiLearningRecords, ({ one }) => ({
-  enterprise: one(enterprises, {
-    fields: [aiLearningRecords.enterpriseId],
-    references: [enterprises.id],
+export const aiLearningRecordsRelations = relations(
+  aiLearningRecords,
+  ({ one }) => ({
+    enterprise: one(enterprises, {
+      fields: [aiLearningRecords.enterpriseId],
+      references: [enterprises.id],
+    }),
   }),
-}));
+);
 
 // 异常预警关系
 export const financeAlertsRelations = relations(financeAlerts, ({ one }) => ({
@@ -506,18 +529,23 @@ export const financeAlertsRelations = relations(financeAlerts, ({ one }) => ({
 }));
 
 // 预警配置关系
-export const financeAlertConfigsRelations = relations(financeAlertConfigs, ({ one }) => ({
-  enterprise: one(enterprises, {
-    fields: [financeAlertConfigs.enterpriseId],
-    references: [enterprises.id],
+export const financeAlertConfigsRelations = relations(
+  financeAlertConfigs,
+  ({ one }) => ({
+    enterprise: one(enterprises, {
+      fields: [financeAlertConfigs.enterpriseId],
+      references: [enterprises.id],
+    }),
   }),
-}));
+);
 
 // 智能推荐关系
-export const aiRecommendationsRelations = relations(aiRecommendations, ({ one }) => ({
-  enterprise: one(enterprises, {
-    fields: [aiRecommendations.enterpriseId],
-    references: [enterprises.id],
+export const aiRecommendationsRelations = relations(
+  aiRecommendations,
+  ({ one }) => ({
+    enterprise: one(enterprises, {
+      fields: [aiRecommendations.enterpriseId],
+      references: [enterprises.id],
+    }),
   }),
-}));
-
+);

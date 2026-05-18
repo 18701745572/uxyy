@@ -24,14 +24,14 @@ export interface PurchaseSuggestion {
 export class PurchaseSuggestionService {
   private readonly logger = new Logger(PurchaseSuggestionService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 生成智能采购建议
    */
-  async generateSuggestions(enterpriseId: number): Promise<PurchaseSuggestion[]> {
+  async generateSuggestions(
+    enterpriseId: number,
+  ): Promise<PurchaseSuggestion[]> {
     const suggestions: PurchaseSuggestion[] = [];
 
     // 获取所有商品
@@ -49,13 +49,18 @@ export class PurchaseSuggestionService {
 
     // 按紧急程度排序
     const urgencyPriority = { high: 3, medium: 2, low: 1 };
-    return suggestions.sort((a, b) => urgencyPriority[b.urgency] - urgencyPriority[a.urgency]);
+    return suggestions.sort(
+      (a, b) => urgencyPriority[b.urgency] - urgencyPriority[a.urgency],
+    );
   }
 
   /**
    * 分析单个商品
    */
-  private async analyzeProduct(product: typeof schema.products.$inferSelect, enterpriseId: number): Promise<PurchaseSuggestion | null> {
+  private async analyzeProduct(
+    product: typeof schema.products.$inferSelect,
+    enterpriseId: number,
+  ): Promise<PurchaseSuggestion | null> {
     const productId = product.id;
     const minStock = parseFloat(product.minStock || '0');
     const maxStock = parseFloat(product.maxStock || '0');
@@ -134,7 +139,7 @@ export class PurchaseSuggestionService {
     // 2. 基于销售趋势的补货建议
     else if (avgDailySales > 0) {
       const daysOfStock = currentStock / avgDailySales;
-      
+
       if (daysOfStock < 7) {
         urgency = 'high';
         suggestedQty = Math.ceil(avgDailySales * 30 - currentStock);
@@ -218,7 +223,9 @@ export class PurchaseSuggestionService {
         currentStock: parseFloat(inventory?.quantity || '0'),
         minStock: parseFloat(product.minStock || '0'),
         maxStock: parseFloat(product.maxStock || '0'),
-        shortage: parseFloat(product.minStock || '0') - parseFloat(inventory?.quantity || '0'),
+        shortage:
+          parseFloat(product.minStock || '0') -
+          parseFloat(inventory?.quantity || '0'),
       }));
 
     return alerts.sort((a, b) => b.shortage - a.shortage);
@@ -227,11 +234,16 @@ export class PurchaseSuggestionService {
   /**
    * 生成采购订单建议
    */
-  async generatePurchaseOrderSuggestion(enterpriseId: number, supplierId?: number) {
+  async generatePurchaseOrderSuggestion(
+    enterpriseId: number,
+    supplierId?: number,
+  ) {
     const suggestions = await this.generateSuggestions(enterpriseId);
 
     // 过滤紧急和中等的建议
-    const urgentSuggestions = suggestions.filter(s => s.urgency === 'high' || s.urgency === 'medium');
+    const urgentSuggestions = suggestions.filter(
+      (s) => s.urgency === 'high' || s.urgency === 'medium',
+    );
 
     // 按供应商分组
     const groupedBySupplier: Record<number, PurchaseSuggestion[]> = {};

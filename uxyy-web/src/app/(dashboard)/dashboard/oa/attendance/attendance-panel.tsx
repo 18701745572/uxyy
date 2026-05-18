@@ -226,7 +226,7 @@ export function AttendancePanel() {
     { id: "make-up", label: "补卡申请", icon: Clock },
   ] as const;
 
-  const todayRecord = personalQuery.data?.records.find((r) => {
+  const todayRecord = personalQuery.data?.records?.find((r) => {
     const today = new Date().toISOString().split("T")[0];
     return r.date.startsWith(today);
   });
@@ -457,35 +457,35 @@ export function AttendancePanel() {
                   {[
                     {
                       label: "正常",
-                      value: personalQuery.data.stats.normalDays,
+                      value: personalQuery.data.stats?.normalDays ?? 0,
                       color: "text-green-500",
                       bg: "bg-green-500/10",
                       borderColor: "border-green-500/20",
                     },
                     {
                       label: "迟到",
-                      value: personalQuery.data.stats.lateDays,
+                      value: personalQuery.data.stats?.lateDays ?? 0,
                       color: "text-amber-500",
                       bg: "bg-amber-500/10",
                       borderColor: "border-amber-500/20",
                     },
                     {
                       label: "早退",
-                      value: personalQuery.data.stats.earlyLeaveDays,
+                      value: personalQuery.data.stats?.earlyLeaveDays ?? 0,
                       color: "text-orange-500",
                       bg: "bg-orange-500/10",
                       borderColor: "border-orange-500/20",
                     },
                     {
                       label: "缺勤",
-                      value: personalQuery.data.stats.absentDays,
+                      value: personalQuery.data.stats?.absentDays ?? 0,
                       color: "text-red-500",
                       bg: "bg-red-500/10",
                       borderColor: "border-red-500/20",
                     },
                     {
                       label: "请假",
-                      value: personalQuery.data.stats.leaveDays,
+                      value: personalQuery.data.stats?.leaveDays ?? 0,
                       color: "text-blue-500",
                       bg: "bg-blue-500/10",
                       borderColor: "border-blue-500/20",
@@ -514,13 +514,13 @@ export function AttendancePanel() {
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
                           style={{
-                            width: `${Math.min((parseFloat(formatWorkHours(personalQuery.data.stats.totalWorkHours)) / 180) * 100, 100)}%`,
+                            width: `${Math.min((parseFloat(formatWorkHours(personalQuery.data.stats?.totalWorkHours ?? 0)) / 180) * 100, 100)}%`,
                           }}
                         />
                       </div>
                       <span className="font-semibold text-text-primary">
                         {formatWorkHours(
-                          personalQuery.data.stats.totalWorkHours,
+                          personalQuery.data.stats?.totalWorkHours ?? 0,
                         )}
                         h
                       </span>
@@ -585,14 +585,14 @@ export function AttendancePanel() {
                   </h3>
                   <span className="text-xs text-text-tertiary">最近30天</span>
                 </div>
-                {personalQuery.data.records.length === 0 ? (
+                {!personalQuery.data.records?.length ? (
                   <div className="p-8 text-center">
                     <Clock className="w-12 h-12 text-text-quaternary mx-auto mb-3" />
                     <p className="text-sm text-text-tertiary">暂无考勤记录</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-border-secondary max-h-80 overflow-y-auto">
-                    {personalQuery.data.records.map((record) => (
+                    {personalQuery.data.records?.map((record) => (
                       <div
                         key={record.id}
                         className="px-5 py-3 flex items-center justify-between hover:bg-bg-secondary transition-colors"

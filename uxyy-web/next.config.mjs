@@ -43,11 +43,71 @@ const nextConfig = {
   // 实验性功能：Web Vitals 归因分析
   experimental: {
     webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'FID', 'TTFB'],
+    // 优化包体积：启用模块化编译
+    optimizePackageImports: [
+      'lucide-react',
+      '@phosphor-icons/react',
+      'recharts',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+    ],
   },
   // 压缩优化
   compress: true,
   // 启用 SWC 压缩（Next.js 14 默认）
   swcMinify: true,
+  // 性能优化：HTTP 响应头
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+      {
+        // 静态资源缓存策略
+        source: '/:all*(svg|jpg|png|webp|avif|gif|ico|woff|woff2|ttf|otf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // JS/CSS 文件缓存
+        source: '/:all*(js|css)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+  // 优化：排除不必要的页面
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 };
 
 // 仅在 ANALYZE=true 时启用 Bundle Analyzer

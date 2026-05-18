@@ -141,7 +141,8 @@ export class AiProcessor extends WorkerHost {
   "ocrText": "识别到的原始文本（用于人工核对）"
 }`;
 
-    const userPrompt = '请仔细识别这张发票图片，提取所有字段信息，包括：发票代码、号码、日期、购买方和销售方的完整信息（名称、税号、地址电话、开户行账号）、商品明细（名称、规格、单位、数量、单价、金额、税率、税额）、金额合计、价税合计大小写、备注、开票人等信息。以JSON格式返回。';
+    const userPrompt =
+      '请仔细识别这张发票图片，提取所有字段信息，包括：发票代码、号码、日期、购买方和销售方的完整信息（名称、税号、地址电话、开户行账号）、商品明细（名称、规格、单位、数量、单价、金额、税率、税额）、金额合计、价税合计大小写、备注、开票人等信息。以JSON格式返回。';
 
     // 支持 URL 或 Base64 图片
     const finalImageUrl = imageUrl
@@ -150,7 +151,7 @@ export class AiProcessor extends WorkerHost {
 
     return this.llm.chatWithImage(sysPrompt, userPrompt, finalImageUrl, {
       temperature: 0.1, // OCR 任务使用较低温度，提高准确性
-      maxTokens: 4000,  // 增加 token 限制以支持更多字段
+      maxTokens: 4000, // 增加 token 限制以支持更多字段
     });
   }
 

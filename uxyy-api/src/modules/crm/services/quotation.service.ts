@@ -119,7 +119,9 @@ export class QuotationService {
       eq(schema.quotations.isDeleted, false),
     ];
     if (params.status) {
-      conditions.push(sql`${schema.quotations.status} = ${params.status}::quotation_status`);
+      conditions.push(
+        sql`${schema.quotations.status} = ${params.status}::quotation_status`,
+      );
     }
     if (params.customerId) {
       conditions.push(eq(schema.quotations.customerId, params.customerId));
@@ -274,7 +276,8 @@ export class QuotationService {
 
     const patch: Record<string, unknown> = { updatedAt: new Date() };
     if (dto.title !== undefined) patch.title = dto.title;
-    if (dto.validUntil !== undefined) patch.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
+    if (dto.validUntil !== undefined)
+      patch.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
     if (dto.remark !== undefined) patch.remark = dto.remark || null;
 
     const [updated] = await this.db

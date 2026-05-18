@@ -182,27 +182,33 @@ export const attendanceMakeUpRequests = pgTable(
 );
 
 // ==================== 关系定义 ====================
-export const attendanceRecordsRelations = relations(attendanceRecords, ({ one }) => ({
-  user: one(users, {
-    fields: [attendanceRecords.userId],
-    references: [users.id],
+export const attendanceRecordsRelations = relations(
+  attendanceRecords,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [attendanceRecords.userId],
+      references: [users.id],
+    }),
+    enterprise: one(enterprises, {
+      fields: [attendanceRecords.enterpriseId],
+      references: [enterprises.id],
+    }),
   }),
-  enterprise: one(enterprises, {
-    fields: [attendanceRecords.enterpriseId],
-    references: [enterprises.id],
-  }),
-}));
+);
 
-export const attendanceMakeUpRequestsRelations = relations(attendanceMakeUpRequests, ({ one }) => ({
-  user: one(users, {
-    fields: [attendanceMakeUpRequests.userId],
-    references: [users.id],
+export const attendanceMakeUpRequestsRelations = relations(
+  attendanceMakeUpRequests,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [attendanceMakeUpRequests.userId],
+      references: [users.id],
+    }),
+    approver: one(users, {
+      fields: [attendanceMakeUpRequests.approverId],
+      references: [users.id],
+    }),
   }),
-  approver: one(users, {
-    fields: [attendanceMakeUpRequests.approverId],
-    references: [users.id],
-  }),
-}));
+);
 
 /** 通知表 */
 export const notifications = pgTable('notifications', {

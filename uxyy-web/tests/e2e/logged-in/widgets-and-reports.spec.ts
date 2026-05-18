@@ -6,10 +6,21 @@ async function gotoWorkstation(page: Page, path: string) {
 }
 
 test.describe("登录后 · AI 与报表", () => {
-  test("AI · 队列状态自 mock 加载", async ({ page }) => {
+  test("AI 页面可访问并显示任务类型", async ({ page }) => {
     await gotoWorkstation(page, "/dashboard/ai");
-    await expect(page.getByText("mock-ai-queue")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText("等待:").first()).toBeVisible();
+
+    // 验证 AI 页面标题
+    await expect(page.getByRole("heading", { name: "AI 助手" })).toBeVisible();
+
+    // 验证任务类型选项卡存在 - 使用更精确的选择器
+    await expect(page.getByRole("button", { name: /AI 任务/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /客户流失预警/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /商机成单预测/ })).toBeVisible();
+
+    // 验证任务提交区域 - 使用 heading 选择器更精确
+    await expect(page.getByRole("heading", { name: "发票 OCR 识别" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "会计分录建议" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "智能分类" })).toBeVisible();
   });
 
   test("财务报表 · 切换到应收应付标签", async ({ page }) => {

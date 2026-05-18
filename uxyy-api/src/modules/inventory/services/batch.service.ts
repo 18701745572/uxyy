@@ -28,9 +28,7 @@ export interface BatchQueryOptions {
 
 @Injectable()
 export class BatchService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 创建批次
@@ -99,14 +97,21 @@ export class BatchService {
    * 获取批次列表
    */
   async findAll(enterpriseId: number, options: BatchQueryOptions = {}) {
-    const { productId, status, expiryWarning, page = 1, pageSize = 20 } = options;
+    const {
+      productId,
+      status,
+      expiryWarning,
+      page = 1,
+      pageSize = 20,
+    } = options;
 
-    let conditions = and(
-      eq(schema.productBatches.enterpriseId, enterpriseId),
-    );
+    let conditions = and(eq(schema.productBatches.enterpriseId, enterpriseId));
 
     if (productId) {
-      conditions = and(conditions, eq(schema.productBatches.productId, productId));
+      conditions = and(
+        conditions,
+        eq(schema.productBatches.productId, productId),
+      );
     }
 
     if (status) {
@@ -131,8 +136,14 @@ export class BatchService {
         supplier: schema.suppliers,
       })
       .from(schema.productBatches)
-      .leftJoin(schema.products, eq(schema.productBatches.productId, schema.products.id))
-      .leftJoin(schema.suppliers, eq(schema.productBatches.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.products,
+        eq(schema.productBatches.productId, schema.products.id),
+      )
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.productBatches.supplierId, schema.suppliers.id),
+      )
       .where(conditions)
       .orderBy(desc(schema.productBatches.createdAt))
       .limit(pageSize)
@@ -166,8 +177,14 @@ export class BatchService {
         supplier: schema.suppliers,
       })
       .from(schema.productBatches)
-      .leftJoin(schema.products, eq(schema.productBatches.productId, schema.products.id))
-      .leftJoin(schema.suppliers, eq(schema.productBatches.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.products,
+        eq(schema.productBatches.productId, schema.products.id),
+      )
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.productBatches.supplierId, schema.suppliers.id),
+      )
       .where(
         and(
           eq(schema.productBatches.id, id),
@@ -287,7 +304,10 @@ export class BatchService {
         product: schema.products,
       })
       .from(schema.productBatches)
-      .leftJoin(schema.products, eq(schema.productBatches.productId, schema.products.id))
+      .leftJoin(
+        schema.products,
+        eq(schema.productBatches.productId, schema.products.id),
+      )
       .where(
         and(
           eq(schema.productBatches.enterpriseId, enterpriseId),
@@ -298,10 +318,11 @@ export class BatchService {
       )
       .orderBy(schema.productBatches.expiryDate);
 
-    return batches.map(item => ({
+    return batches.map((item) => ({
       ...item,
       daysUntilExpiry: Math.ceil(
-        (new Date(item.batch.expiryDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        (new Date(item.batch.expiryDate!).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24),
       ),
     }));
   }
@@ -323,7 +344,10 @@ export class BatchService {
       )
       .orderBy(schema.productBatches.expiryDate);
 
-    const totalQty = batches.reduce((sum, b) => sum + parseFloat(b.quantity), 0);
+    const totalQty = batches.reduce(
+      (sum, b) => sum + parseFloat(b.quantity),
+      0,
+    );
 
     return {
       productId,

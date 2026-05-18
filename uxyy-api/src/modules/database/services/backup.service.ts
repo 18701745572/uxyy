@@ -90,7 +90,8 @@ export class BackupService implements OnModuleInit {
       const config = existing[0];
       return {
         autoBackup: config.autoBackup ?? true,
-        backupFrequency: (config.backupFrequency as 'daily' | 'weekly' | 'monthly') ?? 'daily',
+        backupFrequency:
+          (config.backupFrequency as 'daily' | 'weekly' | 'monthly') ?? 'daily',
         backupTime: config.backupTime ?? '02:00',
         retentionDays: config.retentionDays ?? 30,
         includeFiles: config.includeFiles ?? false,
@@ -118,7 +119,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 更新企业备份配置
    */
-  async updateConfig(enterpriseId: number, config: Partial<BackupConfig>): Promise<BackupConfig> {
+  async updateConfig(
+    enterpriseId: number,
+    config: Partial<BackupConfig>,
+  ): Promise<BackupConfig> {
     await this.db
       .update(schema.backupConfigs)
       .set({
@@ -150,7 +154,7 @@ export class BackupService implements OnModuleInit {
 
     try {
       const dbUrl = this.configService.get('DATABASE_URL');
-      
+
       // 创建SQL备份文件
       const sqlFilePath = path.join(this.tempDir, `${baseFileName}.sql`);
       const command = enterpriseId
@@ -163,7 +167,10 @@ export class BackupService implements OnModuleInit {
       const checksum = await this.calculateChecksum(sqlFilePath);
 
       // 压缩备份文件
-      const compressedFilePath = path.join(this.backupDir, `${baseFileName}.gz`);
+      const compressedFilePath = path.join(
+        this.backupDir,
+        `${baseFileName}.gz`,
+      );
       await this.compressFile(sqlFilePath, compressedFilePath);
 
       // 删除临时文件
@@ -187,10 +194,14 @@ export class BackupService implements OnModuleInit {
         },
       });
 
-      this.logger.log(`Backup created: ${baseFileName}.gz (${stats.size} bytes)`);
+      this.logger.log(
+        `Backup created: ${baseFileName}.gz (${stats.size} bytes)`,
+      );
 
       // 自动清理过期备份
-      const config = enterpriseId ? await this.getOrCreateConfig(enterpriseId) : { retentionDays: 30 };
+      const config = enterpriseId
+        ? await this.getOrCreateConfig(enterpriseId)
+        : { retentionDays: 30 };
       await this.cleanupOldBackups(config.retentionDays, enterpriseId);
 
       return {
@@ -227,7 +238,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 恢复数据库备份
    */
-  async restoreBackup(filePath: string, enterpriseId?: number): Promise<BackupResult> {
+  async restoreBackup(
+    filePath: string,
+    enterpriseId?: number,
+  ): Promise<BackupResult> {
     if (this.isRunning) {
       return {
         success: false,
@@ -287,7 +301,7 @@ export class BackupService implements OnModuleInit {
    */
   async getBackupList(enterpriseId?: number): Promise<BackupRecord[]> {
     try {
-      let baseQuery = this.db
+      const baseQuery = this.db
         .select()
         .from(schema.backupRecords)
         .orderBy(desc(schema.backupRecords.createdAt));
@@ -298,7 +312,7 @@ export class BackupService implements OnModuleInit {
 
       const records = await query;
 
-      return records.map(record => ({
+      return records.map((record) => ({
         id: record.id,
         enterpriseId: record.enterpriseId,
         backupType: record.backupType,
@@ -307,7 +321,9 @@ export class BackupService implements OnModuleInit {
         fileSize: record.fileSize,
         status: record.status,
         checksum: record.checksum || undefined,
-        metadata: record.metadata ? (record.metadata as Record<string, unknown>) : undefined,
+        metadata: record.metadata
+          ? (record.metadata as Record<string, unknown>)
+          : undefined,
         errorMessage: record.errorMessage || undefined,
         createdAt: record.createdAt,
       }));
@@ -327,7 +343,7 @@ export class BackupService implements OnModuleInit {
     totalSize: number;
     latestBackup?: Date;
   }> {
-    let baseQuery = this.db
+    const baseQuery = this.db
       .select({
         status: schema.backupRecords.status,
         fileSize: schema.backupRecords.fileSize,
@@ -343,12 +359,26 @@ export class BackupService implements OnModuleInit {
 
     const stats = {
       totalBackups: records.length,
-      successfulBackups: records.filter((r: { status: string }) => r.status === 'completed').length,
-      failedBackups: records.filter((r: { status: string }) => r.status === 'failed').length,
-      totalSize: records.reduce((sum: number, r: { fileSize: number }) => sum + r.fileSize, 0),
-      latestBackup: records.length > 0 
-        ? new Date(Math.max(...records.map((r: { createdAt: Date }) => r.createdAt.getTime())))
-        : undefined,
+      successfulBackups: records.filter(
+        (r: { status: string }) => r.status === 'completed',
+      ).length,
+      failedBackups: records.filter(
+        (r: { status: string }) => r.status === 'failed',
+      ).length,
+      totalSize: records.reduce(
+        (sum: number, r: { fileSize: number }) => sum + r.fileSize,
+        0,
+      ),
+      latestBackup:
+        records.length > 0
+          ? new Date(
+              Math.max(
+                ...records.map((r: { createdAt: Date }) =>
+                  r.createdAt.getTime(),
+                ),
+              ),
+            )
+          : undefined,
     };
 
     return stats;
@@ -402,12 +432,15 @@ export class BackupService implements OnModuleInit {
   /**
    * 清理过期备份
    */
-  async cleanupOldBackups(retentionDays: number = 30, enterpriseId?: number): Promise<number> {
+  async cleanupOldBackups(
+    retentionDays: number = 30,
+    enterpriseId?: number,
+  ): Promise<number> {
     try {
       const now = new Date().getTime();
       const retentionMs = retentionDays * 24 * 60 * 60 * 1000;
 
-      let baseQuery = this.db
+      const baseQuery = this.db
         .select({
           id: schema.backupRecords.id,
           filePath: schema.backupRecords.filePath,
@@ -449,7 +482,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 验证备份文件完整性
    */
-  async verifyBackup(filePath: string, expectedChecksum?: string): Promise<{
+  async verifyBackup(
+    filePath: string,
+    expectedChecksum?: string,
+  ): Promise<{
     valid: boolean;
     checksum?: string;
     message: string;
@@ -494,7 +530,10 @@ export class BackupService implements OnModuleInit {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const baseFileName = `export_enterprise_${enterpriseId}_${timestamp}`;
       const jsonFilePath = path.join(this.tempDir, `${baseFileName}.json`);
-      const compressedFilePath = path.join(this.backupDir, `${baseFileName}.gz`);
+      const compressedFilePath = path.join(
+        this.backupDir,
+        `${baseFileName}.gz`,
+      );
 
       // 收集企业相关数据
       const data: Record<string, unknown[]> = {};
@@ -608,7 +647,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 导入企业数据（从JSON）
    */
-  async importEnterpriseData(enterpriseId: number, filePath: string): Promise<BackupResult> {
+  async importEnterpriseData(
+    enterpriseId: number,
+    filePath: string,
+  ): Promise<BackupResult> {
     try {
       if (!fs.existsSync(filePath)) {
         return {
@@ -635,7 +677,10 @@ export class BackupService implements OnModuleInit {
           const record = customer as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.customers).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.customers)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -644,7 +689,10 @@ export class BackupService implements OnModuleInit {
           const record = supplier as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.suppliers).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.suppliers)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -653,7 +701,10 @@ export class BackupService implements OnModuleInit {
           const record = product as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.products).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.products)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -662,7 +713,10 @@ export class BackupService implements OnModuleInit {
           const record = warehouse as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.warehouses).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.warehouses)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -671,7 +725,10 @@ export class BackupService implements OnModuleInit {
           const record = item as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.inventory).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.inventory)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -680,7 +737,10 @@ export class BackupService implements OnModuleInit {
           const record = order as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.salesOrders).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.salesOrders)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -689,7 +749,10 @@ export class BackupService implements OnModuleInit {
           const record = order as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.purchaseOrders).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.purchaseOrders)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -698,7 +761,10 @@ export class BackupService implements OnModuleInit {
           const record = invoice as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.invoices).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.invoices)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -707,7 +773,10 @@ export class BackupService implements OnModuleInit {
           const record = voucher as Record<string, unknown>;
           delete record.id;
           record.enterpriseId = enterpriseId;
-          await this.db.insert(schema.vouchers).values(record as never).onConflictDoNothing();
+          await this.db
+            .insert(schema.vouchers)
+            .values(record as never)
+            .onConflictDoNothing();
         }
       }
 
@@ -716,7 +785,9 @@ export class BackupService implements OnModuleInit {
         fs.unlinkSync(jsonFilePath);
       }
 
-      this.logger.log(`Enterprise data imported for enterprise ${enterpriseId}`);
+      this.logger.log(
+        `Enterprise data imported for enterprise ${enterpriseId}`,
+      );
 
       return {
         success: true,
@@ -750,7 +821,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 压缩文件
    */
-  private async compressFile(inputPath: string, outputPath: string): Promise<void> {
+  private async compressFile(
+    inputPath: string,
+    outputPath: string,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const input = fs.createReadStream(inputPath);
       const output = fs.createWriteStream(outputPath);
@@ -766,7 +840,10 @@ export class BackupService implements OnModuleInit {
   /**
    * 解压文件
    */
-  private async decompressFile(inputPath: string, outputPath: string): Promise<void> {
+  private async decompressFile(
+    inputPath: string,
+    outputPath: string,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const input = fs.createReadStream(inputPath);
       const output = fs.createWriteStream(outputPath);
@@ -789,7 +866,7 @@ export class BackupService implements OnModuleInit {
       const now = new Date();
       const nextBackup = new Date();
       nextBackup.setHours(2, 0, 0, 0);
-      
+
       if (nextBackup <= now) {
         nextBackup.setDate(nextBackup.getDate() + 1);
       }

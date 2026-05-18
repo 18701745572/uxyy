@@ -339,7 +339,8 @@ export class NotificationService {
       userId,
       type: 'system',
       title: '欢迎使用优效营',
-      content: '通知中心已启用。系统、价格类提醒与审批摘要将统一收拢在此页。后续若对接服务端推送，未读角标将与之同步。',
+      content:
+        '通知中心已启用。系统、价格类提醒与审批摘要将统一收拢在此页。后续若对接服务端推送，未读角标将与之同步。',
       priority: 'normal',
       actionUrl: '/dashboard/finance/reports',
     });
@@ -353,7 +354,8 @@ export class NotificationService {
       userId,
       type: 'insight',
       title: '经营分析图表已增强',
-      content: '在「财务报表 → 经营仪表盘」可查看销售/采购对比与热销商品条形图；利润表页提供收入/成本/费用结构图，便于周会快速过数。',
+      content:
+        '在「财务报表 → 经营仪表盘」可查看销售/采购对比与热销商品条形图；利润表页提供收入/成本/费用结构图，便于周会快速过数。',
       priority: 'normal',
       actionUrl: '/dashboard/finance/reports',
     });

@@ -8,7 +8,12 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { TaxReportService } from '../services/tax-report.service';
 import { ExportService } from '../../../common/services/export.service';
@@ -25,8 +30,15 @@ export class TaxReportController {
   @Get('summary')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '获取税务申报汇总' })
-  @ApiQuery({ name: 'period', description: '税款所属期，格式：YYYY-MM', example: '2026-05' })
-  async getTaxReportSummary(@Request() req: any, @Query('period') period: string) {
+  @ApiQuery({
+    name: 'period',
+    description: '税款所属期，格式：YYYY-MM',
+    example: '2026-05',
+  })
+  async getTaxReportSummary(
+    @Request() req: any,
+    @Query('period') period: string,
+  ) {
     const enterpriseId = req.user.enterpriseId;
     if (!period) {
       const now = new Date();
@@ -38,7 +50,11 @@ export class TaxReportController {
   @Get('vat')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '获取增值税申报数据' })
-  @ApiQuery({ name: 'period', description: '税款所属期，格式：YYYY-MM', example: '2026-05' })
+  @ApiQuery({
+    name: 'period',
+    description: '税款所属期，格式：YYYY-MM',
+    example: '2026-05',
+  })
   async getVATReport(@Request() req: any, @Query('period') period: string) {
     const enterpriseId = req.user.enterpriseId;
     if (!period) {
@@ -51,8 +67,15 @@ export class TaxReportController {
   @Get('income-tax')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '获取企业所得税申报数据' })
-  @ApiQuery({ name: 'period', description: '税款所属期，格式：YYYY-MM', example: '2026-05' })
-  async getIncomeTaxReport(@Request() req: any, @Query('period') period: string) {
+  @ApiQuery({
+    name: 'period',
+    description: '税款所属期，格式：YYYY-MM',
+    example: '2026-05',
+  })
+  async getIncomeTaxReport(
+    @Request() req: any,
+    @Query('period') period: string,
+  ) {
     const enterpriseId = req.user.enterpriseId;
     if (!period) {
       const now = new Date();
@@ -71,8 +94,16 @@ export class TaxReportController {
 
   @Get('export/excel')
   @ApiOperation({ summary: '导出税务申报Excel' })
-  @ApiQuery({ name: 'period', description: '税款所属期，格式：YYYY-MM', required: false })
-  @ApiQuery({ name: 'taxType', description: '税种类型（可选）', required: false })
+  @ApiQuery({
+    name: 'period',
+    description: '税款所属期，格式：YYYY-MM',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'taxType',
+    description: '税种类型（可选）',
+    required: false,
+  })
   async exportTaxReportExcel(
     @Request() req: any,
     @Query('period') period: string,
@@ -114,7 +145,11 @@ export class TaxReportController {
 
   @Get('export/pdf')
   @ApiOperation({ summary: '导出税务申报PDF（含操作指南）' })
-  @ApiQuery({ name: 'period', description: '税款所属期，格式：YYYY-MM', required: false })
+  @ApiQuery({
+    name: 'period',
+    description: '税款所属期，格式：YYYY-MM',
+    required: false,
+  })
   async exportTaxReportPdf(
     @Request() req: any,
     @Query('period') period: string,
@@ -125,7 +160,10 @@ export class TaxReportController {
       const now = new Date();
       period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     }
-    const result = await this.taxReportService.exportTaxReportPdf(enterpriseId, period);
+    const result = await this.taxReportService.exportTaxReportPdf(
+      enterpriseId,
+      period,
+    );
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader(
       'Content-Disposition',

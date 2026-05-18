@@ -67,7 +67,10 @@ export class EnterpriseMembersService {
         isDefault: schema.userEnterprises.isDefault,
       })
       .from(schema.userEnterprises)
-      .innerJoin(schema.users, eq(schema.users.id, schema.userEnterprises.userId))
+      .innerJoin(
+        schema.users,
+        eq(schema.users.id, schema.userEnterprises.userId),
+      )
       .where(eq(schema.userEnterprises.enterpriseId, enterpriseId));
 
     const ownerId = enterprise.ownerId;

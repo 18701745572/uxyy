@@ -3,10 +3,14 @@ import { IsIn, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { ASSIGNABLE_ENTERPRISE_MEMBER_ROLES } from '../role-permissions';
 
 /** `IsIn` 需要 `string[]` 签名；值集与 role CHECK 对齐 */
-const ASSIGN_ROLE_VALUES = ASSIGNABLE_ENTERPRISE_MEMBER_ROLES as unknown as string[];
+const ASSIGN_ROLE_VALUES =
+  ASSIGNABLE_ENTERPRISE_MEMBER_ROLES as unknown as string[];
 
 export class EnterpriseMemberAddDto {
-  @ApiProperty({ example: '13900138901', description: '必须为已注册用户手机号（中国大陆）' })
+  @ApiProperty({
+    example: '13900138901',
+    description: '必须为已注册用户手机号（中国大陆）',
+  })
   @IsString()
   @MinLength(11)
   @MaxLength(11)

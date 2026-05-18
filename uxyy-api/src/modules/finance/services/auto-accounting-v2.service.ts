@@ -3,7 +3,11 @@ import { eq, and, desc, gte, lt } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
-import { AccountMappingService, ComplexVoucher, ComplexVoucherEntry } from './account-mapping.service';
+import {
+  AccountMappingService,
+  ComplexVoucher,
+  ComplexVoucherEntry,
+} from './account-mapping.service';
 
 export interface AutoAccountingContext {
   enterpriseId: number;
@@ -39,11 +43,11 @@ export class AutoAccountingV2Service {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    
+
     // 查询当天最大凭证号
     const todayStart = new Date(y, now.getMonth(), now.getDate());
     const todayEnd = new Date(y, now.getMonth(), now.getDate() + 1);
-    
+
     const [latest] = await this.db
       .select({ voucherNo: schema.vouchers.voucherNo })
       .from(schema.vouchers)
@@ -75,7 +79,13 @@ export class AutoAccountingV2Service {
     context: AutoAccountingContext,
     voucherData: ComplexVoucher,
   ): Promise<AutoAccountingResult> {
-    const { enterpriseId, userId, sourceType, sourceData, skipIfExists = true } = context;
+    const {
+      enterpriseId,
+      userId,
+      sourceType,
+      sourceData,
+      skipIfExists = true,
+    } = context;
 
     try {
       // 检查是否已存在
@@ -104,10 +114,10 @@ export class AutoAccountingV2Service {
 
       // 验证借贷平衡
       const totalDebit = voucherData.entries
-        .filter(e => e.direction === 'debit')
+        .filter((e) => e.direction === 'debit')
         .reduce((sum, e) => sum + parseFloat(e.amount), 0);
       const totalCredit = voucherData.entries
-        .filter(e => e.direction === 'credit')
+        .filter((e) => e.direction === 'credit')
         .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
@@ -118,7 +128,8 @@ export class AutoAccountingV2Service {
       }
 
       // 生成凭证号
-      const voucherNo = voucherData.voucherNo || await this.generateVoucherNo(enterpriseId);
+      const voucherNo =
+        voucherData.voucherNo || (await this.generateVoucherNo(enterpriseId));
 
       // 创建凭证主表
       const [voucher] = await this.db
@@ -207,11 +218,15 @@ export class AutoAccountingV2Service {
       direction: 'debit',
       amount: totalAmount.toFixed(2),
       summary: `销售订单 ${order.orderNo} 收入确认`,
-      auxiliaries: isCashSale ? undefined : [{
-        type: 'customer',
-        id: order.customerId,
-        name: order.customerName || '',
-      }],
+      auxiliaries: isCashSale
+        ? undefined
+        : [
+            {
+              type: 'customer',
+              id: order.customerId,
+              name: order.customerName || '',
+            },
+          ],
     });
 
     // 2. 贷方：主营业务收入
@@ -361,11 +376,13 @@ export class AutoAccountingV2Service {
         direction: 'credit',
         amount: totalAmount.toFixed(2),
         summary: `采购订单 ${order.orderNo} 应付账款`,
-        auxiliaries: [{
-          type: 'supplier',
-          id: order.supplierId,
-          name: order.supplierName || '',
-        }],
+        auxiliaries: [
+          {
+            type: 'supplier',
+            id: order.supplierId,
+            name: order.supplierName || '',
+          },
+        ],
       });
     }
 
@@ -468,11 +485,15 @@ export class AutoAccountingV2Service {
       direction: 'debit',
       amount: amount.toFixed(2),
       summary: `报销单 ${expense.expenseNo || expense.id} - ${expense.category}`,
-      auxiliaries: expense.departmentId ? [{
-        type: 'department',
-        id: expense.departmentId,
-        name: expense.departmentName || '',
-      }] : undefined,
+      auxiliaries: expense.departmentId
+        ? [
+            {
+              type: 'department',
+              id: expense.departmentId,
+              name: expense.departmentName || '',
+            },
+          ]
+        : undefined,
     });
 
     entries.push({
@@ -482,18 +503,21 @@ export class AutoAccountingV2Service {
       direction: 'credit',
       amount: amount.toFixed(2),
       summary: `报销单 ${expense.expenseNo || expense.id}`,
-      auxiliaries: [{
-        type: 'employee',
-        id: expense.employeeId || expense.createdBy,
-        name: expense.employeeName || '',
-      }],
+      auxiliaries: [
+        {
+          type: 'employee',
+          id: expense.employeeId || expense.createdBy,
+          name: expense.employeeName || '',
+        },
+      ],
     });
 
     // 2. 付款（如果已付款）
     if (expense.status === 'paid' || expense.status === 'completed') {
       const paymentMethod = expense.paymentMethod || 'cash';
       const paymentAccountCode = paymentMethod === 'bank' ? '1002' : '1001';
-      const paymentAccountName = paymentMethod === 'bank' ? '银行存款' : '库存现金';
+      const paymentAccountName =
+        paymentMethod === 'bank' ? '银行存款' : '库存现金';
 
       entries.push({
         accountId: 0,
@@ -565,11 +589,15 @@ export class AutoAccountingV2Service {
         direction: 'credit',
         amount: amount.toFixed(2),
         summary: `客户回款 ${payment.customerName || ''}`,
-        auxiliaries: payment.customerId ? [{
-          type: 'customer',
-          id: payment.customerId,
-          name: payment.customerName || '',
-        }] : undefined,
+        auxiliaries: payment.customerId
+          ? [
+              {
+                type: 'customer',
+                id: payment.customerId,
+                name: payment.customerName || '',
+              },
+            ]
+          : undefined,
       },
     ];
 
@@ -616,11 +644,15 @@ export class AutoAccountingV2Service {
         direction: 'debit',
         amount: amount.toFixed(2),
         summary: `供应商付款 ${payment.supplierName || ''} ${payment.referenceNo || ''}`,
-        auxiliaries: payment.supplierId ? [{
-          type: 'supplier',
-          id: payment.supplierId,
-          name: payment.supplierName || '',
-        }] : undefined,
+        auxiliaries: payment.supplierId
+          ? [
+              {
+                type: 'supplier',
+                id: payment.supplierId,
+                name: payment.supplierName || '',
+              },
+            ]
+          : undefined,
       },
       {
         accountId: 0,
@@ -666,7 +698,7 @@ export class AutoAccountingV2Service {
     userId: number,
   ): Promise<AutoAccountingResult> {
     const amount = parseFloat(invoice.taxAmount || 0);
-    
+
     if (amount <= 0) {
       return { success: false, error: '发票税额为零，无需生成凭证' };
     }
@@ -722,14 +754,16 @@ export class AutoAccountingV2Service {
       {
         enterpriseId,
         userId,
-        sourceType: invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales',
+        sourceType:
+          invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales',
         sourceData: invoice,
       },
       {
         voucherNo: '',
         voucherDate: new Date(),
         summary: `发票 ${invoice.invoiceNo} ${invoice.type === 'input' ? '进项' : '销项'}税额`,
-        sourceType: invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales',
+        sourceType:
+          invoice.type === 'input' ? 'invoice_purchase' : 'invoice_sales',
         sourceId: invoice.id,
         entries: resolvedEntries.entries!,
         totalDebit: amount.toFixed(2),
@@ -744,7 +778,11 @@ export class AutoAccountingV2Service {
   private async resolveAccountIds(
     entries: ComplexVoucherEntry[],
     enterpriseId: number,
-  ): Promise<{ success: boolean; entries?: ComplexVoucherEntry[]; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    entries?: ComplexVoucherEntry[];
+    error?: string;
+  }> {
     const resolvedEntries: ComplexVoucherEntry[] = [];
 
     for (const entry of entries) {
@@ -782,16 +820,16 @@ export class AutoAccountingV2Service {
    */
   private mapExpenseCategory(category?: string): string {
     const mapping: Record<string, string> = {
-      '办公费': '660201',
-      '差旅费': '660202',
-      '业务招待费': '660203',
-      '车辆费': '660204',
-      '广告费': '660205',
-      '咨询费': '660206',
-      '工资': '660207',
-      '社保': '660208',
-      '租金': '660209',
-      '水电费': '660210',
+      办公费: '660201',
+      差旅费: '660202',
+      业务招待费: '660203',
+      车辆费: '660204',
+      广告费: '660205',
+      咨询费: '660206',
+      工资: '660207',
+      社保: '660208',
+      租金: '660209',
+      水电费: '660210',
     };
 
     return mapping[category || ''] || '660201'; // 默认为办公费

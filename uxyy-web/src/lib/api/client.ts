@@ -6,6 +6,7 @@ import {
   persistRefreshToken,
   clearAllTokens,
 } from "./token-store";
+import { addCsrfHeader } from "./csrf";
 
 export class ApiError extends Error {
   constructor(
@@ -116,6 +117,9 @@ export async function apiFetch<T = unknown>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // 添加 CSRF Token（非 GET/HEAD/OPTIONS 请求）
+  addCsrfHeader(headers, options.method ?? "GET");
+
   // 构建请求 URL：如果有 base 则使用绝对路径，否则使用相对路径
   const url = base ? `${base}/api/v1${path}` : `/api/v1${path}`;
   let res: Response;
@@ -193,6 +197,9 @@ export async function apiFetchBlob(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // 添加 CSRF Token（非 GET/HEAD/OPTIONS 请求）
+  addCsrfHeader(headers, options.method ?? "GET");
+
   const url = base ? `${base}/api/v1${path}` : `/api/v1${path}`;
   let res: Response;
   try {
@@ -261,6 +268,9 @@ export async function apiUploadFile(
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+
+  // 添加 CSRF Token（POST 请求）
+  addCsrfHeader(headers, "POST");
 
   const url = base ? `${base}/api/v1${path}` : `/api/v1${path}`;
   const buildBody = () => {

@@ -28,14 +28,15 @@ export interface RiskFactor {
 export class ChurnPredictionService {
   private readonly logger = new Logger(ChurnPredictionService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 预测单个客户流失风险
    */
-  async predictCustomerChurn(customerId: number, enterpriseId: number): Promise<ChurnPrediction> {
+  async predictCustomerChurn(
+    customerId: number,
+    enterpriseId: number,
+  ): Promise<ChurnPrediction> {
     // 获取客户信息
     const [customer] = await this.db
       .select()
@@ -68,7 +69,9 @@ export class ChurnPredictionService {
       .orderBy(desc(schema.salesOrders.createdAt));
 
     const totalOrders = orders.length;
-    const totalAmount = orders.reduce((sum, o) => sum + parseFloat(o.totalAmount || '0'), 0).toFixed(2);
+    const totalAmount = orders
+      .reduce((sum, o) => sum + parseFloat(o.totalAmount || '0'), 0)
+      .toFixed(2);
     const lastOrder = orders[0];
     const lastOrderDate = lastOrder?.createdAt;
 
@@ -91,7 +94,10 @@ export class ChurnPredictionService {
 
     // 因子1: 未下单时长
     if (lastOrderDate) {
-      const daysSinceLastOrder = Math.floor((Date.now() - new Date(lastOrderDate).getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceLastOrder = Math.floor(
+        (Date.now() - new Date(lastOrderDate).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
 
       if (daysSinceLastOrder > 90) {
         riskFactors.push({
@@ -131,7 +137,10 @@ export class ChurnPredictionService {
 
     // 因子2: 未跟进时长
     if (lastFollowUpDate) {
-      const daysSinceLastFollowUp = Math.floor((Date.now() - new Date(lastFollowUpDate).getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceLastFollowUp = Math.floor(
+        (Date.now() - new Date(lastFollowUpDate).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
 
       if (daysSinceLastFollowUp > 60) {
         riskFactors.push({
@@ -163,14 +172,20 @@ export class ChurnPredictionService {
     // 因子3: 订单频次下降
     if (totalOrders >= 3) {
       // 计算平均订单间隔
-      const orderDates = orders.map(o => new Date(o.createdAt).getTime()).reverse();
+      const orderDates = orders
+        .map((o) => new Date(o.createdAt).getTime())
+        .reverse();
       let totalInterval = 0;
       for (let i = 1; i < orderDates.length; i++) {
-        totalInterval += (orderDates[i] - orderDates[i - 1]) / (1000 * 60 * 60 * 24);
+        totalInterval +=
+          (orderDates[i] - orderDates[i - 1]) / (1000 * 60 * 60 * 24);
       }
       const avgInterval = totalInterval / (orderDates.length - 1);
       const daysSinceLastOrder = lastOrderDate
-        ? Math.floor((Date.now() - new Date(lastOrderDate).getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor(
+            (Date.now() - new Date(lastOrderDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0;
 
       if (daysSinceLastOrder > avgInterval * 2) {
@@ -187,11 +202,15 @@ export class ChurnPredictionService {
     // 因子4: 订单金额下降
     if (totalOrders >= 2) {
       const recentOrders = orders.slice(0, 3);
-      const recentAvg = recentOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0) / recentOrders.length;
+      const recentAvg =
+        recentOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0) /
+        recentOrders.length;
       const olderOrders = orders.slice(3, 6);
 
       if (olderOrders.length > 0) {
-        const olderAvg = olderOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0) / olderOrders.length;
+        const olderAvg =
+          olderOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0) /
+          olderOrders.length;
         if (recentAvg < olderAvg * 0.5) {
           riskFactors.push({
             name: '订单金额大幅下降',
@@ -205,12 +224,13 @@ export class ChurnPredictionService {
     }
 
     // 因子5: 投诉/负面反馈
-    const negativeFollowUps = followUps.filter(f =>
-      f.content?.includes('不满') ||
-      f.content?.includes('投诉') ||
-      f.content?.includes('问题') ||
-      f.content?.includes('延迟') ||
-      f.content?.includes('质量')
+    const negativeFollowUps = followUps.filter(
+      (f) =>
+        f.content?.includes('不满') ||
+        f.content?.includes('投诉') ||
+        f.content?.includes('问题') ||
+        f.content?.includes('延迟') ||
+        f.content?.includes('质量'),
     );
 
     if (negativeFollowUps.length > 0) {
@@ -232,7 +252,12 @@ export class ChurnPredictionService {
     else if (churnProbability >= 30) churnRisk = 'medium';
 
     // 生成建议
-    const recommendedActions = this.generateRetentionActions(riskFactors, churnRisk, customer, totalAmount);
+    const recommendedActions = this.generateRetentionActions(
+      riskFactors,
+      churnRisk,
+      customer,
+      totalAmount,
+    );
 
     return {
       customerId,
@@ -251,7 +276,10 @@ export class ChurnPredictionService {
   /**
    * 批量预测客户流失风险
    */
-  async batchPredictChurn(enterpriseId: number, riskLevel?: 'high' | 'medium' | 'low') {
+  async batchPredictChurn(
+    enterpriseId: number,
+    riskLevel?: 'high' | 'medium' | 'low',
+  ) {
     // 获取有订单历史的客户
     const customersWithOrders = await this.db
       .selectDistinct({ customerId: schema.salesOrders.customerId })
@@ -265,15 +293,18 @@ export class ChurnPredictionService {
       .where(eq(schema.customers.enterpriseId, enterpriseId));
 
     const customerIds = new Set([
-      ...customersWithOrders.map(c => c.customerId),
-      ...allCustomers.map(c => c.id),
+      ...customersWithOrders.map((c) => c.customerId),
+      ...allCustomers.map((c) => c.id),
     ]);
 
     const predictions: ChurnPrediction[] = [];
 
     for (const customerId of customerIds) {
       try {
-        const prediction = await this.predictCustomerChurn(customerId, enterpriseId);
+        const prediction = await this.predictCustomerChurn(
+          customerId,
+          enterpriseId,
+        );
         if (!riskLevel || prediction.churnRisk === riskLevel) {
           predictions.push(prediction);
         }
@@ -292,20 +323,24 @@ export class ChurnPredictionService {
   async getChurnRiskStats(enterpriseId: number) {
     const allPredictions = await this.batchPredictChurn(enterpriseId);
 
-    const highRisk = allPredictions.filter(p => p.churnRisk === 'high');
-    const mediumRisk = allPredictions.filter(p => p.churnRisk === 'medium');
-    const lowRisk = allPredictions.filter(p => p.churnRisk === 'low');
+    const highRisk = allPredictions.filter((p) => p.churnRisk === 'high');
+    const mediumRisk = allPredictions.filter((p) => p.churnRisk === 'medium');
+    const lowRisk = allPredictions.filter((p) => p.churnRisk === 'low');
 
-    const atRiskRevenue = highRisk.reduce((sum, p) => sum + parseFloat(p.totalAmount || '0'), 0);
+    const atRiskRevenue = highRisk.reduce(
+      (sum, p) => sum + parseFloat(p.totalAmount || '0'),
+      0,
+    );
 
     return {
       totalCustomers: allPredictions.length,
       highRiskCount: highRisk.length,
       mediumRiskCount: mediumRisk.length,
       lowRiskCount: lowRisk.length,
-      highRiskPercentage: allPredictions.length > 0
-        ? ((highRisk.length / allPredictions.length) * 100).toFixed(2)
-        : '0',
+      highRiskPercentage:
+        allPredictions.length > 0
+          ? ((highRisk.length / allPredictions.length) * 100).toFixed(2)
+          : '0',
       atRiskRevenue: atRiskRevenue.toFixed(2),
       topRiskCustomers: highRisk.slice(0, 10),
     };
@@ -334,22 +369,30 @@ export class ChurnPredictionService {
     }
 
     // 基于具体风险因子的建议
-    const hasNoOrderIssue = riskFactors.find(f => f.name.includes('未下单'));
+    const hasNoOrderIssue = riskFactors.find((f) => f.name.includes('未下单'));
     if (hasNoOrderIssue) {
-      actions.push(`📦 ${hasNoOrderIssue.description}，可推荐新品或促销活动刺激下单`);
+      actions.push(
+        `📦 ${hasNoOrderIssue.description}，可推荐新品或促销活动刺激下单`,
+      );
     }
 
-    const hasNoFollowUpIssue = riskFactors.find(f => f.name.includes('未跟进'));
+    const hasNoFollowUpIssue = riskFactors.find((f) =>
+      f.name.includes('未跟进'),
+    );
     if (hasNoFollowUpIssue) {
       actions.push(`📞 ${hasNoFollowUpIssue.description}，立即安排跟进`);
     }
 
-    const hasFrequencyIssue = riskFactors.find(f => f.name === '订单频次下降');
+    const hasFrequencyIssue = riskFactors.find(
+      (f) => f.name === '订单频次下降',
+    );
     if (hasFrequencyIssue) {
       actions.push('📉 订单频次下降，可询问客户是否有新的需求或竞争对手介入');
     }
 
-    const hasNegativeFeedback = riskFactors.find(f => f.name === '负面反馈记录');
+    const hasNegativeFeedback = riskFactors.find(
+      (f) => f.name === '负面反馈记录',
+    );
     if (hasNegativeFeedback) {
       actions.push('😟 历史有负面反馈，需重点关注客户满意度，主动解决问题');
     }

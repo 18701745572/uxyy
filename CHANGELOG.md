@@ -5,6 +5,69 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.1] - 2026-05-18
+
+### 新增
+
+#### 生产环境安全加固
+- **Helmet 安全中间件**
+  - 配置 Content Security Policy (CSP)
+  - HSTS (HTTP Strict Transport Security) - 2年有效期
+  - XSS 过滤和点击劫持防护
+  - 自动应用到所有响应
+
+- **CSRF Token 防护**
+  - 双提交 Cookie 模式实现
+  - 自动验证非安全请求（POST/PUT/DELETE/PATCH）
+  - 前端自动获取和提交 Token
+
+- **请求频率限制**
+  - 登录接口：5次/分钟
+  - 注册接口：3次/分钟
+  - 敏感操作：10次/分钟
+  - 默认接口：100次/分钟
+  - 基于 IP + 用户 ID 双重限流
+
+- **结构化日志系统 (Pino)**
+  - 开发环境：彩色格式化输出
+  - 生产环境：JSON 格式，便于日志聚合
+  - 自动清理敏感信息（密码、token 等）
+  - 请求链路追踪（Request ID）
+
+- **性能监控指标**
+  - HTTP 请求统计（总数、错误率、响应时间）
+  - 数据库查询性能指标
+  - 业务操作指标
+  - Prometheus 格式指标端点 `/metrics`
+
+- **请求上下文追踪**
+  - 使用 AsyncLocalStorage 传递请求上下文
+  - 生成唯一请求 ID
+  - 记录 IP、User-Agent、请求时间
+
+### 依赖更新
+
+#### 后端 (uxyy-api)
+- 新增 `helmet` (^8.0.0) - HTTP 安全头
+- 新增 `nestjs-pino` (^4.4.0) - NestJS Pino 日志集成
+- 新增 `pino` (^9.6.0) - 高性能日志库
+- 新增 `pino-http` (^10.4.0) - HTTP 日志中间件
+- 新增 `pino-pretty` (^13.0.0) - 开发环境日志美化
+
+### 新增文件
+- `uxyy-api/src/common/middleware/security.middleware.ts`
+- `uxyy-api/src/common/middleware/request-context.middleware.ts`
+- `uxyy-api/src/common/interceptors/logging.interceptor.ts`
+- `uxyy-api/src/common/logger/logger.module.ts`
+- `uxyy-api/src/common/metrics/metrics.service.ts`
+- `uxyy-api/src/common/metrics/metrics.controller.ts`
+- `uxyy-api/src/common/metrics/metrics.module.ts`
+
+### 文档更新
+- 更新 `DEPLOY.md` - 添加生产环境安全配置说明
+- 更新 `docs/api-documentation.md` - 添加安全相关 API 文档
+- 更新 `README.md` - 添加安全功能说明
+
 ## [1.3.0] - 2026-05-17
 
 ### 新增

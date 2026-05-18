@@ -19,14 +19,18 @@ interface UserContext {
 @Controller('inventory/purchase-suggestions')
 @UseGuards(JwtAuthGuard)
 export class PurchaseSuggestionController {
-  constructor(private readonly purchaseSuggestionService: PurchaseSuggestionService) {}
+  constructor(
+    private readonly purchaseSuggestionService: PurchaseSuggestionService,
+  ) {}
 
   /**
    * 获取智能采购建议
    */
   @Get()
   getSuggestions(@Req() req: Request & { user: UserContext }) {
-    return this.purchaseSuggestionService.generateSuggestions(req.user.enterpriseId);
+    return this.purchaseSuggestionService.generateSuggestions(
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -43,7 +47,8 @@ export class PurchaseSuggestionController {
   @Get('order-suggestion')
   getPurchaseOrderSuggestion(
     @Req() req: Request & { user: UserContext },
-    @Query('supplierId', new ParseIntPipe({ optional: true })) supplierId?: number,
+    @Query('supplierId', new ParseIntPipe({ optional: true }))
+    supplierId?: number,
   ) {
     return this.purchaseSuggestionService.generatePurchaseOrderSuggestion(
       req.user.enterpriseId,

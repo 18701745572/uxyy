@@ -52,8 +52,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月工资计提',
       entries: [
-        { accountId: 0, accountCode: '660207', accountName: '管理费用-工资', direction: 'debit', percentage: 100, summary: '管理人员工资' },
-        { accountId: 0, accountCode: '221101', accountName: '应付职工薪酬-工资', direction: 'credit', percentage: 100, summary: '计提工资' },
+        {
+          accountId: 0,
+          accountCode: '660207',
+          accountName: '管理费用-工资',
+          direction: 'debit',
+          percentage: 100,
+          summary: '管理人员工资',
+        },
+        {
+          accountId: 0,
+          accountCode: '221101',
+          accountName: '应付职工薪酬-工资',
+          direction: 'credit',
+          percentage: 100,
+          summary: '计提工资',
+        },
       ],
     },
 
@@ -66,11 +80,46 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月工资发放',
       entries: [
-        { accountId: 0, accountCode: '221101', accountName: '应付职工薪酬-工资', direction: 'debit', percentage: 100, summary: '发放工资' },
-        { accountId: 0, accountCode: '221102', accountName: '应付职工薪酬-社保', direction: 'credit', percentage: 10, summary: '代扣社保' },
-        { accountId: 0, accountCode: '221103', accountName: '应付职工薪酬-公积金', direction: 'credit', percentage: 12, summary: '代扣公积金' },
-        { accountId: 0, accountCode: '222108', accountName: '应交税费-个人所得税', direction: 'credit', percentage: 5, summary: '代扣个税' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 73, summary: '实发工资' },
+        {
+          accountId: 0,
+          accountCode: '221101',
+          accountName: '应付职工薪酬-工资',
+          direction: 'debit',
+          percentage: 100,
+          summary: '发放工资',
+        },
+        {
+          accountId: 0,
+          accountCode: '221102',
+          accountName: '应付职工薪酬-社保',
+          direction: 'credit',
+          percentage: 10,
+          summary: '代扣社保',
+        },
+        {
+          accountId: 0,
+          accountCode: '221103',
+          accountName: '应付职工薪酬-公积金',
+          direction: 'credit',
+          percentage: 12,
+          summary: '代扣公积金',
+        },
+        {
+          accountId: 0,
+          accountCode: '222108',
+          accountName: '应交税费-个人所得税',
+          direction: 'credit',
+          percentage: 5,
+          summary: '代扣个税',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 73,
+          summary: '实发工资',
+        },
       ],
     },
 
@@ -83,8 +132,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月社保计提',
       entries: [
-        { accountId: 0, accountCode: '660208', accountName: '管理费用-社保', direction: 'debit', percentage: 100, summary: '企业承担社保' },
-        { accountId: 0, accountCode: '221102', accountName: '应付职工薪酬-社保', direction: 'credit', percentage: 100, summary: '计提社保' },
+        {
+          accountId: 0,
+          accountCode: '660208',
+          accountName: '管理费用-社保',
+          direction: 'debit',
+          percentage: 100,
+          summary: '企业承担社保',
+        },
+        {
+          accountId: 0,
+          accountCode: '221102',
+          accountName: '应付职工薪酬-社保',
+          direction: 'credit',
+          percentage: 100,
+          summary: '计提社保',
+        },
       ],
     },
 
@@ -97,8 +160,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月增值税缴纳',
       entries: [
-        { accountId: 0, accountCode: '222101', accountName: '应交税费-应交增值税', direction: 'debit', percentage: 100, summary: '缴纳增值税' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 100, summary: '税款缴纳' },
+        {
+          accountId: 0,
+          accountCode: '222101',
+          accountName: '应交税费-应交增值税',
+          direction: 'debit',
+          percentage: 100,
+          summary: '缴纳增值税',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '税款缴纳',
+        },
       ],
     },
 
@@ -111,8 +188,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月企业所得税缴纳',
       entries: [
-        { accountId: 0, accountCode: '222103', accountName: '应交税费-企业所得税', direction: 'debit', percentage: 100, summary: '缴纳企业所得税' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 100, summary: '税款缴纳' },
+        {
+          accountId: 0,
+          accountCode: '222103',
+          accountName: '应交税费-企业所得税',
+          direction: 'debit',
+          percentage: 100,
+          summary: '缴纳企业所得税',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '税款缴纳',
+        },
       ],
     },
 
@@ -125,8 +216,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月固定资产折旧',
       entries: [
-        { accountId: 0, accountCode: '660209', accountName: '管理费用-折旧费', direction: 'debit', percentage: 100, summary: '固定资产折旧' },
-        { accountId: 0, accountCode: '1602', accountName: '累计折旧', direction: 'credit', percentage: 100, summary: '本月折旧' },
+        {
+          accountId: 0,
+          accountCode: '660209',
+          accountName: '管理费用-折旧费',
+          direction: 'debit',
+          percentage: 100,
+          summary: '固定资产折旧',
+        },
+        {
+          accountId: 0,
+          accountCode: '1602',
+          accountName: '累计折旧',
+          direction: 'credit',
+          percentage: 100,
+          summary: '本月折旧',
+        },
       ],
     },
 
@@ -139,8 +244,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月无形资产摊销',
       entries: [
-        { accountId: 0, accountCode: '660210', accountName: '管理费用-摊销费', direction: 'debit', percentage: 100, summary: '无形资产摊销' },
-        { accountId: 0, accountCode: '1702', accountName: '累计摊销', direction: 'credit', percentage: 100, summary: '本月摊销' },
+        {
+          accountId: 0,
+          accountCode: '660210',
+          accountName: '管理费用-摊销费',
+          direction: 'debit',
+          percentage: 100,
+          summary: '无形资产摊销',
+        },
+        {
+          accountId: 0,
+          accountCode: '1702',
+          accountName: '累计摊销',
+          direction: 'credit',
+          percentage: 100,
+          summary: '本月摊销',
+        },
       ],
     },
 
@@ -153,8 +272,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月销售成本结转',
       entries: [
-        { accountId: 0, accountCode: '6401', accountName: '主营业务成本', direction: 'debit', percentage: 100, summary: '结转销售成本' },
-        { accountId: 0, accountCode: '1405', accountName: '库存商品', direction: 'credit', percentage: 100, summary: '库存减少' },
+        {
+          accountId: 0,
+          accountCode: '6401',
+          accountName: '主营业务成本',
+          direction: 'debit',
+          percentage: 100,
+          summary: '结转销售成本',
+        },
+        {
+          accountId: 0,
+          accountCode: '1405',
+          accountName: '库存商品',
+          direction: 'credit',
+          percentage: 100,
+          summary: '库存减少',
+        },
       ],
     },
 
@@ -167,9 +300,30 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '{month}月收入确认',
       entries: [
-        { accountId: 0, accountCode: '1122', accountName: '应收账款', direction: 'debit', percentage: 113, summary: '销售收入' },
-        { accountId: 0, accountCode: '6001', accountName: '主营业务收入', direction: 'credit', percentage: 100, summary: '销售收入' },
-        { accountId: 0, accountCode: '22210105', accountName: '应交税费-销项税额', direction: 'credit', percentage: 13, summary: '销项税额' },
+        {
+          accountId: 0,
+          accountCode: '1122',
+          accountName: '应收账款',
+          direction: 'debit',
+          percentage: 113,
+          summary: '销售收入',
+        },
+        {
+          accountId: 0,
+          accountCode: '6001',
+          accountName: '主营业务收入',
+          direction: 'credit',
+          percentage: 100,
+          summary: '销售收入',
+        },
+        {
+          accountId: 0,
+          accountCode: '22210105',
+          accountName: '应交税费-销项税额',
+          direction: 'credit',
+          percentage: 13,
+          summary: '销项税额',
+        },
       ],
     },
 
@@ -182,8 +336,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '提取备用金',
       entries: [
-        { accountId: 0, accountCode: '1001', accountName: '库存现金', direction: 'debit', percentage: 100, summary: '提取备用金' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 100, summary: '提取备用金' },
+        {
+          accountId: 0,
+          accountCode: '1001',
+          accountName: '库存现金',
+          direction: 'debit',
+          percentage: 100,
+          summary: '提取备用金',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '提取备用金',
+        },
       ],
     },
 
@@ -196,8 +364,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '现金存入银行',
       entries: [
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'debit', percentage: 100, summary: '现金存入' },
-        { accountId: 0, accountCode: '1001', accountName: '库存现金', direction: 'credit', percentage: 100, summary: '现金存入' },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'debit',
+          percentage: 100,
+          summary: '现金存入',
+        },
+        {
+          accountId: 0,
+          accountCode: '1001',
+          accountName: '库存现金',
+          direction: 'credit',
+          percentage: 100,
+          summary: '现金存入',
+        },
       ],
     },
 
@@ -210,8 +392,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '银行借款入账',
       entries: [
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'debit', percentage: 100, summary: '借款入账' },
-        { accountId: 0, accountCode: '2001', accountName: '短期借款', direction: 'credit', percentage: 100, summary: '银行借款' },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'debit',
+          percentage: 100,
+          summary: '借款入账',
+        },
+        {
+          accountId: 0,
+          accountCode: '2001',
+          accountName: '短期借款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '银行借款',
+        },
       ],
     },
 
@@ -224,9 +420,30 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '归还银行借款',
       entries: [
-        { accountId: 0, accountCode: '2001', accountName: '短期借款', direction: 'debit', percentage: 95, summary: '归还本金' },
-        { accountId: 0, accountCode: '660211', accountName: '财务费用-利息', direction: 'debit', percentage: 5, summary: '支付利息' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 100, summary: '归还借款' },
+        {
+          accountId: 0,
+          accountCode: '2001',
+          accountName: '短期借款',
+          direction: 'debit',
+          percentage: 95,
+          summary: '归还本金',
+        },
+        {
+          accountId: 0,
+          accountCode: '660211',
+          accountName: '财务费用-利息',
+          direction: 'debit',
+          percentage: 5,
+          summary: '支付利息',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '归还借款',
+        },
       ],
     },
 
@@ -239,8 +456,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '收到股东投资',
       entries: [
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'debit', percentage: 100, summary: '股东投资款' },
-        { accountId: 0, accountCode: '4001', accountName: '实收资本', direction: 'credit', percentage: 100, summary: '实收资本' },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'debit',
+          percentage: 100,
+          summary: '股东投资款',
+        },
+        {
+          accountId: 0,
+          accountCode: '4001',
+          accountName: '实收资本',
+          direction: 'credit',
+          percentage: 100,
+          summary: '实收资本',
+        },
       ],
     },
 
@@ -253,8 +484,22 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '利润分配',
       entries: [
-        { accountId: 0, accountCode: '4103', accountName: '利润分配', direction: 'debit', percentage: 100, summary: '利润分配' },
-        { accountId: 0, accountCode: '4104', accountName: '应付股利', direction: 'credit', percentage: 100, summary: '应付股利' },
+        {
+          accountId: 0,
+          accountCode: '4103',
+          accountName: '利润分配',
+          direction: 'debit',
+          percentage: 100,
+          summary: '利润分配',
+        },
+        {
+          accountId: 0,
+          accountCode: '4104',
+          accountName: '应付股利',
+          direction: 'credit',
+          percentage: 100,
+          summary: '应付股利',
+        },
       ],
     },
 
@@ -267,15 +512,27 @@ export class VoucherTemplateService {
       isSystem: true,
       summary: '支付股利',
       entries: [
-        { accountId: 0, accountCode: '4104', accountName: '应付股利', direction: 'debit', percentage: 100, summary: '支付股利' },
-        { accountId: 0, accountCode: '1002', accountName: '银行存款', direction: 'credit', percentage: 100, summary: '支付股利' },
+        {
+          accountId: 0,
+          accountCode: '4104',
+          accountName: '应付股利',
+          direction: 'debit',
+          percentage: 100,
+          summary: '支付股利',
+        },
+        {
+          accountId: 0,
+          accountCode: '1002',
+          accountName: '银行存款',
+          direction: 'credit',
+          percentage: 100,
+          summary: '支付股利',
+        },
       ],
     },
   ];
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 初始化企业模板库
@@ -322,7 +579,13 @@ export class VoucherTemplateService {
       pageSize?: number;
     },
   ): Promise<{ list: VoucherTemplate[]; total: number }> {
-    const { category, isSystem, keyword, page = 1, pageSize = 20 } = options || {};
+    const {
+      category,
+      isSystem,
+      keyword,
+      page = 1,
+      pageSize = 20,
+    } = options || {};
 
     const conditions = [eq(schema.voucherTemplates.enterpriseId, enterpriseId)];
 
@@ -348,12 +611,15 @@ export class VoucherTemplateService {
       .select()
       .from(schema.voucherTemplates)
       .where(and(...conditions))
-      .orderBy(desc(schema.voucherTemplates.isSystem), desc(schema.voucherTemplates.usageCount))
+      .orderBy(
+        desc(schema.voucherTemplates.isSystem),
+        desc(schema.voucherTemplates.usageCount),
+      )
       .limit(pageSize)
       .offset((page - 1) * pageSize);
 
     return {
-      list: templates.map(t => ({
+      list: templates.map((t) => ({
         id: t.id,
         templateCode: t.templateCode,
         templateName: t.templateName,
@@ -426,7 +692,10 @@ export class VoucherTemplateService {
     }
 
     // 解析科目代码为ID
-    const resolvedEntries = await this.resolveAccountIds(data.entries, enterpriseId);
+    const resolvedEntries = await this.resolveAccountIds(
+      data.entries,
+      enterpriseId,
+    );
 
     const [template] = await this.db
       .insert(schema.voucherTemplates)
@@ -611,7 +880,9 @@ export class VoucherTemplateService {
         .limit(1);
 
       if (!account) {
-        throw new Error(`科目不存在: ${entry.accountCode} ${entry.accountName}`);
+        throw new Error(
+          `科目不存在: ${entry.accountCode} ${entry.accountName}`,
+        );
       }
 
       entries.push({
@@ -634,7 +905,9 @@ export class VoucherTemplateService {
     await this.db
       .update(schema.voucherTemplates)
       .set({
-        usageCount: template.id ? (await this.getUsageCount(template.id)) + 1 : 1,
+        usageCount: template.id
+          ? (await this.getUsageCount(template.id)) + 1
+          : 1,
         lastUsedAt: new Date(),
       })
       .where(eq(schema.voucherTemplates.id, templateId));
@@ -690,7 +963,7 @@ export class VoucherTemplateService {
       )
       .groupBy(schema.voucherTemplates.category);
 
-    return result.map(r => r.category);
+    return result.map((r) => r.category);
   }
 
   /**

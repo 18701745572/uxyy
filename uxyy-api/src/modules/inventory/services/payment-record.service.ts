@@ -72,12 +72,20 @@ export class PaymentRecordService {
         lte(schema.paymentRecords.paymentDate, new Date(params.endDate)),
       );
     } else if (params.startDate) {
-      dateCondition = gte(schema.paymentRecords.paymentDate, new Date(params.startDate));
+      dateCondition = gte(
+        schema.paymentRecords.paymentDate,
+        new Date(params.startDate),
+      );
     } else if (params.endDate) {
-      dateCondition = lte(schema.paymentRecords.paymentDate, new Date(params.endDate));
+      dateCondition = lte(
+        schema.paymentRecords.paymentDate,
+        new Date(params.endDate),
+      );
     }
 
-    const whereClause = dateCondition ? and(...conditions, dateCondition) : and(...conditions);
+    const whereClause = dateCondition
+      ? and(...conditions, dateCondition)
+      : and(...conditions);
 
     const [data, totalResult, sumResult] = await Promise.all([
       this.db
@@ -86,7 +94,10 @@ export class PaymentRecordService {
           customerName: schema.customers.name,
         })
         .from(schema.paymentRecords)
-        .leftJoin(schema.customers, eq(schema.paymentRecords.customerId, schema.customers.id))
+        .leftJoin(
+          schema.customers,
+          eq(schema.paymentRecords.customerId, schema.customers.id),
+        )
         .where(whereClause)
         .orderBy(desc(schema.paymentRecords.paymentDate))
         .limit(params.pageSize)
@@ -137,7 +148,10 @@ export class PaymentRecordService {
         customerName: schema.customers.name,
       })
       .from(schema.paymentRecords)
-      .leftJoin(schema.customers, eq(schema.paymentRecords.customerId, schema.customers.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.paymentRecords.customerId, schema.customers.id),
+      )
       .where(
         and(
           eq(schema.paymentRecords.id, id),
@@ -258,9 +272,12 @@ export class PaymentRecordService {
 
     const patch: Record<string, unknown> = {};
     if (dto.amount !== undefined) patch.amount = dto.amount.toString();
-    if (dto.paymentMethod !== undefined) patch.paymentMethod = dto.paymentMethod;
-    if (dto.paymentDate !== undefined) patch.paymentDate = new Date(dto.paymentDate);
-    if (dto.referenceNo !== undefined) patch.referenceNo = dto.referenceNo || null;
+    if (dto.paymentMethod !== undefined)
+      patch.paymentMethod = dto.paymentMethod;
+    if (dto.paymentDate !== undefined)
+      patch.paymentDate = new Date(dto.paymentDate);
+    if (dto.referenceNo !== undefined)
+      patch.referenceNo = dto.referenceNo || null;
     if (dto.remark !== undefined) patch.remark = dto.remark || null;
 
     const [updated] = await this.db
@@ -297,7 +314,10 @@ export class PaymentRecordService {
   /**
    * 获取客户的回款统计
    */
-  async getCustomerPaymentStats(customerId: number, enterpriseId: number | undefined) {
+  async getCustomerPaymentStats(
+    customerId: number,
+    enterpriseId: number | undefined,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const [result] = await this.db
@@ -323,7 +343,10 @@ export class PaymentRecordService {
   /**
    * 获取订单的回款统计
    */
-  async getOrderPaymentStats(orderId: number, enterpriseId: number | undefined) {
+  async getOrderPaymentStats(
+    orderId: number,
+    enterpriseId: number | undefined,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
 
     const [result] = await this.db
@@ -353,7 +376,9 @@ export class PaymentRecordService {
 
     const totalPayments = result?.totalPayments ?? '0';
     const orderAmount = order?.payableAmount ?? '0';
-    const remainingAmount = (parseFloat(orderAmount) - parseFloat(totalPayments)).toFixed(2);
+    const remainingAmount = (
+      parseFloat(orderAmount) - parseFloat(totalPayments)
+    ).toFixed(2);
 
     return {
       orderId,

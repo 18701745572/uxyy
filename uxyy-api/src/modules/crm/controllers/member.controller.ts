@@ -99,7 +99,8 @@ export class MemberController {
   @Post('levels/import')
   @Permissions(Permission.CRM_WRITE)
   @ApiOperation({
-    summary: 'Excel/CSV 导入会员等级（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入会员等级（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -223,9 +224,13 @@ export class MemberController {
     @Query('type') type?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
-    return this.memberService.getPointsRecords(customerId, req.user.enterpriseId, {
-      type,
-      limit,
-    });
+    return this.memberService.getPointsRecords(
+      customerId,
+      req.user.enterpriseId,
+      {
+        type,
+        limit,
+      },
+    );
   }
 }

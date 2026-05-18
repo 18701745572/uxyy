@@ -23,9 +23,7 @@ import {
 
 @Injectable()
 export class ApprovalFlowService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   async createFlow(enterpriseId: number, dto: CreateApprovalFlowDto) {
     const [flow] = await this.db
@@ -52,7 +50,12 @@ export class ApprovalFlowService {
     const [flow] = await this.db
       .select()
       .from(schema.approvalFlows)
-      .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)));
+      .where(
+        and(
+          eq(schema.approvalFlows.id, id),
+          eq(schema.approvalFlows.enterpriseId, enterpriseId),
+        ),
+      );
     if (!flow) throw new NotFoundException('审批流程不存在');
     return flow;
   }
@@ -63,10 +66,13 @@ export class ApprovalFlowService {
       .from(schema.approvalFlows)
       .where(
         and(
-          eq(schema.approvalFlows.type, type as 'purchase' | 'sales' | 'reimbursement' | 'leave'),
+          eq(
+            schema.approvalFlows.type,
+            type as 'purchase' | 'sales' | 'reimbursement' | 'leave',
+          ),
           eq(schema.approvalFlows.enterpriseId, enterpriseId),
-          eq(schema.approvalFlows.status, 'active')
-        )
+          eq(schema.approvalFlows.status, 'active'),
+        ),
       );
     return flow;
   }
@@ -101,24 +107,31 @@ export class ApprovalFlowService {
 
     if (!flow) {
       throw new NotFoundException(
-        type === 'leave'
-          ? '无法创建默认请假审批流'
-          : '无法创建默认报销审批流',
+        type === 'leave' ? '无法创建默认请假审批流' : '无法创建默认报销审批流',
       );
     }
     return flow;
   }
 
-  async updateFlow(id: number, enterpriseId: number, dto: UpdateApprovalFlowDto) {
+  async updateFlow(
+    id: number,
+    enterpriseId: number,
+    dto: UpdateApprovalFlowDto,
+  ) {
     await this.findFlowById(id, enterpriseId);
     const [flow] = await this.db
       .update(schema.approvalFlows)
       .set({
         ...(dto.name && { name: dto.name }),
-        ...(dto.steps && { steps: dto.steps as ApprovalStep[] }),
+        ...(dto.steps && { steps: dto.steps }),
         ...(dto.status && { status: dto.status }),
       })
-      .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.approvalFlows.id, id),
+          eq(schema.approvalFlows.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
     return flow;
   }
@@ -127,7 +140,12 @@ export class ApprovalFlowService {
     await this.findFlowById(id, enterpriseId);
     await this.db
       .delete(schema.approvalFlows)
-      .where(and(eq(schema.approvalFlows.id, id), eq(schema.approvalFlows.enterpriseId, enterpriseId)));
+      .where(
+        and(
+          eq(schema.approvalFlows.id, id),
+          eq(schema.approvalFlows.enterpriseId, enterpriseId),
+        ),
+      );
     return { success: true };
   }
 
@@ -165,7 +183,7 @@ export class ApprovalFlowService {
     businessId: number,
     title: string,
     submittedBy: number,
-    remark?: string
+    remark?: string,
   ) {
     const [record] = await this.db
       .insert(schema.approvalRecords)
@@ -187,7 +205,7 @@ export class ApprovalFlowService {
   async processApproval(
     recordId: number,
     userId: number,
-    dto: ApprovalActionDto
+    dto: ApprovalActionDto,
   ) {
     const [record] = await this.db
       .select()
@@ -208,7 +226,7 @@ export class ApprovalFlowService {
         .from(schema.approvalFlows)
         .where(eq(schema.approvalFlows.id, record.flowId));
 
-      const steps = (flow?.steps as ApprovalStep[]) || [];
+      const steps = flow?.steps || [];
       const nextStep = record.currentStep + 1;
 
       if (nextStep > steps.length) {
@@ -223,7 +241,10 @@ export class ApprovalFlowService {
           })
           .where(eq(schema.approvalRecords.id, recordId))
           .returning();
-        await this.syncBusinessDocumentAfterTerminalApproval(record, 'approved');
+        await this.syncBusinessDocumentAfterTerminalApproval(
+          record,
+          'approved',
+        );
         return { ...updated, completed: true };
       } else {
         // 进入下一步
@@ -254,7 +275,7 @@ export class ApprovalFlowService {
         .from(schema.approvalFlows)
         .where(eq(schema.approvalFlows.id, record.flowId));
 
-      const steps = [...((flow?.steps as ApprovalStep[]) || [])];
+      const steps = [...(flow?.steps || [])];
       const currentStepIndex = record.currentStep - 1;
 
       if (steps[currentStepIndex] && transferToUserId) {
@@ -280,7 +301,7 @@ export class ApprovalFlowService {
     flow: typeof schema.approvalFlows.$inferSelect,
     userRole: string,
   ): void {
-    const steps = (flow.steps as ApprovalStep[]) || [];
+    const steps = flow.steps || [];
     const currentStepDef = steps.find((s) => s.step === record.currentStep);
     if (!currentStepDef) {
       throw new BadRequestException('审批流程步骤异常');
@@ -388,7 +409,9 @@ export class ApprovalFlowService {
     const out = pr as Record<string, unknown>;
     const completed = out.completed === true;
     const status =
-      typeof out.status === 'string' ? out.status : String(out.status ?? 'pending');
+      typeof out.status === 'string'
+        ? out.status
+        : String(out.status ?? 'pending');
     const nextStepNum = out.currentStep;
     const nextStep =
       completed || typeof nextStepNum !== 'number' ? null : nextStepNum;
@@ -411,12 +434,15 @@ export class ApprovalFlowService {
         flow: schema.approvalFlows,
       })
       .from(schema.approvalRecords)
-      .innerJoin(schema.approvalFlows, eq(schema.approvalRecords.flowId, schema.approvalFlows.id))
+      .innerJoin(
+        schema.approvalFlows,
+        eq(schema.approvalRecords.flowId, schema.approvalFlows.id),
+      )
       .where(
         and(
           eq(schema.approvalRecords.status, 'pending'),
-          eq(schema.approvalFlows.enterpriseId, enterpriseId)
-        )
+          eq(schema.approvalFlows.enterpriseId, enterpriseId),
+        ),
       )
       .orderBy(desc(schema.approvalRecords.createdAt));
   }
@@ -429,7 +455,10 @@ export class ApprovalFlowService {
         flow: schema.approvalFlows,
       })
       .from(schema.approvalRecords)
-      .innerJoin(schema.approvalFlows, eq(schema.approvalRecords.flowId, schema.approvalFlows.id))
+      .innerJoin(
+        schema.approvalFlows,
+        eq(schema.approvalRecords.flowId, schema.approvalFlows.id),
+      )
       .where(eq(schema.approvalRecords.submittedBy, userId))
       .orderBy(desc(schema.approvalRecords.createdAt));
   }

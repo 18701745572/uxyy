@@ -1,10 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 import { Permissions } from '../../../common/decorators/permissions.decorator';
-import { SalesOutboundService, type CreateOutboundDto } from '../services/sales-outbound.service';
+import {
+  SalesOutboundService,
+  type CreateOutboundDto,
+} from '../services/sales-outbound.service';
 
 @Controller('inventory/sales-outbound')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -40,10 +54,7 @@ export class SalesOutboundController {
 
   @Post()
   @Permissions('inventory:sales_order')
-  create(
-    @Req() req: Request,
-    @Body() dto: CreateOutboundDto,
-  ) {
+  create(@Req() req: Request, @Body() dto: CreateOutboundDto) {
     const enterpriseId = Number((req as any).user?.enterpriseId);
     const userId = Number((req as any).user?.userId);
     return this.service.create(enterpriseId, userId, dto);
@@ -51,10 +62,7 @@ export class SalesOutboundController {
 
   @Put(':id/confirm')
   @Permissions('inventory:sales_order')
-  confirm(
-    @Req() req: Request,
-    @Param('id') id: number,
-  ) {
+  confirm(@Req() req: Request, @Param('id') id: number) {
     const enterpriseId = Number((req as any).user?.enterpriseId);
     const userId = Number((req as any).user?.userId);
     return this.service.confirm(enterpriseId, id, userId);

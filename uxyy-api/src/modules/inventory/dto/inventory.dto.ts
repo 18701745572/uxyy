@@ -28,13 +28,15 @@ export class InventoryListQueryDto extends PaginationQueryDto {
   lowStock?: boolean;
 
   @ApiPropertyOptional({
-    description: '仅显示临期/已过期库存（依据 inventory.expiryDate，与效期预警窗口一致）',
+    description:
+      '仅显示临期/已过期库存（依据 inventory.expiryDate，与效期预警窗口一致）',
   })
   @IsOptional()
   expiringSoon?: boolean;
 
   @ApiPropertyOptional({
-    description: '效期预警窗口天数（与 expiringSoon、/alerts 中联动的临期规则一致），默认 30',
+    description:
+      '效期预警窗口天数（与 expiringSoon、/alerts 中联动的临期规则一致），默认 30',
     default: 30,
   })
   @IsOptional()
@@ -258,7 +260,8 @@ export class ExpiryAlertListQueryDto extends PaginationQueryDto {
   warningDays?: number;
 
   @ApiPropertyOptional({
-    description: '是否包含 product_batches 效期（默认 true；仅 inventory 时置 false）',
+    description:
+      '是否包含 product_batches 效期（默认 true；仅 inventory 时置 false）',
     default: true,
   })
   @IsOptional()

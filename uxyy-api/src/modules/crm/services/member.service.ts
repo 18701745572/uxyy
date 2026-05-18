@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq, and, desc, sql, ilike, or, count } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { DRIZZLE_DB } from '../../database/database.constants';
@@ -39,9 +44,7 @@ export interface PointsOperationDto {
 
 @Injectable()
 export class MemberService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   // ==================== 会员等级管理 ====================
 
@@ -92,7 +95,11 @@ export class MemberService {
     return level;
   }
 
-  async updateLevel(id: number, enterpriseId: number, dto: UpdateMemberLevelDto) {
+  async updateLevel(
+    id: number,
+    enterpriseId: number,
+    dto: UpdateMemberLevelDto,
+  ) {
     // 如果设置为默认，取消其他默认等级
     if (dto.isDefault) {
       await this.db
@@ -142,7 +149,12 @@ export class MemberService {
 
   async findAllMembers(
     enterpriseId: number,
-    options?: { levelId?: number; keyword?: string; page?: number; pageSize?: number },
+    options?: {
+      levelId?: number;
+      keyword?: string;
+      page?: number;
+      pageSize?: number;
+    },
   ) {
     const page = Math.max(1, options?.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, options?.pageSize ?? 10));
@@ -173,7 +185,10 @@ export class MemberService {
     const [countRow] = await this.db
       .select({ n: count() })
       .from(schema.customerMembers)
-      .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.customerMembers.customerId, schema.customers.id),
+      )
       .where(whereClause);
 
     const total = Number(countRow?.n ?? 0);
@@ -185,8 +200,14 @@ export class MemberService {
         level: schema.memberLevels,
       })
       .from(schema.customerMembers)
-      .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
-      .leftJoin(schema.memberLevels, eq(schema.customerMembers.levelId, schema.memberLevels.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.customerMembers.customerId, schema.customers.id),
+      )
+      .leftJoin(
+        schema.memberLevels,
+        eq(schema.customerMembers.levelId, schema.memberLevels.id),
+      )
       .where(whereClause)
       .orderBy(desc(schema.customerMembers.totalConsumption))
       .limit(pageSize)
@@ -208,8 +229,14 @@ export class MemberService {
         level: schema.memberLevels,
       })
       .from(schema.customerMembers)
-      .leftJoin(schema.customers, eq(schema.customerMembers.customerId, schema.customers.id))
-      .leftJoin(schema.memberLevels, eq(schema.customerMembers.levelId, schema.memberLevels.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.customerMembers.customerId, schema.customers.id),
+      )
+      .leftJoin(
+        schema.memberLevels,
+        eq(schema.customerMembers.levelId, schema.memberLevels.id),
+      )
       .where(
         and(
           eq(schema.customerMembers.customerId, customerId),
@@ -254,7 +281,8 @@ export class MemberService {
     }
 
     // 生成会员卡号
-    const memberNo = dto.memberNo || await this.generateMemberNo(enterpriseId);
+    const memberNo =
+      dto.memberNo || (await this.generateMemberNo(enterpriseId));
 
     const [member] = await this.db
       .insert(schema.customerMembers)
@@ -270,7 +298,11 @@ export class MemberService {
     return member;
   }
 
-  async updateMember(customerId: number, enterpriseId: number, dto: Partial<CreateCustomerMemberDto>) {
+  async updateMember(
+    customerId: number,
+    enterpriseId: number,
+    dto: Partial<CreateCustomerMemberDto>,
+  ) {
     const [member] = await this.db
       .update(schema.customerMembers)
       .set({
@@ -358,7 +390,11 @@ export class MemberService {
     return record;
   }
 
-  async getPointsRecords(customerId: number, enterpriseId: number, options?: { type?: string; limit?: number }) {
+  async getPointsRecords(
+    customerId: number,
+    enterpriseId: number,
+    options?: { type?: string; limit?: number },
+  ) {
     const conditions = [
       eq(schema.pointsRecords.customerId, customerId),
       eq(schema.pointsRecords.enterpriseId, enterpriseId),
@@ -407,7 +443,9 @@ export class MemberService {
       totalConsumption: String(m.totalConsumption),
       orderCount: m.orderCount,
       joinDate: m.joinDate.toISOString?.() ?? String(m.joinDate),
-      expireDate: m.expireDate ? (m.expireDate.toISOString?.() ?? String(m.expireDate)) : undefined,
+      expireDate: m.expireDate
+        ? (m.expireDate.toISOString?.() ?? String(m.expireDate))
+        : undefined,
       lastConsumptionAt: m.lastConsumptionAt
         ? (m.lastConsumptionAt.toISOString?.() ?? String(m.lastConsumptionAt))
         : undefined,
@@ -462,7 +500,10 @@ export class MemberService {
     orderAmount: number,
     pointsEarned: number,
   ) {
-    const memberInfo = await this.findMemberByCustomerId(customerId, enterpriseId);
+    const memberInfo = await this.findMemberByCustomerId(
+      customerId,
+      enterpriseId,
+    );
 
     if (!memberInfo) {
       // 自动创建会员
@@ -575,11 +616,17 @@ export class MemberService {
         }
 
         if (key === 'isDefault') {
-          rowData[key] = String(val).toLowerCase() === 'true' || String(val) === '是' || String(val) === '1';
+          rowData[key] =
+            String(val).toLowerCase() === 'true' ||
+            String(val) === '是' ||
+            String(val) === '1';
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;
@@ -601,7 +648,10 @@ export class MemberService {
       // Validate code
       const validCodes = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
       if (!validCodes.includes(code)) {
-        failures.push({ row: rowIndex, reason: '等级代码必须是 bronze/silver/gold/platinum/diamond 之一' });
+        failures.push({
+          row: rowIndex,
+          reason: '等级代码必须是 bronze/silver/gold/platinum/diamond 之一',
+        });
         continue;
       }
 

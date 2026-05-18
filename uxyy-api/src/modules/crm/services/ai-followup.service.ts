@@ -28,14 +28,15 @@ export interface CustomerInsight {
 export class AiFollowUpService {
   private readonly logger = new Logger(AiFollowUpService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 生成客户跟进建议
    */
-  async generateFollowUpSuggestions(customerId: number, enterpriseId: number): Promise<FollowUpSuggestion[]> {
+  async generateFollowUpSuggestions(
+    customerId: number,
+    enterpriseId: number,
+  ): Promise<FollowUpSuggestion[]> {
     const suggestions: FollowUpSuggestion[] = [];
 
     // 获取客户基本信息
@@ -68,7 +69,10 @@ export class AiFollowUpService {
 
     const lastFollowUp = recentFollowUps[0];
     const daysSinceLastFollowUp = lastFollowUp
-      ? Math.floor((Date.now() - new Date(lastFollowUp.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (Date.now() - new Date(lastFollowUp.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
       : null;
 
     // 获取商机信息
@@ -83,8 +87,10 @@ export class AiFollowUpService {
         ),
       );
 
-    const activeOpportunities = opportunities.filter(o => o.status !== 'deal' && o.status !== 'lost');
-    const wonOpportunities = opportunities.filter(o => o.status === 'deal');
+    const activeOpportunities = opportunities.filter(
+      (o) => o.status !== 'deal' && o.status !== 'lost',
+    );
+    const wonOpportunities = opportunities.filter((o) => o.status === 'deal');
 
     // 获取销售订单信息
     const orders = await this.db
@@ -97,29 +103,41 @@ export class AiFollowUpService {
         ),
       );
 
-    const totalOrderAmount = orders.reduce((sum, o) => sum + parseFloat(o.totalAmount || '0'), 0);
+    const totalOrderAmount = orders.reduce(
+      (sum, o) => sum + parseFloat(o.totalAmount || '0'),
+      0,
+    );
 
     // 1. 跟进频率建议
     if (!daysSinceLastFollowUp || daysSinceLastFollowUp > 7) {
       suggestions.push({
         type: 'follow_up',
-        priority: daysSinceLastFollowUp && daysSinceLastFollowUp > 14 ? 'high' : 'medium',
+        priority:
+          daysSinceLastFollowUp && daysSinceLastFollowUp > 14
+            ? 'high'
+            : 'medium',
         title: '需要跟进客户',
         content: `客户「${customer.name}」已有 ${daysSinceLastFollowUp || '很长一段'} 天未跟进，建议及时联系维护关系。`,
-        suggestedAction: daysSinceLastFollowUp && daysSinceLastFollowUp > 14
-          ? '发送关怀邮件或电话回访，了解客户最新需求'
-          : '微信或电话简单问候，保持联系热度',
+        suggestedAction:
+          daysSinceLastFollowUp && daysSinceLastFollowUp > 14
+            ? '发送关怀邮件或电话回访，了解客户最新需求'
+            : '微信或电话简单问候，保持联系热度',
         reason: '长时间未跟进可能导致客户流失',
       });
     }
 
     // 2. 商机推进建议
     if (activeOpportunities.length > 0) {
-      const highValueOpps = activeOpportunities.filter(o => parseFloat(o.estimatedAmount || '0') > 10000);
-      
+      const highValueOpps = activeOpportunities.filter(
+        (o) => parseFloat(o.estimatedAmount || '0') > 10000,
+      );
+
       for (const opp of highValueOpps) {
         const daysInStage = opp.expectedCloseAt
-          ? Math.floor((new Date(opp.expectedCloseAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          ? Math.floor(
+              (new Date(opp.expectedCloseAt).getTime() - Date.now()) /
+                (1000 * 60 * 60 * 24),
+            )
           : null;
 
         if (daysInStage !== null && daysInStage < 7 && daysInStage > 0) {
@@ -136,7 +154,10 @@ export class AiFollowUpService {
     }
 
     // 3. 流失风险预警
-    if (wonOpportunities.length > 0 && (!daysSinceLastFollowUp || daysSinceLastFollowUp > 30)) {
+    if (
+      wonOpportunities.length > 0 &&
+      (!daysSinceLastFollowUp || daysSinceLastFollowUp > 30)
+    ) {
       suggestions.push({
         type: 'risk',
         priority: 'high',
@@ -160,7 +181,11 @@ export class AiFollowUpService {
     }
 
     // 5. 新客户需求挖掘
-    if (orders.length === 0 && opportunities.length === 0 && recentFollowUps.length >= 2) {
+    if (
+      orders.length === 0 &&
+      opportunities.length === 0 &&
+      recentFollowUps.length >= 2
+    ) {
       suggestions.push({
         type: 'opportunity',
         priority: 'medium',
@@ -177,7 +202,10 @@ export class AiFollowUpService {
   /**
    * 获取客户洞察报告
    */
-  async getCustomerInsight(customerId: number, enterpriseId: number): Promise<CustomerInsight | null> {
+  async getCustomerInsight(
+    customerId: number,
+    enterpriseId: number,
+  ): Promise<CustomerInsight | null> {
     const [customer] = await this.db
       .select()
       .from(schema.customers)
@@ -208,7 +236,10 @@ export class AiFollowUpService {
 
     const lastFollowUpDate = followUpStats[0]?.lastDate;
     const daysSinceLastFollowUp = lastFollowUpDate
-      ? Math.floor((Date.now() - new Date(lastFollowUpDate).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (Date.now() - new Date(lastFollowUpDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
       : 999;
 
     // 统计商机
@@ -234,7 +265,10 @@ export class AiFollowUpService {
       riskLevel = 'medium';
     }
 
-    const suggestions = await this.generateFollowUpSuggestions(customerId, enterpriseId);
+    const suggestions = await this.generateFollowUpSuggestions(
+      customerId,
+      enterpriseId,
+    );
 
     return {
       customerId,
@@ -288,7 +322,11 @@ export class AiFollowUpService {
   /**
    * 生成跟进话术建议
    */
-  async generateFollowUpScript(customerId: number, enterpriseId: number, context?: string): Promise<string> {
+  async generateFollowUpScript(
+    customerId: number,
+    enterpriseId: number,
+    context?: string,
+  ): Promise<string> {
     const [customer] = await this.db
       .select()
       .from(schema.customers)

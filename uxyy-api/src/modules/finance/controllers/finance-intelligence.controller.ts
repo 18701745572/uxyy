@@ -49,7 +49,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '执行历史数据学习分析' })
   async learnFromHistory(
     @Req() req: Request & { user: UserContext },
-    @Body() data?: {
+    @Body()
+    data?: {
       startDate?: string;
       endDate?: string;
       minSampleSize?: number;
@@ -113,9 +114,7 @@ export class FinanceIntelligenceController {
   @Post('alerts/init-config')
   @Permissions(Permission.FIN_CONFIG)
   @ApiOperation({ summary: '初始化预警配置' })
-  async initializeAlertConfigs(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async initializeAlertConfigs(@Req() req: Request & { user: UserContext }) {
     await this.alertService.initializeAlertConfigs(
       req.user.enterpriseId,
       req.user.userId,
@@ -148,7 +147,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '批量检测期间凭证' })
   async batchDetect(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       startDate: string;
       endDate: string;
     },
@@ -185,9 +185,7 @@ export class FinanceIntelligenceController {
   @Get('alerts/stats')
   @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '获取预警统计' })
-  async getAlertStats(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async getAlertStats(@Req() req: Request & { user: UserContext }) {
     return this.alertService.getAlertStats(req.user.enterpriseId);
   }
 
@@ -235,7 +233,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '智能科目推荐' })
   async recommendAccount(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       summary?: string;
       counterpartyName?: string;
       amount?: number;
@@ -253,7 +252,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '智能摘要补全' })
   async autoCompleteSummary(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       partialSummary: string;
       accountId?: number;
     },
@@ -270,7 +270,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '智能凭证补全' })
   async autoCompleteVoucher(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       existingEntries: Array<{
         accountId: number;
         direction: 'debit' | 'credit';
@@ -289,7 +290,8 @@ export class FinanceIntelligenceController {
   @ApiOperation({ summary: '推荐凭证模板' })
   async recommendTemplate(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       summary?: string;
       accounts?: number[];
     },
@@ -333,20 +335,21 @@ export class FinanceIntelligenceController {
   @Get('dashboard')
   @Permissions(Permission.FIN_READ)
   @ApiOperation({ summary: '智能功能仪表板' })
-  async getIntelligenceDashboard(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async getIntelligenceDashboard(@Req() req: Request & { user: UserContext }) {
     // 并行获取各模块数据
     const [alertStats, recStats] = await Promise.all([
       this.alertService.getAlertStats(req.user.enterpriseId),
-      this.recommendationService.getRecommendationStats(req.user.enterpriseId, 30),
+      this.recommendationService.getRecommendationStats(
+        req.user.enterpriseId,
+        30,
+      ),
     ]);
 
     // 获取学习记录数量
-    const { total: learningCount } = await this.learningService.getLearningRecords(
-      req.user.enterpriseId,
-      { pageSize: 1 },
-    );
+    const { total: learningCount } =
+      await this.learningService.getLearningRecords(req.user.enterpriseId, {
+        pageSize: 1,
+      });
 
     return {
       alerts: alertStats,

@@ -97,7 +97,9 @@ export class AuthController {
   @Public()
   @Post('register-invite')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: '受邀用手机号注册并入会（须有效邀请令牌；不经客户端传入手机号）' })
+  @ApiOperation({
+    summary: '受邀用手机号注册并入会（须有效邀请令牌；不经客户端传入手机号）',
+  })
   registerViaInvitation(@Body() dto: RegisterInviteDto) {
     return this.invitations.registerViaInvitation(dto);
   }

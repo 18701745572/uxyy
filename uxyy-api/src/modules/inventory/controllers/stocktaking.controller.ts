@@ -15,7 +15,13 @@ import {
 } from '@nestjs/common';
 import type { Express } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { StocktakingService } from '../services/stocktaking.service';
 import {
   CreateStocktakingDto,
@@ -121,7 +127,8 @@ export class StocktakingController {
   @ApiBearerAuth()
   @Post('import')
   @ApiOperation({
-    summary: 'Excel/CSV 导入盘点单（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入盘点单（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

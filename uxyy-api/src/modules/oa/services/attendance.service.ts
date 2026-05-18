@@ -38,14 +38,17 @@ export interface AttendanceStats {
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 打卡
    */
-  async checkIn(userId: number, enterpriseId: number, type: 'in' | 'out', location?: string) {
+  async checkIn(
+    userId: number,
+    enterpriseId: number,
+    type: 'in' | 'out',
+    location?: string,
+  ) {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
@@ -82,7 +85,10 @@ export class AttendanceService {
           })
           .where(eq(schema.attendanceRecords.id, existing.id))
           .returning();
-        return { message: isLate ? '已打卡，您迟到了' : '上班打卡成功', record: updated };
+        return {
+          message: isLate ? '已打卡，您迟到了' : '上班打卡成功',
+          record: updated,
+        };
       } else {
         const [created] = await this.db
           .insert(schema.attendanceRecords)
@@ -96,7 +102,10 @@ export class AttendanceService {
             location,
           })
           .returning();
-        return { message: isLate ? '已打卡，您迟到了' : '上班打卡成功', record: created };
+        return {
+          message: isLate ? '已打卡，您迟到了' : '上班打卡成功',
+          record: created,
+        };
       }
     } else {
       // 下班打卡
@@ -116,7 +125,9 @@ export class AttendanceService {
 
       // 计算工作时长
       const checkInDate = existing.checkIn ? new Date(existing.checkIn) : null;
-      const workHours = checkInDate ? (now.getTime() - checkInDate.getTime()) / (1000 * 60 * 60) : 0;
+      const workHours = checkInDate
+        ? (now.getTime() - checkInDate.getTime()) / (1000 * 60 * 60)
+        : 0;
 
       // 更新状态
       let status = existing.status;
@@ -135,14 +146,21 @@ export class AttendanceService {
         .where(eq(schema.attendanceRecords.id, existing.id))
         .returning();
 
-      return { message: isEarlyLeave ? '已打卡，您早退了' : '下班打卡成功', record: updated };
+      return {
+        message: isEarlyLeave ? '已打卡，您早退了' : '下班打卡成功',
+        record: updated,
+      };
     }
   }
 
   /**
    * 获取个人考勤记录
    */
-  async getPersonalAttendance(userId: number, startDate?: string, endDate?: string) {
+  async getPersonalAttendance(
+    userId: number,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const conditions = [eq(schema.attendanceRecords.userId, userId)];
 
     if (startDate) {
@@ -167,7 +185,11 @@ export class AttendanceService {
   /**
    * 获取部门考勤统计
    */
-  async getDepartmentAttendance(enterpriseId: number, departmentId: string, month: string) {
+  async getDepartmentAttendance(
+    enterpriseId: number,
+    departmentId: string,
+    month: string,
+  ) {
     const startDate = new Date(`${month}-01`);
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
@@ -201,7 +223,10 @@ export class AttendanceService {
         user: schema.users,
       })
       .from(schema.attendanceRecords)
-      .leftJoin(schema.users, eq(schema.attendanceRecords.userId, schema.users.id))
+      .leftJoin(
+        schema.users,
+        eq(schema.attendanceRecords.userId, schema.users.id),
+      )
       .where(
         and(
           inArray(schema.attendanceRecords.userId, userIds),
@@ -211,13 +236,14 @@ export class AttendanceService {
       );
 
     // 按员工分组统计
-    const userStats: Record<number, { name: string; stats: AttendanceStats }> = {};
+    const userStats: Record<number, { name: string; stats: AttendanceStats }> =
+      {};
 
     for (const userId of userIds) {
       const userRecords = records
-        .filter(r => r.record.userId === userId)
-        .map(r => r.record);
-      const user = records.find(r => r.record.userId === userId)?.user;
+        .filter((r) => r.record.userId === userId)
+        .map((r) => r.record);
+      const user = records.find((r) => r.record.userId === userId)?.user;
 
       userStats[userId] = {
         name: user?.nickname || user?.phone || `员工${userId}`,
@@ -252,7 +278,10 @@ export class AttendanceService {
         user: schema.users,
       })
       .from(schema.attendanceRecords)
-      .leftJoin(schema.users, eq(schema.attendanceRecords.userId, schema.users.id))
+      .leftJoin(
+        schema.users,
+        eq(schema.attendanceRecords.userId, schema.users.id),
+      )
       .where(
         and(
           eq(schema.attendanceRecords.enterpriseId, enterpriseId),
@@ -260,9 +289,9 @@ export class AttendanceService {
         ),
       );
 
-    const checkedIn = todayRecords.filter(r => r.record.checkIn).length;
-    const checkedOut = todayRecords.filter(r => r.record.checkOut).length;
-    const late = todayRecords.filter(r => r.record.status === 'late').length;
+    const checkedIn = todayRecords.filter((r) => r.record.checkIn).length;
+    const checkedOut = todayRecords.filter((r) => r.record.checkOut).length;
+    const late = todayRecords.filter((r) => r.record.status === 'late').length;
     const totalEmp = Number(employeeCount?.count ?? 0);
     const absent = Math.max(0, totalEmp - checkedIn);
 
@@ -443,7 +472,9 @@ export class AttendanceService {
   /**
    * 计算考勤统计
    */
-  private calculateStats(records: (typeof schema.attendanceRecords.$inferSelect)[]): AttendanceStats {
+  private calculateStats(
+    records: (typeof schema.attendanceRecords.$inferSelect)[],
+  ): AttendanceStats {
     const stats: AttendanceStats = {
       totalDays: records.length,
       normalDays: 0,

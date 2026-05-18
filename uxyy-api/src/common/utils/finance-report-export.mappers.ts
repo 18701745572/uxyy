@@ -40,15 +40,17 @@ export type IncomeStatementReport = IncomeStatementResponseDto;
 export type CashFlowReport = CashFlowResponseDto;
 export type ArApReport = ArApResponseDto;
 
-const col = (
-  key: string,
-  header: string,
-  width: number,
-): ExportColumn => ({ key, header, width });
+const col = (key: string, header: string, width: number): ExportColumn => ({
+  key,
+  header,
+  width,
+});
 
-export function balanceSheetExcelWorkbook(
-  r: BalanceSheetReport,
-): { name: string; data: Record<string, unknown>[]; columns: ExportColumn[] }[] {
+export function balanceSheetExcelWorkbook(r: BalanceSheetReport): {
+  name: string;
+  data: Record<string, unknown>[];
+  columns: ExportColumn[];
+}[] {
   const itemCols: ExportColumn[] = [
     col('code', '科目编码', 14),
     col('name', '科目名称', 28),
@@ -79,13 +81,18 @@ export function balanceSheetExcelWorkbook(
 }
 
 /** 单表 CSV：带「报表段落」列，便于筛选 */
-export function balanceSheetCsvRows(r: BalanceSheetReport): Record<string, unknown>[] {
+export function balanceSheetCsvRows(
+  r: BalanceSheetReport,
+): Record<string, unknown>[] {
   const rows: Record<string, unknown>[] = [];
-  for (const x of r.assets)
-    rows.push({ section: '资产', ...x });
-  rows.push({ section: '资产', code: '', name: '资产合计', amount: r.totalAssets });
-  for (const x of r.liabilities)
-    rows.push({ section: '负债', ...x });
+  for (const x of r.assets) rows.push({ section: '资产', ...x });
+  rows.push({
+    section: '资产',
+    code: '',
+    name: '资产合计',
+    amount: r.totalAssets,
+  });
+  for (const x of r.liabilities) rows.push({ section: '负债', ...x });
   rows.push({
     section: '负债',
     code: '',
@@ -137,7 +144,9 @@ export const incomeStatementExcelColumns: ExportColumn[] = [
   col('amount', '本期金额', 16),
 ];
 
-export function cashFlowExcelRows(r: CashFlowReport): Record<string, unknown>[] {
+export function cashFlowExcelRows(
+  r: CashFlowReport,
+): Record<string, unknown>[] {
   const rows: Record<string, unknown>[] = [
     { category: '报表期间', code: '', name: r.period, amount: '' },
   ];
@@ -208,9 +217,11 @@ const arApItemColumns: ExportColumn[] = [
   col('daysOverdue', '逾期天数', 10),
 ];
 
-export function arApExcelWorkbook(
-  r: ArApReport,
-): { name: string; data: Record<string, unknown>[]; columns: ExportColumn[] }[] {
+export function arApExcelWorkbook(r: ArApReport): {
+  name: string;
+  data: Record<string, unknown>[];
+  columns: ExportColumn[];
+}[] {
   return [
     {
       name: '应收账款',

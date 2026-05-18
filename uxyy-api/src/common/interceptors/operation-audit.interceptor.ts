@@ -30,9 +30,7 @@ export class OperationAuditInterceptor implements NestInterceptor {
     }
 
     const start = Date.now();
-    const user = req.user as
-      | { userId?: number; enterpriseId?: number }
-      | undefined;
+    const user = req.user as { userId?: number; enterpriseId?: number } | undefined;
 
     return next.handle().pipe(
       tap({

@@ -13,7 +13,11 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { WarehouseService, type CreateWarehouseDto, type UpdateWarehouseDto } from '../services/warehouse.service';
+import {
+  WarehouseService,
+  type CreateWarehouseDto,
+  type UpdateWarehouseDto,
+} from '../services/warehouse.service';
 
 interface UserContext {
   userId: number;
@@ -31,7 +35,11 @@ export class WarehouseController {
     @Req() req: Request & { user: UserContext },
     @Body() dto: CreateWarehouseDto,
   ) {
-    return this.warehouseService.create(req.user.enterpriseId, dto, req.user.userId);
+    return this.warehouseService.create(
+      req.user.enterpriseId,
+      dto,
+      req.user.userId,
+    );
   }
 
   @Get()
@@ -60,7 +68,10 @@ export class WarehouseController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.warehouseService.getWarehouseInventorySummary(req.user.enterpriseId, id);
+    return this.warehouseService.getWarehouseInventorySummary(
+      req.user.enterpriseId,
+      id,
+    );
   }
 
   @Put(':id')

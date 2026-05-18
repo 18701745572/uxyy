@@ -14,9 +14,7 @@ export interface SetMemberPriceDto {
 
 @Injectable()
 export class MemberPriceService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 设置商品会员价格
@@ -198,7 +196,9 @@ export class MemberPriceService {
       if (product) {
         const originalPrice = parseFloat(product.unitPrice);
         const discountRate = parseFloat(level.discountRate);
-        const discountedPrice = (originalPrice * discountRate / 100).toFixed(2);
+        const discountedPrice = ((originalPrice * discountRate) / 100).toFixed(
+          2,
+        );
 
         return {
           price: discountedPrice,

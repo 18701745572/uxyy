@@ -59,7 +59,11 @@ export class AttendanceController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.attendanceService.getPersonalAttendance(req.user.userId, startDate, endDate);
+    return this.attendanceService.getPersonalAttendance(
+      req.user.userId,
+      startDate,
+      endDate,
+    );
   }
 
   /**

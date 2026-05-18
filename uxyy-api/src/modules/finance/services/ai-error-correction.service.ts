@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { eq, and, ne, gte, lte, lt, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -90,7 +95,8 @@ export class AiErrorCorrectionService {
         category: '科目',
         title: '借方科目未命中企业科目表',
         description: `借方科目「${entry.debitAccount}」在科目表中无同名记录`,
-        suggestion: '请核对是否与「会计科目」维护中的名称完全一致（含子目后缀）',
+        suggestion:
+          '请核对是否与「会计科目」维护中的名称完全一致（含子目后缀）',
         data: { side: 'debit', name: entry.debitAccount },
       });
     }
@@ -101,7 +107,8 @@ export class AiErrorCorrectionService {
         category: '科目',
         title: '贷方科目未命中企业科目表',
         description: `贷方科目「${entry.creditAccount}」在科目表中无同名记录`,
-        suggestion: '请核对是否与「会计科目」维护中的名称完全一致（含子目后缀）',
+        suggestion:
+          '请核对是否与「会计科目」维护中的名称完全一致（含子目后缀）',
         data: { side: 'credit', name: entry.creditAccount },
       });
     }
@@ -168,7 +175,10 @@ export class AiErrorCorrectionService {
           title: '存在同日同科目同金额的重复分录',
           description: `除本行外发现 ${similar.length} 条借贷科目与金额均一致的分录`,
           suggestion: '请核对是否重复记账',
-          data: { voucherNo: entry.voucherNo, similarIds: similar.map((s) => s.id) },
+          data: {
+            voucherNo: entry.voucherNo,
+            similarIds: similar.map((s) => s.id),
+          },
         });
       }
     }
@@ -177,7 +187,11 @@ export class AiErrorCorrectionService {
   }
 
   /** 批量检测：分页拉取该企业全部 voucher_entries（可按日期收窄） */
-  async batchDetectErrors(enterpriseId: number, startDate?: Date, endDate?: Date) {
+  async batchDetectErrors(
+    enterpriseId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
     const conditions = [eq(schema.voucherEntries.enterpriseId, enterpriseId)];
 
     if (startDate) {
@@ -245,8 +259,14 @@ export class AiErrorCorrectionService {
     }
 
     return suggestions.sort((a, b) => {
-      const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+      const priorityOrder: Record<string, number> = {
+        high: 3,
+        medium: 2,
+        low: 1,
+      };
+      return (
+        (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
+      );
     });
   }
 
@@ -283,7 +303,11 @@ export class AiErrorCorrectionService {
       );
 
     const totalEntries = cntRow?.count ?? 0;
-    const errorCheck = await this.batchDetectErrors(enterpriseId, startDate, endDate);
+    const errorCheck = await this.batchDetectErrors(
+      enterpriseId,
+      startDate,
+      endDate,
+    );
 
     const errorRateValue =
       totalEntries > 0 ? (errorCheck.errorVouchers / totalEntries) * 100 : 0;
@@ -292,7 +316,8 @@ export class AiErrorCorrectionService {
     const errorCategories: Record<string, number> = {};
     for (const detail of errorCheck.details) {
       for (const error of detail.errors) {
-        errorCategories[error.category] = (errorCategories[error.category] || 0) + 1;
+        errorCategories[error.category] =
+          (errorCategories[error.category] || 0) + 1;
       }
     }
 
@@ -302,7 +327,8 @@ export class AiErrorCorrectionService {
         totalVoucherEntries: totalEntries,
         errorEntries: errorCheck.errorVouchers,
         errorRate: `${errorRate}%`,
-        healthLevel: errorRateValue < 5 ? '优秀' : errorRateValue < 15 ? '良好' : '需改进',
+        healthLevel:
+          errorRateValue < 5 ? '优秀' : errorRateValue < 15 ? '良好' : '需改进',
       },
       errorCategories,
       topIssues: Object.entries(errorCategories)

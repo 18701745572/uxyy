@@ -35,7 +35,8 @@ export class PaymentRecordController {
     @Req() req: Request & { user: UserContext },
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
-    @Query('customerId', new ParseIntPipe({ optional: true })) customerId?: number,
+    @Query('customerId', new ParseIntPipe({ optional: true }))
+    customerId?: number,
     @Query('orderId', new ParseIntPipe({ optional: true })) orderId?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -89,7 +90,10 @@ export class PaymentRecordController {
     @Param('customerId', ParseIntPipe) customerId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.service.getCustomerPaymentStats(customerId, req.user.enterpriseId);
+    return this.service.getCustomerPaymentStats(
+      customerId,
+      req.user.enterpriseId,
+    );
   }
 
   @Get('stats/order/:orderId')

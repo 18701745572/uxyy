@@ -48,6 +48,11 @@ import { NotificationPushService } from './services/notification-push.service';
     NotificationSchedulerService,
     NotificationPushService,
   ],
-  exports: [ApprovalFlowService, NotificationService, AttendanceService, NotificationPushService],
+  exports: [
+    ApprovalFlowService,
+    NotificationService,
+    AttendanceService,
+    NotificationPushService,
+  ],
 })
 export class OaModule {}

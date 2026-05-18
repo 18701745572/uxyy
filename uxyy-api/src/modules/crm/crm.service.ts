@@ -376,7 +376,8 @@ export class CrmService {
             const l = str.toLowerCase().replace(/\s/g, '');
             if (l === 'vip') dto.level = 'VIP';
             else if (l === 'regular' || str === '普通') dto.level = 'regular';
-            else if (l === 'potential' || str === '潜在') dto.level = 'potential';
+            else if (l === 'potential' || str === '潜在')
+              dto.level = 'potential';
             break;
           }
           case 'industry':
@@ -939,7 +940,14 @@ export class CrmService {
       createdAt: '_ignore',
     };
 
-    const validStatuses = new Set(['potential', 'intention', 'quotation', 'deal', 'after_sales', 'lost']);
+    const validStatuses = new Set([
+      'potential',
+      'intention',
+      'quotation',
+      'deal',
+      'after_sales',
+      'lost',
+    ]);
     const statusMap: Record<string, string> = {
       潜在: 'potential',
       意向: 'intention',
@@ -975,7 +983,8 @@ export class CrmService {
 
         if (key === 'probability') {
           const n = Number(val);
-          if (Number.isFinite(n)) dto.probability = Math.max(0, Math.min(100, Math.round(n)));
+          if (Number.isFinite(n))
+            dto.probability = Math.max(0, Math.min(100, Math.round(n)));
           continue;
         }
 
@@ -986,7 +995,9 @@ export class CrmService {
         }
 
         const str =
-          val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         switch (key) {
@@ -1043,7 +1054,10 @@ export class CrmService {
         .limit(1);
 
       if (customer.length === 0) {
-        failures.push({ row: rowIndex, reason: `客户 "${dto.customerName}" 不存在` });
+        failures.push({
+          row: rowIndex,
+          reason: `客户 "${dto.customerName}" 不存在`,
+        });
         continue;
       }
 
@@ -1470,7 +1484,10 @@ export class CrmService {
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;

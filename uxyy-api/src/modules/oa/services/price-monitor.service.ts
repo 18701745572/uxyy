@@ -26,29 +26,19 @@ export class PriceMonitorService {
     this.logger.log('开始执行价格监控检查...');
 
     try {
-      // 获取所有设置了价格预警阈值的企业
-      const enterprisesWithThreshold = await this.db
+      // 获取所有企业，使用默认阈值 15%
+      const enterprises = await this.db
         .select({
           enterpriseId: schema.enterprises.id,
-          threshold: sql<number>`COALESCE((${
-            this.db
-              .select({ value: schema.systemSettings.value })
-              .from(schema.systemSettings)
-              .where(
-                and(
-                  eq(schema.systemSettings.enterpriseId, schema.enterprises.id),
-                  eq(schema.systemSettings.key, 'price_alert_threshold'),
-                ),
-              )
-              .limit(1)
-          }), '15')::integer`,
         })
         .from(schema.enterprises);
 
-      for (const enterprise of enterprisesWithThreshold) {
+      const defaultThreshold = 15;
+
+      for (const enterprise of enterprises) {
         await this.checkEnterprisePriceFluctuations(
           enterprise.enterpriseId,
-          enterprise.threshold,
+          defaultThreshold,
         );
       }
 
@@ -81,7 +71,7 @@ export class PriceMonitorService {
       .from(schema.purchaseOrderItems)
       .innerJoin(
         schema.purchaseOrders,
-        eq(schema.purchaseOrderItems.purchaseOrderId, schema.purchaseOrders.id),
+        eq(schema.purchaseOrderItems.orderId, schema.purchaseOrders.id),
       )
       .innerJoin(
         schema.products,
@@ -91,8 +81,8 @@ export class PriceMonitorService {
         and(
           eq(schema.purchaseOrders.enterpriseId, enterpriseId),
           eq(schema.purchaseOrders.status, 'completed'),
-          gte(schema.purchaseOrders.orderDate, currentPeriodStart),
-          lt(schema.purchaseOrders.orderDate, now),
+          gte(schema.purchaseOrders.createdAt, currentPeriodStart),
+          lt(schema.purchaseOrders.createdAt, now),
         ),
       )
       .groupBy(schema.purchaseOrderItems.productId, schema.products.name);
@@ -106,14 +96,14 @@ export class PriceMonitorService {
       .from(schema.purchaseOrderItems)
       .innerJoin(
         schema.purchaseOrders,
-        eq(schema.purchaseOrderItems.purchaseOrderId, schema.purchaseOrders.id),
+        eq(schema.purchaseOrderItems.orderId, schema.purchaseOrders.id),
       )
       .where(
         and(
           eq(schema.purchaseOrders.enterpriseId, enterpriseId),
           eq(schema.purchaseOrders.status, 'completed'),
-          gte(schema.purchaseOrders.orderDate, lastPeriodStart),
-          lt(schema.purchaseOrders.orderDate, lastPeriodEnd),
+          gte(schema.purchaseOrders.createdAt, lastPeriodStart),
+          lt(schema.purchaseOrders.createdAt, lastPeriodEnd),
         ),
       )
       .groupBy(schema.purchaseOrderItems.productId);
@@ -156,12 +146,12 @@ export class PriceMonitorService {
   ) {
     // 获取企业的管理员用户
     const admins = await this.db
-      .select({ userId: schema.users.id })
-      .from(schema.users)
+      .select({ userId: schema.userEnterprises.userId })
+      .from(schema.userEnterprises)
       .where(
         and(
-          eq(schema.users.enterpriseId, enterpriseId),
-          eq(schema.users.role, 'admin'),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          eq(schema.userEnterprises.role, 'admin'),
         ),
       );
 

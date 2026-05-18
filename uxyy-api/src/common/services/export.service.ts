@@ -69,11 +69,7 @@ export class ExportService {
       const ws = XLSX.utils.json_to_sheet(
         formattedData.length
           ? formattedData
-          : [
-              Object.fromEntries(
-                sh.columns.map((c) => [c.header, '']),
-              ),
-            ],
+          : [Object.fromEntries(sh.columns.map((c) => [c.header, '']))],
       );
       ws['!cols'] = sh.columns.map((c) => ({ wch: c.width || 15 }));
       XLSX.utils.book_append_sheet(wb, ws, safeName || 'Sheet1');

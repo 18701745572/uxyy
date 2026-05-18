@@ -13,7 +13,10 @@ import {
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UseGuards } from '@nestjs/common';
-import { NotificationService, type NotificationType } from '../services/notification.service';
+import {
+  NotificationService,
+  type NotificationType,
+} from '../services/notification.service';
 
 interface UserContext {
   userId: number;

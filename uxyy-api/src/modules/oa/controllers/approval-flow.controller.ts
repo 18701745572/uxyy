@@ -40,7 +40,8 @@ interface UserContext {
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: '未登录或 token 无效' })
 @ApiForbiddenResponse({
-  description: '缺少所需权限（见各接口说明，需 oa:read / oa:manage / oa:approve 之一）',
+  description:
+    '缺少所需权限（见各接口说明，需 oa:read / oa:manage / oa:approve 之一）',
 })
 @Controller('oa/approval-flows')
 @UseGuards(PermissionsGuard)
@@ -92,7 +93,8 @@ export class ApprovalFlowController {
   @Permissions(Permission.OA_READ)
   @ApiOperation({
     summary: '我提交的审批记录',
-    description: '需 **`oa:read`**（各业务角色通常具备，用于查看本人发起的审批）。',
+    description:
+      '需 **`oa:read`**（各业务角色通常具备，用于查看本人发起的审批）。',
   })
   getMyApprovals(@Req() req: Request & { user: UserContext }) {
     return this.service.getMyApprovals(req.user.userId);
@@ -149,7 +151,8 @@ export class ApprovalFlowController {
   @Permissions(Permission.OA_MANAGE)
   @ApiOperation({
     summary: '删除审批流程',
-    description: '需 **`oa:manage`**。若已有审批实例引用，请谨慎删除（外键约束可能报错）。',
+    description:
+      '需 **`oa:manage`**。若已有审批实例引用，请谨慎删除（外键约束可能报错）。',
   })
   @ApiParam({ name: 'id', description: 'approval_flows.id' })
   remove(

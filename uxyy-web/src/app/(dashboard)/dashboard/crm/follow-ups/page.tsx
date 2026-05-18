@@ -220,7 +220,7 @@ function FollowUpsPanel() {
               <SelectValue placeholder="选择客户查看跟进记录" />
             </SelectTrigger>
             <SelectContent>
-              {customersQ.data?.items.map((c) => (
+              {customersQ.data?.items?.map((c) => (
                 <SelectItem key={c.id} value={String(c.id)}>
                   {c.name}
                 </SelectItem>
@@ -293,7 +293,7 @@ function FollowUpsPanel() {
                       加载中...
                     </TableCell>
                   </TableRow>
-                ) : q.data?.items.length === 0 ? (
+                ) : !q.data?.items?.length ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       暂无跟进记录

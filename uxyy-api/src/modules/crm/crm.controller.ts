@@ -478,7 +478,8 @@ export class CrmController {
   @Permissions(Permission.CRM_WRITE)
   @Post('categories/import')
   @ApiOperation({
-    summary: 'Excel/CSV 导入客户分类（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入客户分类（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

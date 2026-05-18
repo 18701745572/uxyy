@@ -28,7 +28,8 @@ export class BatchController {
   @Get()
   findAll(
     @Req() req: Request & { user: UserContext },
-    @Query('productId', new ParseIntPipe({ optional: true })) productId?: number,
+    @Query('productId', new ParseIntPipe({ optional: true }))
+    productId?: number,
     @Query('status') status?: string,
     @Query('expiryWarning') expiryWarning?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -56,7 +57,11 @@ export class BatchController {
     @Req() req: Request & { user: UserContext },
     @Body() dto: CreateBatchDto,
   ) {
-    return this.batchService.createBatch(req.user.enterpriseId, req.user.userId, dto);
+    return this.batchService.createBatch(
+      req.user.enterpriseId,
+      req.user.userId,
+      dto,
+    );
   }
 
   @Put(':id')
@@ -99,7 +104,10 @@ export class BatchController {
     @Param('productId', ParseIntPipe) productId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.batchService.getProductBatchStock(productId, req.user.enterpriseId);
+    return this.batchService.getProductBatchStock(
+      productId,
+      req.user.enterpriseId,
+    );
   }
 
   @Post('allocate-outbound')

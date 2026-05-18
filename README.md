@@ -42,4 +42,13 @@
 - **数据库**：PostgreSQL（生产默认 [**Neon**](https://neon.tech/) Serverless Postgres）+ **Drizzle ORM** + **drizzle-kit**。**本地开箱**：仓库根 **`docker compose up -d`**（Postgres + Redis），连接串见 [`uxyy-api/.env.example`](./uxyy-api/.env.example)；迁移在 **`uxyy-api`** 目录执行 **`pnpm run db:migrate`**，可选开发种子 **`pnpm --filter @uxyy/api run db:seed`**。
 - **认证授权**：**Passport JWT**（`@nestjs/passport` + `passport-jwt`），Access / Refresh Token 策略；JWT 载荷与过期策略按 PRD；登出黑名单等能力与 **Redis** 协同。
 - **缓存与异步**：Redis（缓存 / 限流 / Session 辅助）；[**BullMQ**](https://docs.bullmq.io/)（基于 Redis）处理异步任务（导入导出、报表、AI 异步等）。
+- **安全**：**Helmet** 安全头（CSP、HSTS、XSS 防护）、**CSRF Token** 防护（双提交 Cookie 模式）、**请求频率限制**（基于 IP + 用户 ID）、**结构化日志**（Pino，生产环境 JSON 格式）、**性能监控**（Prometheus 格式指标）。
 - **协作**：**本地同时起前后端**：仓库根先 **`docker compose up -d`**，再 **`pnpm dev`**（Turborepo：`@uxyy/api` **3000**，`@uxyy/web` **3001**；`NEXT_PUBLIC_API_URL` 见 `uxyy-web/.env.example`）。**请勿**在同一台机上再于 `uxyy-api` 里执行 **`pnpm run start:dev`** 占同一个 **3000**，否则会 **`EADDRINUSE`**（须停掉其中之一或修改 `uxyy-api/.env` 的 **`PORT`**）。详情见 **[多智能体并行开发指南.md](./多智能体并行开发指南.md) §2.5**。**CI**：`.github/workflows/ci.yml`。**多 Agent** 并行约定见 **[多智能体并行开发指南.md](./多智能体并行开发指南.md)**；**各智能体负责范围与任务一览**见 **[docs/各智能体职责与任务说明.md](./docs/各智能体职责与任务说明.md)**；**按角色的工作提示词**见 **`docs/prompts/`**（索引 [docs/prompts/README.md](./docs/prompts/README.md)；集成开发主分支 **`develop`**，各角色提示词入口分支 **`prompt/agent-*`**）；产品设计见 **[产品需求文档（PRD）](./优效营（uxyy.cn）小微企业一体化经营系统（MVP版）产品需求文档.md)**。
+
+## 生产环境部署
+
+详见 **[DEPLOY.md](./DEPLOY.md)**，包含：
+- Sealos 云部署指南
+- 生产环境安全配置
+- 监控和日志查看
+- 安全加固建议

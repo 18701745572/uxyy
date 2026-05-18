@@ -48,7 +48,7 @@ export class WeComService {
 
   async getAccessToken(): Promise<string> {
     const now = Date.now();
-    
+
     if (this.accessToken && now < this.tokenExpireTime) {
       return this.accessToken;
     }

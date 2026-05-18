@@ -34,7 +34,9 @@ interface UserContext {
   role?: string;
 }
 
-function enterpriseIdFromRequest(req: Request & { user: UserContext }): number | undefined {
+function enterpriseIdFromRequest(
+  req: Request & { user: UserContext },
+): number | undefined {
   const u = req.user;
   if (!u || typeof u !== 'object') return undefined;
   const raw = u.enterpriseId;
@@ -110,7 +112,10 @@ export class PdfExportController {
 
     // 设置响应头，返回HTML（实际生产环境可使用puppeteer转换为PDF）
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="销售订单-${order.order.orderNo}.html"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="销售订单-${order.order.orderNo}.html"`,
+    );
     res.send(html);
   }
 
@@ -172,7 +177,10 @@ export class PdfExportController {
     const html = this.pdfExportService.generateQuotationHtml(quotationData);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="报价单-${quotation.quotation.quotationNo}.html"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="报价单-${quotation.quotation.quotationNo}.html"`,
+    );
     res.send(html);
   }
 
@@ -213,7 +221,7 @@ export class PdfExportController {
         ),
       );
 
-    const transactions = orders.map(order => ({
+    const transactions = orders.map((order) => ({
       date: order.createdAt,
       type: '销售单',
       docNo: order.orderNo,
@@ -222,10 +230,17 @@ export class PdfExportController {
       credit: '0',
     }));
 
-    const html = this.pdfExportService.generateStatementHtml(customer, transactions, period || '本月');
+    const html = this.pdfExportService.generateStatementHtml(
+      customer,
+      transactions,
+      period || '本月',
+    );
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="对账单-${customer.name}-${period || '本月'}.html"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="对账单-${customer.name}-${period || '本月'}.html"`,
+    );
     res.send(html);
   }
 
@@ -255,7 +270,12 @@ export class PdfExportController {
           { key: 'name', header: '商品名称', width: '25%' },
           { key: 'spec', header: '规格', width: '15%' },
           { key: 'unit', header: '单位', width: '10%' },
-          { key: 'unitPrice', header: '单价', width: '15%', format: 'currency' },
+          {
+            key: 'unitPrice',
+            header: '单价',
+            width: '15%',
+            format: 'currency',
+          },
           { key: 'status', header: '状态', width: '10%' },
         ];
         break;
@@ -283,7 +303,10 @@ export class PdfExportController {
     });
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${title || '报表'}.html"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${title || '报表'}.html"`,
+    );
     res.send(html);
   }
 
@@ -406,7 +429,9 @@ export class PdfExportController {
     @Req() req: Request & { user: UserContext },
     @Res() res: Response,
   ) {
-    const report = await this.financeService.getArAp(enterpriseIdFromRequest(req));
+    const report = await this.financeService.getArAp(
+      enterpriseIdFromRequest(req),
+    );
     const html = this.pdfExportService.generateArApHtml(report);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader(

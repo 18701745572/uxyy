@@ -34,9 +34,19 @@ export class PriceAnomalyService {
 
     for (const item of items) {
       const [product] = await this.db
-        .select({ id: schema.products.id, code: schema.products.code, name: schema.products.name, costPrice: schema.products.costPrice })
+        .select({
+          id: schema.products.id,
+          code: schema.products.code,
+          name: schema.products.name,
+          costPrice: schema.products.costPrice,
+        })
         .from(schema.products)
-        .where(and(eq(schema.products.id, item.productId), eq(schema.products.enterpriseId, enterpriseId)))
+        .where(
+          and(
+            eq(schema.products.id, item.productId),
+            eq(schema.products.enterpriseId, enterpriseId),
+          ),
+        )
         .limit(1);
 
       if (product && product.costPrice) {
@@ -46,7 +56,7 @@ export class PriceAnomalyService {
         if (salePrice < costPrice) {
           const diff = costPrice - salePrice;
           const percentage = ((diff / costPrice) * 100).toFixed(2);
-          
+
           anomalies.push({
             productId: product.id,
             productCode: product.code,
@@ -88,7 +98,10 @@ export class PriceAnomalyService {
             eq(schema.purchaseOrderItems.productId, item.productId),
             eq(schema.purchaseOrders.enterpriseId, enterpriseId),
             eq(schema.purchaseOrders.supplierId, supplierId),
-            gte(schema.purchaseOrders.createdAt, sql`now() - interval '90 days'`),
+            gte(
+              schema.purchaseOrders.createdAt,
+              sql`now() - interval '90 days'`,
+            ),
           ),
         );
 
@@ -103,9 +116,18 @@ export class PriceAnomalyService {
           const percentage = ((diff / avgPriceNum) * 100).toFixed(2);
 
           const [product] = await this.db
-            .select({ id: schema.products.id, code: schema.products.code, name: schema.products.name })
+            .select({
+              id: schema.products.id,
+              code: schema.products.code,
+              name: schema.products.name,
+            })
             .from(schema.products)
-            .where(and(eq(schema.products.id, item.productId), eq(schema.products.enterpriseId, enterpriseId)))
+            .where(
+              and(
+                eq(schema.products.id, item.productId),
+                eq(schema.products.enterpriseId, enterpriseId),
+              ),
+            )
             .limit(1);
 
           anomalies.push({
@@ -145,13 +167,22 @@ export class PriceAnomalyService {
         orderId: schema.salesOrders.id,
       })
       .from(schema.salesOrderItems)
-      .innerJoin(schema.salesOrders, eq(schema.salesOrderItems.orderId, schema.salesOrders.id))
-      .innerJoin(schema.products, eq(schema.salesOrderItems.productId, schema.products.id))
+      .innerJoin(
+        schema.salesOrders,
+        eq(schema.salesOrderItems.orderId, schema.salesOrders.id),
+      )
+      .innerJoin(
+        schema.products,
+        eq(schema.salesOrderItems.productId, schema.products.id),
+      )
       .where(
         and(
           eq(schema.salesOrders.enterpriseId, enterpriseId),
           eq(schema.products.enterpriseId, enterpriseId),
-          gte(schema.salesOrders.createdAt, sql`now() - interval '${lookbackDays} days'`),
+          gte(
+            schema.salesOrders.createdAt,
+            sql`now() - interval '${lookbackDays} days'`,
+          ),
           sql`${schema.salesOrderItems.unitPrice} < ${schema.products.costPrice}`,
         ),
       );
@@ -166,13 +197,22 @@ export class PriceAnomalyService {
         supplierId: schema.purchaseOrders.supplierId,
       })
       .from(schema.purchaseOrderItems)
-      .innerJoin(schema.purchaseOrders, eq(schema.purchaseOrderItems.orderId, schema.purchaseOrders.id))
-      .innerJoin(schema.products, eq(schema.purchaseOrderItems.productId, schema.products.id))
+      .innerJoin(
+        schema.purchaseOrders,
+        eq(schema.purchaseOrderItems.orderId, schema.purchaseOrders.id),
+      )
+      .innerJoin(
+        schema.products,
+        eq(schema.purchaseOrderItems.productId, schema.products.id),
+      )
       .where(
         and(
           eq(schema.purchaseOrders.enterpriseId, enterpriseId),
           eq(schema.products.enterpriseId, enterpriseId),
-          gte(schema.purchaseOrders.createdAt, sql`now() - interval '${lookbackDays} days'`),
+          gte(
+            schema.purchaseOrders.createdAt,
+            sql`now() - interval '${lookbackDays} days'`,
+          ),
         ),
       );
 
@@ -213,7 +253,10 @@ export class PriceAnomalyService {
             eq(schema.purchaseOrderItems.productId, item.productId),
             eq(schema.purchaseOrders.enterpriseId, enterpriseId),
             eq(schema.purchaseOrders.supplierId, item.supplierId),
-            gte(schema.purchaseOrders.createdAt, sql`now() - interval '90 days'`),
+            gte(
+              schema.purchaseOrders.createdAt,
+              sql`now() - interval '90 days'`,
+            ),
             ne(schema.purchaseOrders.id, item.orderId),
           ),
         );

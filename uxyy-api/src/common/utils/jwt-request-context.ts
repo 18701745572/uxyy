@@ -2,9 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { Express } from 'express';
 
 /** 与 `JwtStrategy.validate` / `Express.UserPayload` 一致：用户主键为 `userId`。 */
-export function jwtUserIdFromRequest(
-  req: Express.Request,
-): number | undefined {
+export function jwtUserIdFromRequest(req: Express.Request): number | undefined {
   const u = req.user;
   if (!u || typeof u !== 'object') return undefined;
   const id = (u as Express.UserPayload).userId;

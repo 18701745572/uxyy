@@ -1,10 +1,23 @@
-import { Inject, Injectable, Logger, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
 
-export type VoucherStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'posted' | 'void';
+export type VoucherStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'posted'
+  | 'void';
 
 export interface VoucherAuditAction {
   action: 'submit' | 'approve' | 'reject' | 'post' | 'void';
@@ -55,9 +68,7 @@ export interface VoucherDetail {
 export class VoucherAuditService {
   private readonly logger = new Logger(VoucherAuditService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 获取凭证详情
@@ -128,7 +139,7 @@ export class VoucherAuditService {
       summary: voucher.summary || '',
       sourceType: voucher.sourceType || undefined,
       sourceId: voucher.sourceId || undefined,
-      status: voucher.status as VoucherStatus,
+      status: voucher.status,
       entries: entries.map(({ item, account }) => ({
         id: item.id,
         accountId: item.accountId,
@@ -310,7 +321,9 @@ export class VoucherAuditService {
     const voucher = await this.getVoucherDetail(voucherId, enterpriseId);
 
     if (voucher.status !== 'approved') {
-      throw new BadRequestException(`当前状态${voucher.status}不允许过账，请先审核`);
+      throw new BadRequestException(
+        `当前状态${voucher.status}不允许过账，请先审核`,
+      );
     }
 
     // 更新凭证状态
@@ -387,8 +400,16 @@ export class VoucherAuditService {
     voucherIds: number[],
     enterpriseId: number,
     userId: number,
-  ): Promise<{ success: number; failed: number; errors: Array<{ id: number; error: string }> }> {
-    const result = { success: 0, failed: 0, errors: [] as Array<{ id: number; error: string }> };
+  ): Promise<{
+    success: number;
+    failed: number;
+    errors: Array<{ id: number; error: string }>;
+  }> {
+    const result = {
+      success: 0,
+      failed: 0,
+      errors: [] as Array<{ id: number; error: string }>,
+    };
 
     for (const id of voucherIds) {
       try {
@@ -414,8 +435,16 @@ export class VoucherAuditService {
     enterpriseId: number,
     userId: number,
     comment?: string,
-  ): Promise<{ success: number; failed: number; errors: Array<{ id: number; error: string }> }> {
-    const result = { success: 0, failed: 0, errors: [] as Array<{ id: number; error: string }> };
+  ): Promise<{
+    success: number;
+    failed: number;
+    errors: Array<{ id: number; error: string }>;
+  }> {
+    const result = {
+      success: 0,
+      failed: 0,
+      errors: [] as Array<{ id: number; error: string }>,
+    };
 
     for (const id of voucherIds) {
       try {
@@ -476,7 +505,7 @@ export class VoucherAuditService {
 
     // 获取详情
     const list = await Promise.all(
-      vouchers.map(v => this.getVoucherDetail(v.id, enterpriseId)),
+      vouchers.map((v) => this.getVoucherDetail(v.id, enterpriseId)),
     );
 
     return { list, total: countResult?.count || 0 };
@@ -496,7 +525,14 @@ export class VoucherAuditService {
       sourceType?: string;
     },
   ): Promise<{ list: VoucherDetail[]; total: number }> {
-    const { status, page = 1, pageSize = 20, startDate, endDate, sourceType } = options || {};
+    const {
+      status,
+      page = 1,
+      pageSize = 20,
+      startDate,
+      endDate,
+      sourceType,
+    } = options || {};
 
     const conditions = [eq(schema.vouchers.enterpriseId, enterpriseId)];
 
@@ -530,7 +566,7 @@ export class VoucherAuditService {
 
     // 获取详情
     const list = await Promise.all(
-      vouchers.map(v => this.getVoucherDetail(v.id, enterpriseId)),
+      vouchers.map((v) => this.getVoucherDetail(v.id, enterpriseId)),
     );
 
     return { list, total: countResult[0]?.count || 0 };
@@ -540,7 +576,10 @@ export class VoucherAuditService {
    * 检查用户是否有审核权限
    * 这里简化处理，实际应该根据角色权限判断
    */
-  async checkAuditPermission(userId: number, enterpriseId: number): Promise<boolean> {
+  async checkAuditPermission(
+    userId: number,
+    enterpriseId: number,
+  ): Promise<boolean> {
     // 这里可以实现更复杂的权限检查
     // 例如：只有财务主管或管理员可以审核
     return true;

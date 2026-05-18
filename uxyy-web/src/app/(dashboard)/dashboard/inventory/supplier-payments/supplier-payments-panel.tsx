@@ -120,7 +120,7 @@ function PaymentForm({
           }
         >
           <option value="">请选择供应商</option>
-          {suppliersData?.items.map((s) => (
+          {suppliersData?.items?.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
@@ -143,7 +143,7 @@ function PaymentForm({
           }
         >
           <option value="">无关联订单</option>
-          {ordersData?.list.map((o) => (
+          {ordersData?.list?.map((o) => (
             <option key={o.id} value={o.id}>
               {o.orderNo} - {o.supplierName} - ¥{o.totalAmount}
             </option>

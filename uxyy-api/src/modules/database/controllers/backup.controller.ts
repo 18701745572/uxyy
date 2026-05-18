@@ -50,7 +50,10 @@ export class BackupController {
    * 获取备份配置
    */
   @Get('config')
-  @ApiOperation({ summary: '获取备份配置', description: '获取当前企业的备份配置信息' })
+  @ApiOperation({
+    summary: '获取备份配置',
+    description: '获取当前企业的备份配置信息',
+  })
   async getConfig(@Req() req: Request & { user: UserContext }) {
     return this.backupService.getOrCreateConfig(req.user.enterpriseId);
   }
@@ -59,7 +62,10 @@ export class BackupController {
    * 更新备份配置
    */
   @Put('config')
-  @ApiOperation({ summary: '更新备份配置', description: '更新企业的备份配置信息' })
+  @ApiOperation({
+    summary: '更新备份配置',
+    description: '更新企业的备份配置信息',
+  })
   async updateConfig(
     @Req() req: Request & { user: UserContext },
     @Body() dto: UpdateBackupConfigDto,
@@ -74,7 +80,8 @@ export class BackupController {
   @ApiOperation({ summary: '创建备份', description: '手动创建数据库备份' })
   async createBackup(
     @Req() req: Request & { user: UserContext },
-    @Query('enterpriseId', new ParseIntPipe({ optional: true })) enterpriseId?: number,
+    @Query('enterpriseId', new ParseIntPipe({ optional: true }))
+    enterpriseId?: number,
   ) {
     const isBoss = isBossRole(req.user.role);
     const targetEnterpriseId = isBoss
@@ -91,7 +98,8 @@ export class BackupController {
   @ApiOperation({ summary: '获取备份列表', description: '获取备份记录列表' })
   async getBackupList(
     @Req() req: Request & { user: UserContext },
-    @Query('enterpriseId', new ParseIntPipe({ optional: true })) enterpriseId?: number,
+    @Query('enterpriseId', new ParseIntPipe({ optional: true }))
+    enterpriseId?: number,
   ) {
     const isBoss = isBossRole(req.user.role);
     const targetEnterpriseId = isBoss
@@ -105,10 +113,14 @@ export class BackupController {
    * 获取备份统计信息
    */
   @Get('stats')
-  @ApiOperation({ summary: '获取备份统计', description: '获取备份统计信息，包括总数、成功率等' })
+  @ApiOperation({
+    summary: '获取备份统计',
+    description: '获取备份统计信息，包括总数、成功率等',
+  })
   async getBackupStats(
     @Req() req: Request & { user: UserContext },
-    @Query('enterpriseId', new ParseIntPipe({ optional: true })) enterpriseId?: number,
+    @Query('enterpriseId', new ParseIntPipe({ optional: true }))
+    enterpriseId?: number,
   ) {
     const isBoss = isBossRole(req.user.role);
     const targetEnterpriseId = isBoss
@@ -137,7 +149,7 @@ export class BackupController {
     @Res() res: Response,
   ) {
     const backups = await this.backupService.getBackupList();
-    const backup = backups.find(b => b.fileName === fileName);
+    const backup = backups.find((b) => b.fileName === fileName);
 
     if (!backup || !backup.filePath) {
       return res.status(404).json({ message: '备份文件不存在' });
@@ -150,12 +162,17 @@ export class BackupController {
    * 导出企业数据为JSON
    */
   @Post('export')
-  @ApiOperation({ summary: '导出企业数据', description: '将企业数据导出为JSON格式' })
+  @ApiOperation({
+    summary: '导出企业数据',
+    description: '将企业数据导出为JSON格式',
+  })
   async exportData(
     @Req() req: Request & { user: UserContext },
     @Res() res: Response,
   ) {
-    const result = await this.backupService.exportEnterpriseData(req.user.enterpriseId);
+    const result = await this.backupService.exportEnterpriseData(
+      req.user.enterpriseId,
+    );
 
     if (!result.success || !result.filePath) {
       return res.status(500).json(result);
@@ -168,26 +185,41 @@ export class BackupController {
    * 导入企业数据（从JSON）
    */
   @Post('import')
-  @ApiOperation({ summary: '导入企业数据', description: '从备份文件导入企业数据' })
+  @ApiOperation({
+    summary: '导入企业数据',
+    description: '从备份文件导入企业数据',
+  })
   async importData(
     @Req() req: Request & { user: UserContext },
     @Query('filePath') filePath: string,
   ) {
-    return this.backupService.importEnterpriseData(req.user.enterpriseId, filePath);
+    return this.backupService.importEnterpriseData(
+      req.user.enterpriseId,
+      filePath,
+    );
   }
 
   /**
    * 清理过期备份
    */
   @Post('cleanup')
-  @ApiOperation({ summary: '清理过期备份', description: '清理超过保留期限的备份文件' })
+  @ApiOperation({
+    summary: '清理过期备份',
+    description: '清理超过保留期限的备份文件',
+  })
   async cleanupBackups(
     @Req() req: Request & { user: UserContext },
-    @Query('retentionDays', new ParseIntPipe({ optional: true })) retentionDays?: number,
+    @Query('retentionDays', new ParseIntPipe({ optional: true }))
+    retentionDays?: number,
   ) {
-    const config = await this.backupService.getOrCreateConfig(req.user.enterpriseId);
+    const config = await this.backupService.getOrCreateConfig(
+      req.user.enterpriseId,
+    );
     const days = retentionDays ?? config.retentionDays;
-    const deletedCount = await this.backupService.cleanupOldBackups(days, req.user.enterpriseId);
+    const deletedCount = await this.backupService.cleanupOldBackups(
+      days,
+      req.user.enterpriseId,
+    );
     return {
       success: true,
       deletedCount,
@@ -199,10 +231,13 @@ export class BackupController {
    * 验证备份文件完整性
    */
   @Get('verify/:fileName')
-  @ApiOperation({ summary: '验证备份完整性', description: '验证备份文件的完整性和正确性' })
+  @ApiOperation({
+    summary: '验证备份完整性',
+    description: '验证备份文件的完整性和正确性',
+  })
   async verifyBackup(@Param('fileName') fileName: string) {
     const backups = await this.backupService.getBackupList();
-    const backup = backups.find(b => b.fileName === fileName);
+    const backup = backups.find((b) => b.fileName === fileName);
 
     if (!backup || !backup.filePath) {
       return { valid: false, message: '备份文件不存在' };

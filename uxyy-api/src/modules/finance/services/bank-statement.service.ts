@@ -1,9 +1,17 @@
-import { Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
-import { AccountMappingService, ComplexVoucherEntry } from './account-mapping.service';
+import {
+  AccountMappingService,
+  ComplexVoucherEntry,
+} from './account-mapping.service';
 import { AutoAccountingV2Service } from './auto-accounting-v2.service';
 
 // 银行流水交易记录
@@ -38,7 +46,13 @@ export interface TransactionMatchResult {
   statementId: number;
   matchStatus: 'unmatched' | 'matched' | 'suggested';
   confidence: number;
-  suggestedType?: 'sales_receipt' | 'purchase_payment' | 'expense' | 'transfer' | 'salary' | 'tax';
+  suggestedType?:
+    | 'sales_receipt'
+    | 'purchase_payment'
+    | 'expense'
+    | 'transfer'
+    | 'salary'
+    | 'tax';
   suggestedAccountId?: number;
   suggestedAccountName?: string;
   matchedVoucherId?: number;
@@ -88,7 +102,7 @@ export class BankStatementService {
     csvContent: string,
     options?: { encoding?: string; hasHeader?: boolean },
   ): Promise<BankTransaction[]> {
-    const lines = csvContent.split('\n').filter(line => line.trim());
+    const lines = csvContent.split('\n').filter((line) => line.trim());
     const hasHeader = options?.hasHeader ?? true;
     const startRow = hasHeader ? 1 : 0;
 
@@ -112,7 +126,11 @@ export class BankStatementService {
   /**
    * 解析单行数据（根据银行格式）
    */
-  private parseLine(bankCode: string, line: string, rowIndex: number): BankTransaction | null {
+  private parseLine(
+    bankCode: string,
+    line: string,
+    rowIndex: number,
+  ): BankTransaction | null {
     // 处理不同分隔符
     const delimiter = line.includes('\t') ? '\t' : ',';
     const columns = this.splitCSVLine(line, delimiter);
@@ -248,7 +266,9 @@ export class BankStatementService {
     const transactionDate = this.parseDate(dateStr);
     if (!transactionDate) return null;
 
-    const amount = this.parseAmount(amountStr.replace('￥', '').replace(',', ''));
+    const amount = this.parseAmount(
+      amountStr.replace('￥', '').replace(',', ''),
+    );
 
     return {
       transactionDate,
@@ -298,19 +318,19 @@ export class BankStatementService {
     // 尝试识别日期列
     let dateIndex = -1;
     let amountIndex = -1;
-    let incomeIndex = -1;
-    let expenseIndex = -1;
-    let remarkIndex = -1;
+    const incomeIndex = -1;
+    const expenseIndex = -1;
+    const remarkIndex = -1;
 
     for (let i = 0; i < Math.min(columns.length, 10); i++) {
       const col = columns[i].trim();
-      
+
       // 日期识别
       if (dateIndex === -1 && this.isDateString(col)) {
         dateIndex = i;
         continue;
       }
-      
+
       // 金额识别（纯数字或带货币符号）
       if (this.isAmountString(col)) {
         if (amountIndex === -1 && incomeIndex === -1 && expenseIndex === -1) {
@@ -365,21 +385,21 @@ export class BankStatementService {
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
         inQuotes = !inQuotes;
         continue;
       }
-      
+
       if (char === delimiter && !inQuotes) {
         result.push(current.trim());
         current = '';
         continue;
       }
-      
+
       current += char;
     }
-    
+
     result.push(current.trim());
     return result;
   }
@@ -403,7 +423,7 @@ export class BankStatementService {
    */
   private parseDate(str: string): Date | null {
     if (!str) return null;
-    
+
     // 尝试多种格式
     const formats = [
       // 2024-01-15
@@ -438,7 +458,9 @@ export class BankStatementService {
     if (!str) return null;
 
     // 微信格式：2024-01-15 14:30:25
-    const match = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    const match = str.match(
+      /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/,
+    );
     if (match) {
       return new Date(
         parseInt(match[1]),
@@ -480,7 +502,7 @@ export class BankStatementService {
     transactions: BankTransaction[],
   ): Promise<BankStatementImportResult> {
     const batchId = `BS${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    const bankInfo = this.supportedBanks.find(b => b.code === bankCode);
+    const bankInfo = this.supportedBanks.find((b) => b.code === bankCode);
 
     let importedCount = 0;
     let skippedCount = 0;
@@ -607,7 +629,8 @@ export class BankStatementService {
     statement: typeof schema.bankStatements.$inferSelect,
     enterpriseId: number,
   ): Promise<TransactionMatchResult> {
-    const { id, direction, amount, counterpartyName, remark, transactionType } = statement;
+    const { id, direction, amount, counterpartyName, remark, transactionType } =
+      statement;
 
     let suggestedType: TransactionMatchResult['suggestedType'];
     let confidence = 0.5;
@@ -635,7 +658,8 @@ export class BankStatementService {
     if (!suggestedType && remark) {
       const remarkLower = remark.toLowerCase();
       if (remarkLower.includes('货款') || remarkLower.includes('材料')) {
-        suggestedType = direction === 'income' ? 'sales_receipt' : 'purchase_payment';
+        suggestedType =
+          direction === 'income' ? 'sales_receipt' : 'purchase_payment';
         confidence = 0.8;
         reason = '备注关键词识别';
       } else if (remarkLower.includes('费用') || remarkLower.includes('报销')) {
@@ -660,7 +684,8 @@ export class BankStatementService {
         .limit(1);
 
       if (matchedCustomer) {
-        suggestedType = direction === 'income' ? 'sales_receipt' : 'purchase_payment';
+        suggestedType =
+          direction === 'income' ? 'sales_receipt' : 'purchase_payment';
         confidence = 0.85;
         reason = `匹配到客户/供应商: ${counterpartyName}`;
       }
@@ -670,7 +695,8 @@ export class BankStatementService {
     if (!suggestedType) {
       const amountNum = parseFloat(amount);
       if (amountNum > 100000) {
-        suggestedType = direction === 'income' ? 'sales_receipt' : 'purchase_payment';
+        suggestedType =
+          direction === 'income' ? 'sales_receipt' : 'purchase_payment';
         confidence = 0.6;
         reason = '大额交易，推测为业务往来';
       } else if (amountNum < 1000) {
@@ -688,7 +714,10 @@ export class BankStatementService {
     }
 
     // 获取建议科目
-    const suggestedAccount = await this.getSuggestedAccount(suggestedType, enterpriseId);
+    const suggestedAccount = await this.getSuggestedAccount(
+      suggestedType,
+      enterpriseId,
+    );
 
     return {
       statementId: id,
@@ -709,12 +738,12 @@ export class BankStatementService {
     enterpriseId: number,
   ): Promise<{ id: number; name: string } | null> {
     const accountCodeMap: Record<string, string> = {
-      'sales_receipt': '1002', // 银行存款
-      'purchase_payment': '2202', // 应付账款
-      'expense': '6602', // 管理费用
-      'transfer': '1002', // 银行存款
-      'salary': '2211', // 应付职工薪酬
-      'tax': '2221', // 应交税费
+      sales_receipt: '1002', // 银行存款
+      purchase_payment: '2202', // 应付账款
+      expense: '6602', // 管理费用
+      transfer: '1002', // 银行存款
+      salary: '2211', // 应付职工薪酬
+      tax: '2221', // 应交税费
     };
 
     const code = accountCodeMap[type || ''];
@@ -758,7 +787,10 @@ export class BankStatementService {
       return { success: false, error: '流水记录不存在' };
     }
 
-    if (statement.matchStatus === 'voucher_created' && statement.matchedVoucherId) {
+    if (
+      statement.matchStatus === 'voucher_created' &&
+      statement.matchedVoucherId
+    ) {
       return { success: false, error: '该流水已生成凭证' };
     }
 
@@ -811,12 +843,17 @@ export class BankStatementService {
           accountCode: receivableAccount.code,
           direction: 'credit',
           amount: statement.amount,
-          summary: statement.remark || `${statement.counterpartyName || ''} 收款`,
-          auxiliaries: statement.counterpartyName ? [{
-            type: 'customer',
-            id: 0, // 这里需要查询客户ID
-            name: statement.counterpartyName,
-          }] : undefined,
+          summary:
+            statement.remark || `${statement.counterpartyName || ''} 收款`,
+          auxiliaries: statement.counterpartyName
+            ? [
+                {
+                  type: 'customer',
+                  id: 0, // 这里需要查询客户ID
+                  name: statement.counterpartyName,
+                },
+              ]
+            : undefined,
         });
       }
     } else {
@@ -849,7 +886,8 @@ export class BankStatementService {
           accountCode: bankAccount.code,
           direction: 'credit',
           amount: statement.amount,
-          summary: statement.remark || `${statement.counterpartyName || ''} 付款`,
+          summary:
+            statement.remark || `${statement.counterpartyName || ''} 付款`,
         });
       }
     }

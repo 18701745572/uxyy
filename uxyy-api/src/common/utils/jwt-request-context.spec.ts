@@ -1,9 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { Express } from 'express';
-import {
-  jwtUserIdFromRequest,
-  requireJwtUserId,
-} from './jwt-request-context';
+import { jwtUserIdFromRequest, requireJwtUserId } from './jwt-request-context';
 
 describe('jwt-request-context', () => {
   it('jwtUserIdFromRequest reads Express.UserPayload.userId', () => {

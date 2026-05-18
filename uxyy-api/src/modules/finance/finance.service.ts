@@ -156,7 +156,8 @@ function parseYearMonth(period?: string): {
   }
   const [y, m] = reportPeriod.split('-').map(Number);
   const year = Number.isFinite(y) ? y : new Date().getFullYear();
-  const month = Number.isFinite(m) && m >= 1 && m <= 12 ? m : new Date().getMonth() + 1;
+  const month =
+    Number.isFinite(m) && m >= 1 && m <= 12 ? m : new Date().getMonth() + 1;
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
   return {
@@ -789,9 +790,24 @@ export class FinanceService {
 
       const ar = await resolveAccountSubjectName(tx, eid, '1122', '应收账款');
       const ap = await resolveAccountSubjectName(tx, eid, '2202', '应付账款');
-      const revenue = await resolveAccountSubjectName(tx, eid, '6001', '主营业务收入');
-      const inventory = await resolveAccountSubjectName(tx, eid, '1405', '库存商品');
-      const taxAcc = await resolveAccountSubjectName(tx, eid, '2221', '应交税费');
+      const revenue = await resolveAccountSubjectName(
+        tx,
+        eid,
+        '6001',
+        '主营业务收入',
+      );
+      const inventory = await resolveAccountSubjectName(
+        tx,
+        eid,
+        '1405',
+        '库存商品',
+      );
+      const taxAcc = await resolveAccountSubjectName(
+        tx,
+        eid,
+        '2221',
+        '应交税费',
+      );
 
       const baseSummary = `发票入账：${updated.invoiceNo}${updated.buyerName ? ` 购方：${updated.buyerName}` : ''}${updated.sellerName ? ` 销方：${updated.sellerName}` : ''}`;
 
@@ -881,7 +897,10 @@ export class FinanceService {
 
       const inserted: (typeof schema.voucherEntries.$inferSelect)[] = [];
       for (const r of rows) {
-        const [v] = await tx.insert(schema.voucherEntries).values(r).returning();
+        const [v] = await tx
+          .insert(schema.voucherEntries)
+          .values(r)
+          .returning();
         if (v) inserted.push(v);
       }
 
@@ -1496,9 +1515,8 @@ export class FinanceService {
     ).toFixed(2);
     const netFromBalance = (endingVal - beginningVal).toFixed(2);
     const netCashFlow =
-      Math.abs(
-        parseFloat(netFromClassification) - parseFloat(netFromBalance),
-      ) < 0.02
+      Math.abs(parseFloat(netFromClassification) - parseFloat(netFromBalance)) <
+      0.02
         ? netFromClassification
         : netFromBalance;
 
@@ -1608,7 +1626,9 @@ export class FinanceService {
       inv.sourceType === 'purchase_order' ||
       inv.sourceType === 'invoice_purchase';
 
-    const receivableInvoices = allInvoices.filter((inv) => !isPayableInvoice(inv));
+    const receivableInvoices = allInvoices.filter(
+      (inv) => !isPayableInvoice(inv),
+    );
 
     const invoicesByOrderId = new Map<number, typeof allInvoices>();
     for (const inv of receivableInvoices) {
@@ -1672,9 +1692,9 @@ export class FinanceService {
       return mapArApRow(inv, inv.buyerName ?? '未知', paid);
     });
 
-    const payables = allInvoices.filter(isPayableInvoice).map((inv) =>
-      mapArApRow(inv, inv.sellerName ?? '未知', 0),
-    );
+    const payables = allInvoices
+      .filter(isPayableInvoice)
+      .map((inv) => mapArApRow(inv, inv.sellerName ?? '未知', 0));
 
     const sumBalance = (items: { balance: string }[]) =>
       items.reduce((sum, i) => sum + parseAmountSafe(i.balance), 0).toFixed(2);
@@ -1776,13 +1796,21 @@ export class FinanceService {
         const key = HEADER_MAP[String(header).trim()];
         if (!key || key === '_ignore') continue;
 
-        if (key === 'amount' || key === 'taxRate' || key === 'taxAmount' || key === 'totalAmount') {
+        if (
+          key === 'amount' ||
+          key === 'taxRate' ||
+          key === 'taxAmount' ||
+          key === 'totalAmount'
+        ) {
           const n = Number(val);
           if (Number.isFinite(n) && n >= 0) rowData[key] = n;
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;
@@ -1929,7 +1957,10 @@ export class FinanceService {
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;

@@ -231,7 +231,8 @@ export class VoucherAuditController {
   @ApiOperation({ summary: '创建/更新科目映射规则' })
   async saveMappingRule(
     @Req() req: Request & { user: UserContext },
-    @Body() data: {
+    @Body()
+    data: {
       id?: number;
       businessType: string;
       subType?: string;
@@ -252,9 +253,7 @@ export class VoucherAuditController {
   @Post('config/initialize-defaults')
   @Permissions(Permission.FIN_CONFIG)
   @ApiOperation({ summary: '初始化默认科目映射' })
-  async initializeDefaults(
-    @Req() req: Request & { user: UserContext },
-  ) {
+  async initializeDefaults(@Req() req: Request & { user: UserContext }) {
     await this.accountMappingService.initializeDefaultMappings(
       req.user.enterpriseId,
       req.user.userId,

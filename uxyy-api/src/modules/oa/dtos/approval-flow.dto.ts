@@ -26,13 +26,19 @@ export class StepThresholdDto {
 
 /** 与 schema.ApprovalStep.condition 一致：支持 amount、days */
 export class ApprovalStepConditionDto {
-  @ApiPropertyOptional({ type: StepThresholdDto, description: '金额条件（报销/采购/销售等）' })
+  @ApiPropertyOptional({
+    type: StepThresholdDto,
+    description: '金额条件（报销/采购/销售等）',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => StepThresholdDto)
   amount?: StepThresholdDto;
 
-  @ApiPropertyOptional({ type: StepThresholdDto, description: '请假天数等条件' })
+  @ApiPropertyOptional({
+    type: StepThresholdDto,
+    description: '请假天数等条件',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => StepThresholdDto)
@@ -40,11 +46,17 @@ export class ApprovalStepConditionDto {
 }
 
 export class ApprovalStepDto {
-  @ApiProperty({ example: 1, description: '步骤序号，服务端保存时会按顺序重写为 1…n' })
+  @ApiProperty({
+    example: 1,
+    description: '步骤序号，服务端保存时会按顺序重写为 1…n',
+  })
   @IsInt()
   step: number;
 
-  @ApiProperty({ example: 'boss', description: '审批角色码：boss / finance / sales / warehouse / oa' })
+  @ApiProperty({
+    example: 'boss',
+    description: '审批角色码：boss / finance / sales / warehouse / oa',
+  })
   @IsString()
   @IsNotEmpty()
   role: string;

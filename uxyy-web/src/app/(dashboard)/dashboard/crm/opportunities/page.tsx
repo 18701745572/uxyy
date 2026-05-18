@@ -301,7 +301,7 @@ function OpportunitiesPanel() {
                   加载中...
                 </TableCell>
               </TableRow>
-            ) : q.data?.items.length === 0 ? (
+            ) : !q.data?.items?.length ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                   暂无商机数据

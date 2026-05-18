@@ -27,10 +27,6 @@ import { AiScriptService } from './services/ai-script.service';
     AiFollowUpService,
     AiScriptService,
   ],
-  exports: [
-    MemberService,
-    AiFollowUpService,
-    AiScriptService,
-  ],
+  exports: [MemberService, AiFollowUpService, AiScriptService],
 })
 export class CrmModule {}

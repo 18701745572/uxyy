@@ -19,7 +19,7 @@ describe('EnterpriseMembersController', () => {
 
   const invitations = {
     createInvitation: jest.fn().mockResolvedValue({
-      joinRelativePath: "/join?t=x",
+      joinRelativePath: '/join?t=x',
       expiresAt: new Date().toISOString(),
     }),
   };

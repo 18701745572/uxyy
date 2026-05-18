@@ -34,7 +34,7 @@ export class PdfExportService {
 
     const now = new Date().toLocaleString('zh-CN');
 
-    let html = `
+    const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -138,42 +138,56 @@ export class PdfExportService {
   <table>
     <thead>
       <tr>
-        ${columns.map(col => `<th style="width: ${col.width || 'auto'}">${col.header}</th>`).join('')}
+        ${columns.map((col) => `<th style="width: ${col.width || 'auto'}">${col.header}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
-      ${data.map(row => `
+      ${data
+        .map(
+          (row) => `
         <tr>
-          ${columns.map(col => {
-            const value = row[col.key];
-            let formattedValue = value;
-            let cssClass = '';
-            
-            if (col.format === 'number' && typeof value === 'number') {
-              formattedValue = value.toLocaleString('zh-CN');
-              cssClass = 'number';
-            } else if (col.format === 'currency' && typeof value === 'number') {
-              formattedValue = '¥' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-              cssClass = 'currency';
-            } else if (col.format === 'date' && value) {
-              formattedValue = new Date(value).toLocaleDateString('zh-CN');
-              cssClass = 'date';
-            } else if (value === null || value === undefined) {
-              formattedValue = '-';
-            }
-            
-            return `<td class="${cssClass}">${formattedValue}</td>`;
-          }).join('')}
+          ${columns
+            .map((col) => {
+              const value = row[col.key];
+              let formattedValue = value;
+              let cssClass = '';
+
+              if (col.format === 'number' && typeof value === 'number') {
+                formattedValue = value.toLocaleString('zh-CN');
+                cssClass = 'number';
+              } else if (
+                col.format === 'currency' &&
+                typeof value === 'number'
+              ) {
+                formattedValue =
+                  '¥' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                cssClass = 'currency';
+              } else if (col.format === 'date' && value) {
+                formattedValue = new Date(value).toLocaleDateString('zh-CN');
+                cssClass = 'date';
+              } else if (value === null || value === undefined) {
+                formattedValue = '-';
+              }
+
+              return `<td class="${cssClass}">${formattedValue}</td>`;
+            })
+            .join('')}
         </tr>
-      `).join('')}
+      `,
+        )
+        .join('')}
     </tbody>
   </table>
-  ${footer ? `
+  ${
+    footer
+      ? `
     <div class="footer">
       <span>共 ${data.length} 条记录</span>
       <span class="footer-total">${footer.totalLabel || '合计'}：${footer.totalValue || ''}</span>
     </div>
-  ` : ''}
+  `
+      : ''
+  }
 </body>
 </html>`;
 
@@ -317,7 +331,10 @@ export class PdfExportService {
       </tr>
     </thead>
     <tbody>
-      ${order.items?.map((item: any, index: number) => `
+      ${
+        order.items
+          ?.map(
+            (item: any, index: number) => `
         <tr>
           <td>${index + 1}</td>
           <td>${item.productName || ''}</td>
@@ -327,7 +344,10 @@ export class PdfExportService {
           <td class="text-right">¥${parseFloat(item.unitPrice || 0).toFixed(2)}</td>
           <td class="text-right">¥${parseFloat(item.amount || 0).toFixed(2)}</td>
         </tr>
-      `).join('') || ''}
+      `,
+          )
+          .join('') || ''
+      }
     </tbody>
   </table>
 
@@ -507,7 +527,10 @@ export class PdfExportService {
       </tr>
     </thead>
     <tbody>
-      ${quotation.items?.map((item: any, index: number) => `
+      ${
+        quotation.items
+          ?.map(
+            (item: any, index: number) => `
         <tr>
           <td>${index + 1}</td>
           <td>${item.productName || ''}</td>
@@ -517,7 +540,10 @@ export class PdfExportService {
           <td class="text-right">¥${parseFloat(item.unitPrice || 0).toFixed(2)}</td>
           <td class="text-right">¥${parseFloat(item.amount || 0).toFixed(2)}</td>
         </tr>
-      `).join('') || ''}
+      `,
+          )
+          .join('') || ''
+      }
     </tbody>
   </table>
 
@@ -556,9 +582,19 @@ export class PdfExportService {
   /**
    * 生成对账单PDF HTML
    */
-  generateStatementHtml(customer: any, transactions: any[], period: string): string {
-    const totalDebit = transactions.reduce((sum, t) => sum + parseFloat(t.debit || 0), 0);
-    const totalCredit = transactions.reduce((sum, t) => sum + parseFloat(t.credit || 0), 0);
+  generateStatementHtml(
+    customer: any,
+    transactions: any[],
+    period: string,
+  ): string {
+    const totalDebit = transactions.reduce(
+      (sum, t) => sum + parseFloat(t.debit || 0),
+      0,
+    );
+    const totalCredit = transactions.reduce(
+      (sum, t) => sum + parseFloat(t.credit || 0),
+      0,
+    );
     const balance = totalDebit - totalCredit;
 
     return `
@@ -705,10 +741,16 @@ export class PdfExportService {
       </tr>
     </thead>
     <tbody>
-      ${transactions.map((t, index) => {
-        const runningBalance = transactions.slice(0, index + 1).reduce((sum, tr) => 
-          sum + parseFloat(tr.debit || 0) - parseFloat(tr.credit || 0), 0);
-        return `
+      ${transactions
+        .map((t, index) => {
+          const runningBalance = transactions
+            .slice(0, index + 1)
+            .reduce(
+              (sum, tr) =>
+                sum + parseFloat(tr.debit || 0) - parseFloat(tr.credit || 0),
+              0,
+            );
+          return `
         <tr>
           <td class="text-center">${t.date ? new Date(t.date).toLocaleDateString('zh-CN') : ''}</td>
           <td class="text-center">${t.type || ''}</td>
@@ -718,7 +760,9 @@ export class PdfExportService {
           <td class="text-right">${parseFloat(t.credit || 0) > 0 ? '¥' + parseFloat(t.credit).toFixed(2) : ''}</td>
           <td class="text-right">¥${runningBalance.toFixed(2)}</td>
         </tr>
-      `}).join('')}
+      `;
+        })
+        .join('')}
     </tbody>
   </table>
 
@@ -755,7 +799,11 @@ export class PdfExportService {
 </html>`;
   }
 
-  private financeReportShell(title: string, subtitle: string, bodyInner: string): string {
+  private financeReportShell(
+    title: string,
+    subtitle: string,
+    bodyInner: string,
+  ): string {
     const now = new Date().toLocaleString('zh-CN');
     return `
 <!DOCTYPE html>
@@ -805,7 +853,11 @@ export class PdfExportService {
       block('资产', r.assets, r.totalAssets, '资产合计') +
       block('负债', r.liabilities, r.totalLiabilities, '负债合计') +
       block('所有者权益', r.equity, r.totalEquity, '权益合计');
-    return this.financeReportShell('资产负债表', `截止日期：${r.period}`, inner);
+    return this.financeReportShell(
+      '资产负债表',
+      `截止日期：${r.period}`,
+      inner,
+    );
   }
 
   generateIncomeStatementHtml(r: IncomeStatementResponseDto): string {
@@ -816,9 +868,7 @@ export class PdfExportService {
       sub: string,
       subLabel: string,
     ) => {
-      rows.push(
-        `<tr><td colspan="4"><strong>${caption}</strong></td></tr>`,
-      );
+      rows.push(`<tr><td colspan="4"><strong>${caption}</strong></td></tr>`);
       for (const x of items) {
         rows.push(
           `<tr><td></td><td>${x.code}</td><td>${x.name}</td><td class="num">${x.amount}</td></tr>`,
@@ -861,9 +911,24 @@ export class PdfExportService {
         `<tr><td colspan="3" class="num"><strong>${netLabel}</strong></td><td class="num"><strong>${net}</strong></td></tr>`,
       );
     };
-    pushLines('经营活动', r.operatingActivities, r.netOperatingCashFlow, '经营活动现金流量净额');
-    pushLines('投资活动', r.investingActivities, r.netInvestingCashFlow, '投资活动现金流量净额');
-    pushLines('筹资活动', r.financingActivities, r.netFinancingCashFlow, '筹资活动现金流量净额');
+    pushLines(
+      '经营活动',
+      r.operatingActivities,
+      r.netOperatingCashFlow,
+      '经营活动现金流量净额',
+    );
+    pushLines(
+      '投资活动',
+      r.investingActivities,
+      r.netInvestingCashFlow,
+      '投资活动现金流量净额',
+    );
+    pushLines(
+      '筹资活动',
+      r.financingActivities,
+      r.netFinancingCashFlow,
+      '筹资活动现金流量净额',
+    );
     rows.push(
       `<tr><td colspan="3">现金及等价物净增加额</td><td class="num">${r.netCashFlow}</td></tr>`,
       `<tr><td colspan="3">期初现金及等价物余额</td><td class="num">${r.beginningCash}</td></tr>`,
@@ -908,7 +973,13 @@ export class PdfExportService {
           </tr>
         </tbody>
       </table>`;
-    const inner = tbl('应收账款', r.receivables, r.totalReceivables) + tbl('应付账款', r.payables, r.totalPayables);
-    return this.financeReportShell('应收应付明细', '已验证发票及回款勾稽（应付已付以凭证/后续模块为准）', inner);
+    const inner =
+      tbl('应收账款', r.receivables, r.totalReceivables) +
+      tbl('应付账款', r.payables, r.totalPayables);
+    return this.financeReportShell(
+      '应收应付明细',
+      '已验证发票及回款勾稽（应付已付以凭证/后续模块为准）',
+      inner,
+    );
   }
 }

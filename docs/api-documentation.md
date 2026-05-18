@@ -1,11 +1,34 @@
 # 优效营 API 文档
 
-**版本**: v1.0.4
+**版本**: v1.0.5
 **基础URL**: `http://localhost:3000/api/v1`
 **Swagger UI**: `http://localhost:3000/docs`
-**最后更新**: 2026-05-17
+**最后更新**: 2026-05-18
 
 ## 更新说明
+
+### v1.0.5
+
+- **生产环境安全加固**
+  - 新增 Helmet 安全中间件，配置全面的 HTTP 安全头
+    - Content Security Policy (CSP)
+    - HSTS (HTTP Strict Transport Security)
+    - XSS 过滤、点击劫持防护
+  - 新增 CSRF Token 防护（双提交 Cookie 模式）
+  - 新增请求频率限制，防止暴力破解
+    - 登录接口：5次/分钟
+    - 注册接口：3次/分钟
+    - 敏感操作：10次/分钟
+  - 新增结构化日志系统（Pino）
+    - 生产环境 JSON 格式输出
+    - 自动清理敏感信息
+    - 请求链路追踪（Request ID）
+  - 新增性能监控指标
+    - HTTP 请求统计
+    - 数据库查询性能
+    - 错误率监控
+    - 访问 `/metrics` 查看 Prometheus 格式指标
+- **依赖更新**：新增 `helmet`、`nestjs-pino`、`pino`、`pino-http`、`pino-pretty`
 
 ### v1.0.4
 
@@ -82,9 +105,53 @@ X-Enterprise-ID: <enterprise_id>
 | 200 | 成功 | 请求处理成功 |
 | 400 | 请求参数错误 | 检查请求参数 |
 | 401 | 未授权 | Token 无效或过期 |
-| 403 | 禁止访问 | 权限不足 |
+| 403 | 禁止访问 | 权限不足或 CSRF Token 无效 |
 | 404 | 资源不存在 | 检查资源 ID |
+| 429 | 请求过于频繁 | 触发限流，请稍后再试 |
 | 500 | 服务器错误 | 联系管理员 |
+
+### 安全相关响应头
+
+所有 API 响应自动包含以下安全头：
+
+```http
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline';
+X-Request-Id: <唯一请求ID>
+```
+
+### 限流响应头
+
+当触发频率限制时，响应包含以下头信息：
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1704067200
+Retry-After: 60
+```
+
+### CSRF 防护
+
+非安全请求（POST/PUT/DELETE/PATCH）需要携带 CSRF Token：
+
+```http
+# 从 Cookie 中获取 XSRF-TOKEN
+Cookie: XSRF-TOKEN=abc123...
+
+# 在请求头中携带
+X-CSRF-Token: abc123...
+```
+
+或
+
+```http
+# 从响应头中获取 X-CSRF-Token
+X-CSRF-Token: abc123...
+```
 
 ---
 

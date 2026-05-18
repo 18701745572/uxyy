@@ -209,6 +209,92 @@ kubectl logs -f deployment/uxyy-web
 kubectl exec -it uxyy-api-pod-name -- /bin/sh
 ```
 
+## 生产环境安全配置
+
+### 必需的环境变量
+
+部署到生产环境时，必须配置以下安全相关的环境变量：
+
+```yaml
+# 基础安全配置
+- name: NODE_ENV
+  value: "production"
+- name: ALLOWED_ORIGINS
+  value: "https://your-domain.com,https://app.your-domain.com"
+
+# JWT 密钥（必需强随机字符串，至少 32 字符）
+- name: JWT_ACCESS_SECRET
+  value: "your-strong-random-access-secret-min-32-chars"
+- name: JWT_REFRESH_SECRET
+  value: "your-strong-random-refresh-secret-min-32-chars"
+
+# 日志配置
+- name: LOG_LEVEL
+  value: "info"  # 可选: debug, info, warn, error
+- name: LOG_FILE_PATH
+  value: "/var/log/uxyy/app.log"  # 可选，默认输出到 stdout
+
+# 数据库和缓存
+- name: DATABASE_URL
+  value: "postgresql://postgres:your-password@host:5432/uxyy"
+- name: REDIS_URL
+  value: "redis://default:your-password@host:6379"
+
+# 备份目录
+- name: BACKUP_DIR
+  value: "/app/backups"
+```
+
+### 安全功能说明
+
+系统已集成以下安全功能：
+
+1. **Helmet 安全头**
+   - Content Security Policy (CSP)
+   - HSTS (HTTP Strict Transport Security)
+   - XSS 过滤
+   - 点击劫持防护
+   - 自动配置，无需额外操作
+
+2. **CSRF 防护**
+   - 双提交 Cookie 模式
+   - 自动验证非安全请求
+   - 前端自动获取和提交 Token
+
+3. **请求频率限制**
+   - 登录接口：5次/分钟
+   - 注册接口：3次/分钟
+   - 敏感操作：10次/分钟
+   - 默认接口：100次/分钟
+
+4. **结构化日志**
+   - 生产环境输出 JSON 格式
+   - 自动清理敏感信息
+   - 支持请求链路追踪
+
+5. **性能监控**
+   - 访问 `/metrics` 查看系统指标
+   - HTTP 请求统计
+   - 数据库查询性能
+   - 错误率监控
+
+### 监控和告警
+
+#### 查看指标
+```bash
+# 获取 Prometheus 格式的指标
+curl https://your-domain.hzh.sealos.run/metrics
+```
+
+#### 日志查看
+```bash
+# 查看应用日志
+kubectl logs -f deployment/uxyy-api
+
+# 查看结构化日志（JSON 格式）
+kubectl logs deployment/uxyy-api | jq .
+```
+
 ## 安全建议
 
 1. **JWT 密钥**: 使用强随机字符串，不要提交到 Git
@@ -216,3 +302,6 @@ kubectl exec -it uxyy-api-pod-name -- /bin/sh
 3. **环境变量**: 使用 Sealos 的密钥管理功能
 4. **HTTPS**: 强制使用 HTTPS 访问
 5. **资源限制**: 设置合理的资源限制防止滥用
+6. **CORS 配置**: 生产环境必须设置 `ALLOWED_ORIGINS`，不要允许所有来源
+7. **日志安全**: 生产环境日志自动清理敏感字段（密码、token 等）
+8. **定期备份**: 配置数据库自动备份策略

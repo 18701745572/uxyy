@@ -11,10 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Express } from 'express';
-import {
-  ApiBearerAuth,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { requireJwtUserId } from '../../../common/utils/jwt-request-context';
 import { SupplierPaymentService } from '../services/supplier-payment.service';
 
@@ -54,10 +51,7 @@ export class SupplierPaymentController {
 
   @ApiBearerAuth()
   @Get(':id')
-  get(
-    @Req() req: Express.Request,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  get(@Req() req: Express.Request, @Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id, enterpriseIdFromRequest(req));
   }
 
@@ -65,7 +59,8 @@ export class SupplierPaymentController {
   @Post()
   create(
     @Req() req: Express.Request,
-    @Body() body: {
+    @Body()
+    body: {
       supplierId: number;
       orderId?: number;
       amount: string | number;
@@ -87,7 +82,8 @@ export class SupplierPaymentController {
   update(
     @Req() req: Express.Request,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: {
+    @Body()
+    body: {
       amount?: string | number;
       paymentMethod?: 'cash' | 'bank' | 'alipay' | 'wechat';
       paymentDate?: string;
@@ -100,10 +96,7 @@ export class SupplierPaymentController {
 
   @ApiBearerAuth()
   @Delete(':id')
-  delete(
-    @Req() req: Express.Request,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  delete(@Req() req: Express.Request, @Param('id', ParseIntPipe) id: number) {
     return this.service.delete(id, enterpriseIdFromRequest(req));
   }
 
@@ -113,7 +106,10 @@ export class SupplierPaymentController {
     @Req() req: Express.Request,
     @Param('supplierId', ParseIntPipe) supplierId: number,
   ) {
-    return this.service.getSupplierPaymentStats(supplierId, enterpriseIdFromRequest(req));
+    return this.service.getSupplierPaymentStats(
+      supplierId,
+      enterpriseIdFromRequest(req),
+    );
   }
 
   @ApiBearerAuth()
@@ -122,7 +118,10 @@ export class SupplierPaymentController {
     @Req() req: Express.Request,
     @Param('orderId', ParseIntPipe) orderId: number,
   ) {
-    return this.service.getOrderPaymentStats(orderId, enterpriseIdFromRequest(req));
+    return this.service.getOrderPaymentStats(
+      orderId,
+      enterpriseIdFromRequest(req),
+    );
   }
 
   @ApiBearerAuth()

@@ -24,7 +24,9 @@ interface UserContext {
 @Controller('finance/ai-error-correction')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AiErrorCorrectionController {
-  constructor(private readonly aiErrorCorrectionService: AiErrorCorrectionService) {}
+  constructor(
+    private readonly aiErrorCorrectionService: AiErrorCorrectionService,
+  ) {}
 
   /**
    * 检测单个凭证错误
@@ -35,7 +37,10 @@ export class AiErrorCorrectionController {
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.aiErrorCorrectionService.detectVoucherErrors(voucherId, req.user.enterpriseId);
+    return this.aiErrorCorrectionService.detectVoucherErrors(
+      voucherId,
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -64,7 +69,10 @@ export class AiErrorCorrectionController {
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.aiErrorCorrectionService.getCorrectionSuggestions(voucherId, req.user.enterpriseId);
+    return this.aiErrorCorrectionService.getCorrectionSuggestions(
+      voucherId,
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -76,7 +84,10 @@ export class AiErrorCorrectionController {
     @Param('voucherId', ParseIntPipe) voucherId: number,
     @Req() req: Request & { user: UserContext },
   ) {
-    return this.aiErrorCorrectionService.autoFixBalance(voucherId, req.user.enterpriseId);
+    return this.aiErrorCorrectionService.autoFixBalance(
+      voucherId,
+      req.user.enterpriseId,
+    );
   }
 
   /**
@@ -88,6 +99,9 @@ export class AiErrorCorrectionController {
     @Req() req: Request & { user: UserContext },
     @Query('month') month?: string,
   ) {
-    return this.aiErrorCorrectionService.getFinancialHealthReport(req.user.enterpriseId, month);
+    return this.aiErrorCorrectionService.getFinancialHealthReport(
+      req.user.enterpriseId,
+      month,
+    );
   }
 }

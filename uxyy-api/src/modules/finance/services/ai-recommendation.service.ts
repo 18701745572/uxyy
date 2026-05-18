@@ -189,7 +189,7 @@ export class AIRecommendationService {
       LIMIT 5
     `);
 
-    for (const row of (historicalEntries as unknown as any[])) {
+    for (const row of historicalEntries as unknown as any[]) {
       const confidence = Math.min(0.95, 0.5 + parseInt(row.usage_count) * 0.1);
       recommendations.push({
         accountId: row.account_id,
@@ -311,7 +311,9 @@ export class AIRecommendationService {
   /**
    * 基于使用频率查找
    */
-  private async findByFrequency(enterpriseId: number): Promise<AccountRecommendation[]> {
+  private async findByFrequency(
+    enterpriseId: number,
+  ): Promise<AccountRecommendation[]> {
     const recommendations: AccountRecommendation[] = [];
 
     // 查询最常用的科目
@@ -331,7 +333,7 @@ export class AIRecommendationService {
       LIMIT 10
     `);
 
-    for (const row of (popularAccounts as unknown as any[])) {
+    for (const row of popularAccounts as unknown as any[]) {
       const confidence = Math.min(0.7, 0.3 + parseInt(row.usage_count) * 0.02);
       recommendations.push({
         accountId: row.account_id,
@@ -361,7 +363,9 @@ export class AIRecommendationService {
       }
     }
 
-    return Array.from(seen.values()).sort((a, b) => b.confidence - a.confidence);
+    return Array.from(seen.values()).sort(
+      (a, b) => b.confidence - a.confidence,
+    );
   }
 
   /**
@@ -387,7 +391,10 @@ export class AIRecommendationService {
     const summaries = await this.db
       .select({ summary: schema.voucherItems.summary })
       .from(schema.voucherItems)
-      .leftJoin(schema.vouchers, eq(schema.voucherItems.voucherId, schema.vouchers.id))
+      .leftJoin(
+        schema.vouchers,
+        eq(schema.voucherItems.voucherId, schema.vouchers.id),
+      )
       .where(and(...conditions))
       .limit(20);
 
@@ -460,7 +467,7 @@ export class AIRecommendationService {
     const neededDirection = debitTotal > creditTotal ? 'credit' : 'debit';
 
     // 查询历史上与这些科目经常一起使用的科目
-    const accountIds = existingEntries.map(e => e.accountId);
+    const accountIds = existingEntries.map((e) => e.accountId);
 
     // 使用学习记录中的科目组合
     const patterns = await this.db
@@ -491,7 +498,11 @@ export class AIRecommendationService {
           reason: `历史上经常与${value.debitAccountName}一起使用`,
           basedOn: 'pair_completion',
         });
-      } else if (neededDirection === 'debit' && matchesCredit && !matchesDebit) {
+      } else if (
+        neededDirection === 'debit' &&
+        matchesCredit &&
+        !matchesDebit
+      ) {
         recommendations.push({
           accountId: value.debitAccountId,
           accountCode: value.debitAccountCode,
@@ -503,7 +514,9 @@ export class AIRecommendationService {
       }
     }
 
-    return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+    return recommendations
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 3);
   }
 
   /**
@@ -515,12 +528,14 @@ export class AIRecommendationService {
       summary?: string;
       accounts?: number[];
     },
-  ): Promise<Array<{
-    templateId: number;
-    templateName: string;
-    confidence: number;
-    reason: string;
-  }>> {
+  ): Promise<
+    Array<{
+      templateId: number;
+      templateName: string;
+      confidence: number;
+      reason: string;
+    }>
+  > {
     const recommendations: Array<{
       templateId: number;
       templateName: string;
@@ -579,7 +594,7 @@ export class AIRecommendationService {
         const templateAccountIds = entries.map((e: any) => e.accountId);
 
         // 计算交集
-        const intersection = context.accounts.filter(id =>
+        const intersection = context.accounts.filter((id) =>
           templateAccountIds.includes(id),
         );
 
@@ -699,7 +714,9 @@ export class AIRecommendationService {
       );
 
     const total = recommendations.length;
-    const accepted = recommendations.filter((r: typeof recommendations[0]) => r.isAccepted).length;
+    const accepted = recommendations.filter(
+      (r: (typeof recommendations)[0]) => r.isAccepted,
+    ).length;
 
     const byType: Record<string, { total: number; accepted: number }> = {};
 

@@ -108,7 +108,8 @@ export class EnterpriseInvitationsService {
   }
 
   private invitationExpiresMs(): number {
-    const raw = this.config.get<string>('ENTERPRISE_INVITE_EXPIRES_DAYS') ?? '7';
+    const raw =
+      this.config.get<string>('ENTERPRISE_INVITE_EXPIRES_DAYS') ?? '7';
     const days = Number.parseInt(raw.replace(/_/g, ''), 10);
     const d = Number.isFinite(days) && days > 0 ? days : 7;
     return d * 86_400_000;
@@ -269,7 +270,8 @@ export class EnterpriseInvitationsService {
       valid: true as const,
       enterpriseName: row.enterpriseName,
       inviteePhoneMasked: maskCnPhone(row.inviteePhone),
-      presetRole: canonicalEnterpriseRoleForApi(row.presetRole) ?? row.presetRole,
+      presetRole:
+        canonicalEnterpriseRoleForApi(row.presetRole) ?? row.presetRole,
       expiresAt:
         row.expiresAt instanceof Date
           ? row.expiresAt.toISOString()
@@ -307,7 +309,8 @@ export class EnterpriseInvitationsService {
       throw new BadRequestException('该邀请不可用');
     }
 
-    const exp = row.expiresAt instanceof Date ? row.expiresAt : new Date(row.expiresAt as string);
+    const exp =
+      row.expiresAt instanceof Date ? row.expiresAt : new Date(row.expiresAt);
     if (exp.getTime() <= Date.now()) {
       throw new BadRequestException('邀请已过期');
     }
@@ -321,7 +324,9 @@ export class EnterpriseInvitationsService {
     if (!user) throw new NotFoundException('用户不存在');
 
     if (user.phone.trim() !== row.inviteePhone) {
-      throw new ForbiddenException('请使用邀请所含手机号对应的账号登录后再接受邀请');
+      throw new ForbiddenException(
+        '请使用邀请所含手机号对应的账号登录后再接受邀请',
+      );
     }
 
     if (user.status !== 'active') {
@@ -412,7 +417,8 @@ export class EnterpriseInvitationsService {
     const row = invitation.invitation;
     if (row.status !== 'pending') throw new BadRequestException('该邀请不可用');
 
-    const exp = row.expiresAt instanceof Date ? row.expiresAt : new Date(row.expiresAt as string);
+    const exp =
+      row.expiresAt instanceof Date ? row.expiresAt : new Date(row.expiresAt);
     if (exp.getTime() <= Date.now()) {
       throw new BadRequestException('邀请已过期');
     }

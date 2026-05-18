@@ -66,7 +66,11 @@ export class AccountingLearningService {
       minSampleSize?: number;
     },
   ): Promise<LearningReport> {
-    const { startDate, endDate, minSampleSize = this.MIN_SAMPLE_SIZE } = options || {};
+    const {
+      startDate,
+      endDate,
+      minSampleSize = this.MIN_SAMPLE_SIZE,
+    } = options || {};
 
     const report: LearningReport = {
       totalPatterns: 0,
@@ -77,27 +81,42 @@ export class AccountingLearningService {
     };
 
     // 1. 学习科目使用偏好
-    const accountPrefs = await this.learnAccountPreferences(enterpriseId, startDate, endDate);
+    const accountPrefs = await this.learnAccountPreferences(
+      enterpriseId,
+      startDate,
+      endDate,
+    );
     report.accountPreferences = accountPrefs;
 
     // 2. 学习对方科目组合
-    const pairPatterns = await this.learnAccountPairs(enterpriseId, minSampleSize);
+    const pairPatterns = await this.learnAccountPairs(
+      enterpriseId,
+      minSampleSize,
+    );
     for (const pattern of pairPatterns) {
       await this.savePattern(enterpriseId, 'account_pair', pattern);
       report.totalPatterns++;
     }
 
     // 3. 学习辅助核算偏好
-    const auxiliaryPatterns = await this.learnAuxiliaryPreferences(enterpriseId);
+    const auxiliaryPatterns =
+      await this.learnAuxiliaryPreferences(enterpriseId);
     for (const pattern of auxiliaryPatterns) {
       await this.savePattern(enterpriseId, 'auxiliary_preference', pattern);
       report.totalPatterns++;
     }
 
     // 4. 学习摘要关键词模式
-    const summaryPatterns = await this.learnSummaryPatterns(enterpriseId, minSampleSize);
+    const summaryPatterns = await this.learnSummaryPatterns(
+      enterpriseId,
+      minSampleSize,
+    );
     for (const pattern of summaryPatterns) {
-      const result = await this.savePattern(enterpriseId, 'summary_pattern', pattern);
+      const result = await this.savePattern(
+        enterpriseId,
+        'summary_pattern',
+        pattern,
+      );
       if (result.isNew) {
         report.newPatterns++;
       } else {
@@ -136,7 +155,7 @@ export class AccountingLearningService {
     endDate?: Date,
   ): Promise<AccountPreference[]> {
     // 获取所有凭证分录
-    let conditions = [eq(schema.vouchers.enterpriseId, enterpriseId)];
+    const conditions = [eq(schema.vouchers.enterpriseId, enterpriseId)];
     if (startDate) {
       conditions.push(gte(schema.vouchers.voucherDate, startDate));
     }
@@ -151,19 +170,28 @@ export class AccountingLearningService {
         voucher: schema.vouchers,
       })
       .from(schema.voucherItems)
-      .leftJoin(schema.vouchers, eq(schema.voucherItems.voucherId, schema.vouchers.id))
-      .leftJoin(schema.accounts, eq(schema.voucherItems.accountId, schema.accounts.id))
+      .leftJoin(
+        schema.vouchers,
+        eq(schema.voucherItems.voucherId, schema.vouchers.id),
+      )
+      .leftJoin(
+        schema.accounts,
+        eq(schema.voucherItems.accountId, schema.accounts.id),
+      )
       .where(and(...conditions));
 
     // 按科目分组统计
-    const accountStats = new Map<number, {
-      accountId: number;
-      accountCode: string;
-      accountName: string;
-      usageCount: number;
-      totalAmount: number;
-      items: typeof items;
-    }>();
+    const accountStats = new Map<
+      number,
+      {
+        accountId: number;
+        accountCode: string;
+        accountName: string;
+        usageCount: number;
+        totalAmount: number;
+        items: typeof items;
+      }
+    >();
 
     for (const { item, account } of items) {
       if (!account) continue;
@@ -171,7 +199,9 @@ export class AccountingLearningService {
       const existing = accountStats.get(item.accountId);
       if (existing) {
         existing.usageCount++;
-        existing.totalAmount += parseFloat(item.debitAmount || '0') + parseFloat(item.creditAmount || '0');
+        existing.totalAmount +=
+          parseFloat(item.debitAmount || '0') +
+          parseFloat(item.creditAmount || '0');
         existing.items.push({ item, account, voucher: items[0].voucher });
       } else {
         accountStats.set(item.accountId, {
@@ -179,7 +209,9 @@ export class AccountingLearningService {
           accountCode: account.code,
           accountName: account.name,
           usageCount: 1,
-          totalAmount: parseFloat(item.debitAmount || '0') + parseFloat(item.creditAmount || '0'),
+          totalAmount:
+            parseFloat(item.debitAmount || '0') +
+            parseFloat(item.creditAmount || '0'),
           items: [{ item, account, voucher: items[0].voucher }],
         });
       }
@@ -201,7 +233,10 @@ export class AccountingLearningService {
             account: schema.accounts,
           })
           .from(schema.voucherItems)
-          .leftJoin(schema.accounts, eq(schema.voucherItems.accountId, schema.accounts.id))
+          .leftJoin(
+            schema.accounts,
+            eq(schema.voucherItems.accountId, schema.accounts.id),
+          )
           .where(
             and(
               eq(schema.voucherItems.voucherId, currentItem.voucherId),
@@ -280,7 +315,7 @@ export class AccountingLearningService {
       LIMIT 20
     `);
 
-    for (const row of (combinations as unknown as any[])) {
+    for (const row of combinations as unknown as any[]) {
       const [debitAccount] = await this.db
         .select()
         .from(schema.accounts)
@@ -318,7 +353,9 @@ export class AccountingLearningService {
   /**
    * 学习辅助核算偏好
    */
-  private async learnAuxiliaryPreferences(enterpriseId: number): Promise<LearnedPattern[]> {
+  private async learnAuxiliaryPreferences(
+    enterpriseId: number,
+  ): Promise<LearnedPattern[]> {
     const patterns: LearnedPattern[] = [];
 
     // 查询辅助核算使用情况
@@ -369,7 +406,10 @@ export class AccountingLearningService {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-      const totalCount = sortedValues.reduce((sum, [, count]) => sum + count, 0);
+      const totalCount = sortedValues.reduce(
+        (sum, [, count]) => sum + count,
+        0,
+      );
 
       patterns.push({
         category: 'auxiliary_preference',
@@ -405,7 +445,10 @@ export class AccountingLearningService {
         accountId: schema.voucherItems.accountId,
       })
       .from(schema.voucherItems)
-      .leftJoin(schema.vouchers, eq(schema.voucherItems.voucherId, schema.vouchers.id))
+      .leftJoin(
+        schema.vouchers,
+        eq(schema.voucherItems.voucherId, schema.vouchers.id),
+      )
       .where(
         and(
           eq(schema.vouchers.enterpriseId, enterpriseId),
@@ -439,7 +482,7 @@ export class AccountingLearningService {
       // 简单的关键词提取（按空格分割，统计词频）
       const wordFreq = new Map<string, number>();
       for (const summary of summaries) {
-        const words = summary.split(/[\s,，.。]+/).filter(w => w.length >= 2);
+        const words = summary.split(/[\s,，.。]+/).filter((w) => w.length >= 2);
         for (const word of words) {
           wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
         }
@@ -474,7 +517,9 @@ export class AccountingLearningService {
   /**
    * 学习金额特征模式
    */
-  private async learnAmountPatterns(enterpriseId: number): Promise<LearnedPattern[]> {
+  private async learnAmountPatterns(
+    enterpriseId: number,
+  ): Promise<LearnedPattern[]> {
     const patterns: LearnedPattern[] = [];
 
     // 按科目统计金额分布
@@ -495,7 +540,7 @@ export class AccountingLearningService {
       HAVING COUNT(*) >= ${this.MIN_SAMPLE_SIZE}
     `);
 
-    for (const row of (stats as unknown as any[])) {
+    for (const row of stats as unknown as any[]) {
       const [account] = await this.db
         .select()
         .from(schema.accounts)
@@ -605,7 +650,10 @@ export class AccountingLearningService {
 
     // 2. 建议摘要模板
     for (const pattern of summaryPatterns.slice(0, 3)) {
-      const keywords = pattern.value.keywords?.slice(0, 3).map((k: any) => k.word).join('、');
+      const keywords = pattern.value.keywords
+        ?.slice(0, 3)
+        .map((k: any) => k.word)
+        .join('、');
       if (keywords) {
         suggestions.push({
           type: 'summary_template',
@@ -617,7 +665,9 @@ export class AccountingLearningService {
     }
 
     // 3. 发现异常科目使用
-    const unusualAccounts = accountPrefs.filter(p => p.usageCount < this.MIN_SAMPLE_SIZE);
+    const unusualAccounts = accountPrefs.filter(
+      (p) => p.usageCount < this.MIN_SAMPLE_SIZE,
+    );
     if (unusualAccounts.length > 0) {
       suggestions.push({
         type: 'unusual_usage',
@@ -670,7 +720,9 @@ export class AccountingLearningService {
                 debitAccountId: value.debitAccountId,
                 creditAccountId: value.creditAccountId,
                 description: `AI学习：${value.debitAccountName} - ${value.creditAccountName}`,
-                priority: Math.floor((parseFloat(record.confidence || '0.5')) * 100),
+                priority: Math.floor(
+                  parseFloat(record.confidence || '0.5') * 100,
+                ),
               },
               0, // system user
             );
@@ -700,7 +752,9 @@ export class AccountingLearningService {
   ) {
     const { category, minConfidence, page = 1, pageSize = 20 } = options || {};
 
-    const conditions = [eq(schema.aiLearningRecords.enterpriseId, enterpriseId)];
+    const conditions = [
+      eq(schema.aiLearningRecords.enterpriseId, enterpriseId),
+    ];
 
     if (category) {
       conditions.push(eq(schema.aiLearningRecords.category, category));
@@ -711,7 +765,7 @@ export class AccountingLearningService {
       .from(schema.aiLearningRecords)
       .where(and(...conditions));
 
-    let query = this.db
+    const query = this.db
       .select()
       .from(schema.aiLearningRecords)
       .where(and(...conditions))
@@ -724,7 +778,9 @@ export class AccountingLearningService {
     // 过滤置信度
     let filtered = records;
     if (minConfidence) {
-      filtered = records.filter(r => parseFloat(r.confidence || '0') >= minConfidence);
+      filtered = records.filter(
+        (r) => parseFloat(r.confidence || '0') >= minConfidence,
+      );
     }
 
     return {

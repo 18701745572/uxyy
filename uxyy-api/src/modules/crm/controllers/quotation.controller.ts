@@ -42,10 +42,8 @@ export class QuotationController {
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('status') status?: string,
-    @Query(
-      'customerId',
-      new ParseIntPipe({ optional: true }),
-    ) customerId?: number,
+    @Query('customerId', new ParseIntPipe({ optional: true }))
+    customerId?: number,
   ) {
     return this.service.findPage({
       enterpriseId: req.user.enterpriseId,

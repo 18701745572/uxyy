@@ -101,7 +101,8 @@ export class FinanceController {
   })
   @UseInterceptors(FileInterceptor('file'))
   async ocrInvoice(
-    @Req() req: Express.Request & { file?: { buffer: Buffer; mimetype: string } },
+    @Req()
+    req: Express.Request & { file?: { buffer: Buffer; mimetype: string } },
     @Body() _body: unknown,
   ): Promise<OcrInvoiceResponseDto> {
     if (!req.file) {
@@ -193,7 +194,8 @@ export class FinanceController {
   @Post('invoices/import')
   @Permissions(Permission.FIN_WRITE)
   @ApiOperation({
-    summary: 'Excel/CSV 导入发票（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入发票（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -325,7 +327,8 @@ export class FinanceController {
   @Post('vouchers/import')
   @Permissions(Permission.FIN_VOUCHER)
   @ApiOperation({
-    summary: 'Excel/CSV 导入凭证（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入凭证（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

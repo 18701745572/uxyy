@@ -1,5 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { WebSocketGateway, WebSocketServer, SubscribeMessage } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { and, eq, sql } from 'drizzle-orm';
 import * as schema from '../../../db/schema';
@@ -26,9 +30,7 @@ export class NotificationPushService {
   // 用户ID到Socket的映射
   private userSockets: Map<number, Socket> = new Map();
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 客户端连接时
@@ -71,10 +73,10 @@ export class NotificationPushService {
 
       // 保存用户Socket映射
       this.userSockets.set(payload.userId, client);
-      
+
       // 加入用户专属房间
       client.join(`user:${payload.userId}`);
-      
+
       client.emit('joined', { userId: payload.userId });
       this.logger.log(`用户 ${payload.userId} 加入通知房间`);
 
@@ -90,16 +92,19 @@ export class NotificationPushService {
   /**
    * 向指定用户推送通知
    */
-  async pushNotificationToUser(userId: number, notification: {
-    id: number;
-    type: string;
-    title: string;
-    content: string;
-    priority: string;
-    createdAt: string;
-  }) {
+  async pushNotificationToUser(
+    userId: number,
+    notification: {
+      id: number;
+      type: string;
+      title: string;
+      content: string;
+      priority: string;
+      createdAt: string;
+    },
+  ) {
     const socket = this.userSockets.get(userId);
-    
+
     if (socket) {
       socket.emit('new_notification', notification);
       this.logger.log(`实时推送通知给用户 ${userId}: ${notification.title}`);
@@ -107,30 +112,35 @@ export class NotificationPushService {
 
     // 同时通过房间广播（确保多端同步）
     this.server.to(`user:${userId}`).emit('new_notification', notification);
-    
+
     // 更新未读数量
     const unreadCount = await this.getUnreadCount(userId);
-    this.server.to(`user:${userId}`).emit('unread_count', { count: unreadCount });
+    this.server
+      .to(`user:${userId}`)
+      .emit('unread_count', { count: unreadCount });
   }
 
   /**
    * 向企业所有管理员推送通知
    */
-  async pushNotificationToEnterpriseAdmins(enterpriseId: number, notification: {
-    id: number;
-    type: string;
-    title: string;
-    content: string;
-    priority: string;
-    createdAt: string;
-  }) {
+  async pushNotificationToEnterpriseAdmins(
+    enterpriseId: number,
+    notification: {
+      id: number;
+      type: string;
+      title: string;
+      content: string;
+      priority: string;
+      createdAt: string;
+    },
+  ) {
     const admins = await this.db
-      .select({ userId: schema.users.id })
-      .from(schema.users)
+      .select({ userId: schema.userEnterprises.userId })
+      .from(schema.userEnterprises)
       .where(
         and(
-          eq(schema.users.enterpriseId, enterpriseId),
-          eq(schema.users.role, 'admin'),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          eq(schema.userEnterprises.role, 'admin'),
         ),
       );
 

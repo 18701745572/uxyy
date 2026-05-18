@@ -386,7 +386,9 @@ export class InventoryService {
     const total = items.length;
     const offset = (params.page - 1) * params.pageSize;
     const pageItems = items.slice(offset, offset + params.pageSize);
-    const expiredCount = pageItems.filter((x) => x.severity === 'expired').length;
+    const expiredCount = pageItems.filter(
+      (x) => x.severity === 'expired',
+    ).length;
     const criticalCount = pageItems.filter(
       (x) => x.severity === 'critical',
     ).length;

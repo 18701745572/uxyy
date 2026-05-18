@@ -103,7 +103,8 @@ export class SuppliersController {
   @ApiBearerAuth()
   @Post('import')
   @ApiOperation({
-    summary: 'Excel/CSV 导入供应商（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
+    summary:
+      'Excel/CSV 导入供应商（与导出列对齐；mode=skip 跳过重复，mode=force 强制写入）',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

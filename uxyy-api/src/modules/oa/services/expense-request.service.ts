@@ -20,10 +20,14 @@ import type {
 export class ExpenseRequestService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-    private readonly approvalFlowService: ApprovalFlowService
+    private readonly approvalFlowService: ApprovalFlowService,
   ) {}
 
-  async create(enterpriseId: number, userId: number, dto: CreateExpenseRequestDto) {
+  async create(
+    enterpriseId: number,
+    userId: number,
+    dto: CreateExpenseRequestDto,
+  ) {
     const flow = await this.approvalFlowService.ensureActiveFlowOrDefault(
       enterpriseId,
       'reimbursement',
@@ -62,19 +66,31 @@ export class ExpenseRequestService {
   }
 
   async findAll(enterpriseId: number, query: ExpenseRequestQueryDto) {
-    let conditions = eq(schema.expenseRequests.enterpriseId, enterpriseId) as any;
+    let conditions = eq(
+      schema.expenseRequests.enterpriseId,
+      enterpriseId,
+    ) as any;
 
     if (query.status) {
-      conditions = and(conditions, eq(schema.expenseRequests.status, query.status));
+      conditions = and(
+        conditions,
+        eq(schema.expenseRequests.status, query.status),
+      );
     }
     if (query.type) {
       conditions = and(conditions, eq(schema.expenseRequests.type, query.type));
     }
     if (query.startDate) {
-      conditions = and(conditions, gte(schema.expenseRequests.createdAt, new Date(query.startDate)));
+      conditions = and(
+        conditions,
+        gte(schema.expenseRequests.createdAt, new Date(query.startDate)),
+      );
     }
     if (query.endDate) {
-      conditions = and(conditions, lte(schema.expenseRequests.createdAt, new Date(query.endDate)));
+      conditions = and(
+        conditions,
+        lte(schema.expenseRequests.createdAt, new Date(query.endDate)),
+      );
     }
 
     return this.db
@@ -88,7 +104,12 @@ export class ExpenseRequestService {
     const [expense] = await this.db
       .select()
       .from(schema.expenseRequests)
-      .where(and(eq(schema.expenseRequests.id, id), eq(schema.expenseRequests.enterpriseId, enterpriseId)));
+      .where(
+        and(
+          eq(schema.expenseRequests.id, id),
+          eq(schema.expenseRequests.enterpriseId, enterpriseId),
+        ),
+      );
 
     if (!expense) throw new NotFoundException('报销申请不存在');
     return expense;
@@ -98,11 +119,21 @@ export class ExpenseRequestService {
     return this.db
       .select()
       .from(schema.expenseRequests)
-      .where(and(eq(schema.expenseRequests.userId, userId), eq(schema.expenseRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.expenseRequests.userId, userId),
+          eq(schema.expenseRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .orderBy(desc(schema.expenseRequests.createdAt));
   }
 
-  async update(id: number, enterpriseId: number, userId: number, dto: UpdateExpenseRequestDto) {
+  async update(
+    id: number,
+    enterpriseId: number,
+    userId: number,
+    dto: UpdateExpenseRequestDto,
+  ) {
     const expense = await this.findById(id, enterpriseId);
 
     // 只能修改自己的待审批申请
@@ -122,7 +153,12 @@ export class ExpenseRequestService {
         ...(dto.attachments && { attachments: dto.attachments }),
         updatedAt: new Date(),
       })
-      .where(and(eq(schema.expenseRequests.id, id), eq(schema.expenseRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.expenseRequests.id, id),
+          eq(schema.expenseRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     return updated;
@@ -141,7 +177,12 @@ export class ExpenseRequestService {
     const [updated] = await this.db
       .update(schema.expenseRequests)
       .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(and(eq(schema.expenseRequests.id, id), eq(schema.expenseRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.expenseRequests.id, id),
+          eq(schema.expenseRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     // 同时取消关联的审批记录
@@ -156,18 +197,30 @@ export class ExpenseRequestService {
   }
 
   // 更新OCR数据
-  async updateOcrData(id: number, enterpriseId: number, ocrData: Record<string, unknown>) {
+  async updateOcrData(
+    id: number,
+    enterpriseId: number,
+    ocrData: Record<string, unknown>,
+  ) {
     const [updated] = await this.db
       .update(schema.expenseRequests)
       .set({ ocrData, updatedAt: new Date() })
-      .where(and(eq(schema.expenseRequests.id, id), eq(schema.expenseRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.expenseRequests.id, id),
+          eq(schema.expenseRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     return updated;
   }
 
   // 审批回调 - 更新报销状态
-  async updateStatusByApprovalRecord(recordId: number, status: 'approved' | 'rejected') {
+  async updateStatusByApprovalRecord(
+    recordId: number,
+    status: 'approved' | 'rejected',
+  ) {
     const [expense] = await this.db
       .select()
       .from(schema.expenseRequests)

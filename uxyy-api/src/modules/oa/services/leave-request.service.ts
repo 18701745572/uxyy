@@ -21,10 +21,15 @@ import { isBossRole } from '../../auth/role-permissions';
 export class LeaveRequestService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-    private readonly approvalFlowService: ApprovalFlowService
+    private readonly approvalFlowService: ApprovalFlowService,
   ) {}
 
-  async create(enterpriseId: number, userId: number, userRole: string, dto: CreateLeaveRequestDto) {
+  async create(
+    enterpriseId: number,
+    userId: number,
+    userRole: string,
+    dto: CreateLeaveRequestDto,
+  ) {
     // 老板的请假申请自动通过，无需审批
     const isBoss = isBossRole(userRole);
     const status = isBoss ? 'approved' : 'pending';
@@ -76,16 +81,25 @@ export class LeaveRequestService {
     let conditions = eq(schema.leaveRequests.enterpriseId, enterpriseId) as any;
 
     if (query.status) {
-      conditions = and(conditions, eq(schema.leaveRequests.status, query.status));
+      conditions = and(
+        conditions,
+        eq(schema.leaveRequests.status, query.status),
+      );
     }
     if (query.type) {
       conditions = and(conditions, eq(schema.leaveRequests.type, query.type));
     }
     if (query.startDate) {
-      conditions = and(conditions, gte(schema.leaveRequests.startDate, query.startDate));
+      conditions = and(
+        conditions,
+        gte(schema.leaveRequests.startDate, query.startDate),
+      );
     }
     if (query.endDate) {
-      conditions = and(conditions, lte(schema.leaveRequests.endDate, query.endDate));
+      conditions = and(
+        conditions,
+        lte(schema.leaveRequests.endDate, query.endDate),
+      );
     }
 
     return this.db
@@ -99,7 +113,12 @@ export class LeaveRequestService {
     const [leave] = await this.db
       .select()
       .from(schema.leaveRequests)
-      .where(and(eq(schema.leaveRequests.id, id), eq(schema.leaveRequests.enterpriseId, enterpriseId)));
+      .where(
+        and(
+          eq(schema.leaveRequests.id, id),
+          eq(schema.leaveRequests.enterpriseId, enterpriseId),
+        ),
+      );
 
     if (!leave) throw new NotFoundException('请假申请不存在');
     return leave;
@@ -109,11 +128,21 @@ export class LeaveRequestService {
     return this.db
       .select()
       .from(schema.leaveRequests)
-      .where(and(eq(schema.leaveRequests.userId, userId), eq(schema.leaveRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.leaveRequests.userId, userId),
+          eq(schema.leaveRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .orderBy(desc(schema.leaveRequests.createdAt));
   }
 
-  async update(id: number, enterpriseId: number, userId: number, dto: UpdateLeaveRequestDto) {
+  async update(
+    id: number,
+    enterpriseId: number,
+    userId: number,
+    dto: UpdateLeaveRequestDto,
+  ) {
     const leave = await this.findById(id, enterpriseId);
 
     // 只能修改自己的待审批申请
@@ -134,7 +163,12 @@ export class LeaveRequestService {
         ...(dto.reason !== undefined && { reason: dto.reason }),
         updatedAt: new Date(),
       })
-      .where(and(eq(schema.leaveRequests.id, id), eq(schema.leaveRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.leaveRequests.id, id),
+          eq(schema.leaveRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     return updated;
@@ -153,7 +187,12 @@ export class LeaveRequestService {
     const [updated] = await this.db
       .update(schema.leaveRequests)
       .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(and(eq(schema.leaveRequests.id, id), eq(schema.leaveRequests.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.leaveRequests.id, id),
+          eq(schema.leaveRequests.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     // 同时取消关联的审批记录
@@ -168,7 +207,10 @@ export class LeaveRequestService {
   }
 
   // 审批回调 - 更新请假状态
-  async updateStatusByApprovalRecord(recordId: number, status: 'approved' | 'rejected') {
+  async updateStatusByApprovalRecord(
+    recordId: number,
+    status: 'approved' | 'rejected',
+  ) {
     const [leave] = await this.db
       .select()
       .from(schema.leaveRequests)

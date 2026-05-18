@@ -169,7 +169,13 @@ export const customerCategoryRelations = pgTable(
 );
 
 /** 报价单状态枚举 */
-export const quotationStatusEnum = ['draft', 'sent', 'accepted', 'rejected', 'expired'] as const;
+export const quotationStatusEnum = [
+  'draft',
+  'sent',
+  'accepted',
+  'rejected',
+  'expired',
+] as const;
 
 /** PRD 2.3.3 · 报价单管理 — Agent-CRM */
 export const quotations = pgTable(
@@ -187,10 +193,16 @@ export const quotations = pgTable(
     title: varchar('title', { length: 200 }).notNull(),
     status: varchar('status', { length: 20 }).default('draft').notNull(),
     totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
-    discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).default('0'),
+    discountAmount: numeric('discount_amount', {
+      precision: 12,
+      scale: 2,
+    }).default('0'),
     taxRate: numeric('tax_rate', { precision: 5, scale: 2 }).default('0'),
     taxAmount: numeric('tax_amount', { precision: 12, scale: 2 }).default('0'),
-    payableAmount: numeric('payable_amount', { precision: 12, scale: 2 }).notNull(),
+    payableAmount: numeric('payable_amount', {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
     validUntil: timestamp('valid_until'),
     remark: text('remark'),
     pdfUrl: text('pdf_url'),
@@ -221,7 +233,9 @@ export const quotationItems = pgTable(
     specification: varchar('specification', { length: 200 }),
     quantity: numeric('quantity', { precision: 12, scale: 2 }).notNull(),
     unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
-    discountRate: numeric('discount_rate', { precision: 5, scale: 2 }).default('100'),
+    discountRate: numeric('discount_rate', { precision: 5, scale: 2 }).default(
+      '100',
+    ),
     amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
     remark: text('remark'),
     sortOrder: integer('sort_order').default(0),
@@ -234,7 +248,13 @@ export const quotationItems = pgTable(
 );
 
 /** 会员等级枚举 */
-export const memberLevelEnum = ['bronze', 'silver', 'gold', 'platinum', 'diamond'] as const;
+export const memberLevelEnum = [
+  'bronze',
+  'silver',
+  'gold',
+  'platinum',
+  'diamond',
+] as const;
 
 /** PRD 2.3.1 · 会员等级配置 — Agent-CRM */
 export const memberLevels = pgTable(
@@ -248,7 +268,9 @@ export const memberLevels = pgTable(
     code: varchar('code', { length: 20 }).notNull(), // bronze, silver, gold, etc.
     minPoints: integer('min_points').default(0).notNull(),
     maxPoints: integer('max_points'),
-    discountRate: numeric('discount_rate', { precision: 5, scale: 2 }).default('100'), // 折扣率，100为原价
+    discountRate: numeric('discount_rate', { precision: 5, scale: 2 }).default(
+      '100',
+    ), // 折扣率，100为原价
     description: text('description'),
     benefits: text('benefits').array(), // 会员权益列表
     color: varchar('color', { length: 20 }).default('#1890ff'),
@@ -281,8 +303,12 @@ export const customerMembers = pgTable(
     totalPoints: integer('total_points').default(0).notNull(), // 累计积分
     availablePoints: integer('available_points').default(0).notNull(), // 可用积分
     usedPoints: integer('used_points').default(0).notNull(), // 已用积分
-    balance: numeric('balance', { precision: 12, scale: 2 }).default('0').notNull(), // 余额
-    totalConsumption: numeric('total_consumption', { precision: 12, scale: 2 }).default('0').notNull(), // 累计消费
+    balance: numeric('balance', { precision: 12, scale: 2 })
+      .default('0')
+      .notNull(), // 余额
+    totalConsumption: numeric('total_consumption', { precision: 12, scale: 2 })
+      .default('0')
+      .notNull(), // 累计消费
     orderCount: integer('order_count').default(0).notNull(), // 订单数量
     joinDate: timestamp('join_date').defaultNow().notNull(), // 入会日期
     expireDate: timestamp('expire_date'), // 会员到期日
@@ -301,7 +327,12 @@ export const customerMembers = pgTable(
 );
 
 /** 积分变动类型枚举 */
-export const pointsChangeTypeEnum = ['earn', 'redeem', 'adjust', 'expire'] as const;
+export const pointsChangeTypeEnum = [
+  'earn',
+  'redeem',
+  'adjust',
+  'expire',
+] as const;
 
 /** PRD 2.3.1 · 积分变动记录 — Agent-CRM */
 export const pointsRecords = pgTable(

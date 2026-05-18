@@ -62,12 +62,10 @@ export class EnterpriseMembersController {
 
   @Post('invitations')
   @ApiOperation({
-    summary: '生成邀请链接（/join?t=…）；未注册用户走受限注册，已注册用户登录后接受邀请',
+    summary:
+      '生成邀请链接（/join?t=…）；未注册用户走受限注册，已注册用户登录后接受邀请',
   })
-  createInvitation(
-    @Req() req: Request,
-    @Body() dto: EnterpriseMemberAddDto,
-  ) {
+  createInvitation(@Req() req: Request, @Body() dto: EnterpriseMemberAddDto) {
     return this.invitations.createInvitation(
       this.enterpriseIdFromRequest(req),
       requireJwtUserId(req),
@@ -92,10 +90,7 @@ export class EnterpriseMembersController {
 
   @Delete(':userId')
   @ApiOperation({ summary: '将成员移出企业（不可移除企业主）' })
-  remove(
-    @Req() req: Request,
-    @Param('userId', ParseIntPipe) userId: number,
-  ) {
+  remove(@Req() req: Request, @Param('userId', ParseIntPipe) userId: number) {
     return this.service.removeMember(this.enterpriseIdFromRequest(req), userId);
   }
 }

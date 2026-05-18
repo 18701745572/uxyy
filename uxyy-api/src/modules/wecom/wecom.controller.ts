@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Query, Body, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { WeComService } from './wecom.service';
@@ -93,7 +101,12 @@ export class WeComController {
     @Body('stock') stock: number,
     @Body('minStock') minStock: number,
   ) {
-    return this.weComService.sendStockAlert(toUser, productName, stock, minStock);
+    return this.weComService.sendStockAlert(
+      toUser,
+      productName,
+      stock,
+      minStock,
+    );
   }
 
   @ApiOperation({ summary: '发送价格异常告警' })

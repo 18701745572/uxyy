@@ -92,7 +92,12 @@ export class ExportController {
       { key: 'createdAt', header: '创建时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, customers, columns, '客户列表');
+    const result = this.exportService.export(
+      format,
+      customers,
+      columns,
+      '客户列表',
+    );
 
     const filename = `customers_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -122,7 +127,12 @@ export class ExportController {
       { key: 'status', header: '状态', width: 10 },
     ];
 
-    const result = this.exportService.export(format, products, columns, '商品列表');
+    const result = this.exportService.export(
+      format,
+      products,
+      columns,
+      '商品列表',
+    );
 
     const filename = `products_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -151,7 +161,12 @@ export class ExportController {
       { key: 'createdAt', header: '创建时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, suppliers, columns, '供应商列表');
+    const result = this.exportService.export(
+      format,
+      suppliers,
+      columns,
+      '供应商列表',
+    );
 
     const filename = `suppliers_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -184,7 +199,10 @@ export class ExportController {
         customerName: schema.customers.name,
       })
       .from(schema.salesOrders)
-      .leftJoin(schema.customers, eq(schema.salesOrders.customerId, schema.customers.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.salesOrders.customerId, schema.customers.id),
+      )
       .where(conditions);
 
     const data = orders.map(({ order, customerName }) => ({
@@ -220,7 +238,10 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    let conditions = eq(schema.purchaseOrders.enterpriseId, req.user.enterpriseId);
+    let conditions = eq(
+      schema.purchaseOrders.enterpriseId,
+      req.user.enterpriseId,
+    );
 
     if (startDate && endDate) {
       conditions = and(
@@ -236,7 +257,10 @@ export class ExportController {
         supplierName: schema.suppliers.name,
       })
       .from(schema.purchaseOrders)
-      .leftJoin(schema.suppliers, eq(schema.purchaseOrders.supplierId, schema.suppliers.id))
+      .leftJoin(
+        schema.suppliers,
+        eq(schema.purchaseOrders.supplierId, schema.suppliers.id),
+      )
       .where(conditions);
 
     const data = orders.map(({ order, supplierName }) => ({
@@ -281,7 +305,10 @@ export class ExportController {
       ) as any;
     }
 
-    const invoices = await this.db.select().from(schema.invoices).where(conditions);
+    const invoices = await this.db
+      .select()
+      .from(schema.invoices)
+      .where(conditions);
 
     const columns = [
       { key: 'invoiceNo', header: '发票号码', width: 20 },
@@ -297,7 +324,12 @@ export class ExportController {
       { key: 'createdAt', header: '录入时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, invoices, columns, '发票列表');
+    const result = this.exportService.export(
+      format,
+      invoices,
+      columns,
+      '发票列表',
+    );
 
     const filename = `invoices_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -314,7 +346,10 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    let conditions = eq(schema.stocktakingOrders.enterpriseId, req.user.enterpriseId);
+    let conditions = eq(
+      schema.stocktakingOrders.enterpriseId,
+      req.user.enterpriseId,
+    );
 
     if (startDate && endDate) {
       conditions = and(
@@ -324,7 +359,10 @@ export class ExportController {
       ) as any;
     }
 
-    const orders = await this.db.select().from(schema.stocktakingOrders).where(conditions);
+    const orders = await this.db
+      .select()
+      .from(schema.stocktakingOrders)
+      .where(conditions);
 
     const data = orders.map((order) => ({
       ...order,
@@ -378,7 +416,12 @@ export class ExportController {
       { key: 'createdAt', header: '创建时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, levels, columns, '会员等级');
+    const result = this.exportService.export(
+      format,
+      levels,
+      columns,
+      '会员等级',
+    );
 
     const filename = `member_levels_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -413,7 +456,12 @@ export class ExportController {
       { key: 'createdAt', header: '创建时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, categories, columns, '客户分类');
+    const result = this.exportService.export(
+      format,
+      categories,
+      columns,
+      '客户分类',
+    );
 
     const filename = `customer_categories_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -438,7 +486,10 @@ export class ExportController {
         },
       })
       .from(schema.employeeProfiles)
-      .innerJoin(schema.users, eq(schema.employeeProfiles.userId, schema.users.id))
+      .innerJoin(
+        schema.users,
+        eq(schema.employeeProfiles.userId, schema.users.id),
+      )
       .where(eq(schema.employeeProfiles.enterpriseId, req.user.enterpriseId))
       .orderBy(schema.employeeProfiles.createdAt);
 
@@ -483,7 +534,10 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    let conditions = eq(schema.voucherEntries.enterpriseId, req.user.enterpriseId);
+    let conditions = eq(
+      schema.voucherEntries.enterpriseId,
+      req.user.enterpriseId,
+    );
 
     if (startDate && endDate) {
       conditions = and(
@@ -493,7 +547,10 @@ export class ExportController {
       ) as any;
     }
 
-    const vouchers = await this.db.select().from(schema.voucherEntries).where(conditions);
+    const vouchers = await this.db
+      .select()
+      .from(schema.voucherEntries)
+      .where(conditions);
 
     const columns = [
       { key: 'voucherNo', header: '凭证号', width: 20 },
@@ -506,7 +563,12 @@ export class ExportController {
       { key: 'createdAt', header: '创建时间', width: 20 },
     ];
 
-    const result = this.exportService.export(format, vouchers, columns, '凭证列表');
+    const result = this.exportService.export(
+      format,
+      vouchers,
+      columns,
+      '凭证列表',
+    );
 
     const filename = `vouchers_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -575,12 +637,7 @@ export class ExportController {
       { key: 'createdAt', header: '时间', width: 24 },
     ];
 
-    const result = this.exportService.export(
-      format,
-      data,
-      columns,
-      '操作审计',
-    );
+    const result = this.exportService.export(format, data, columns, '操作审计');
 
     const filename = `audit_logs_${Date.now()}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
@@ -634,10 +691,7 @@ export class ExportController {
       const buf = this.exportService.exportExcelWorkbook(
         balanceSheetExcelWorkbook(report),
       );
-      res.setHeader(
-        'Content-Type',
-        this.exportService.getMimeType('excel'),
-      );
+      res.setHeader('Content-Type', this.exportService.getMimeType('excel'));
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="finance_balance_sheet_${ts}.xlsx"`,
@@ -785,14 +839,15 @@ export class ExportController {
     @Res() res: Response,
     @Query('format') format: ExportFormat = 'excel',
   ) {
-    const report = await this.financeService.getArAp(enterpriseIdFromRequest(req));
+    const report = await this.financeService.getArAp(
+      enterpriseIdFromRequest(req),
+    );
     const ts = Date.now();
     if (format === 'excel') {
-      const buf = this.exportService.exportExcelWorkbook(arApExcelWorkbook(report));
-      res.setHeader(
-        'Content-Type',
-        this.exportService.getMimeType('excel'),
+      const buf = this.exportService.exportExcelWorkbook(
+        arApExcelWorkbook(report),
       );
+      res.setHeader('Content-Type', this.exportService.getMimeType('excel'));
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="finance_ar_ap_${ts}.xlsx"`,
@@ -801,7 +856,12 @@ export class ExportController {
       return;
     }
     const rows = arApCsvRows(report);
-    const result = this.exportService.export(format, rows, arApCsvColumns, '应收应付');
+    const result = this.exportService.export(
+      format,
+      rows,
+      arApCsvColumns,
+      '应收应付',
+    );
     const filename = `finance_ar_ap_${ts}.${this.exportService.getFileExtension(format)}`;
     res.setHeader('Content-Type', this.exportService.getMimeType(format));
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -823,7 +883,7 @@ export class ExportController {
     );
 
     if (status) {
-      conditions = and(conditions, eq(schema.opportunities.status, status)) as any;
+      conditions = and(conditions, eq(schema.opportunities.status, status));
     }
 
     const opportunities = await this.db
@@ -832,7 +892,10 @@ export class ExportController {
         customerName: schema.customers.name,
       })
       .from(schema.opportunities)
-      .leftJoin(schema.customers, eq(schema.opportunities.customerId, schema.customers.id))
+      .leftJoin(
+        schema.customers,
+        eq(schema.opportunities.customerId, schema.customers.id),
+      )
       .where(conditions);
 
     // 如果有搜索条件，在前端过滤

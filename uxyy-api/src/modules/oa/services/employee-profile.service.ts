@@ -18,11 +18,12 @@ import type {
 
 @Injectable()
 export class EmployeeProfileService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
-  async assertUserInEnterprise(enterpriseId: number, userId: number): Promise<void> {
+  async assertUserInEnterprise(
+    enterpriseId: number,
+    userId: number,
+  ): Promise<void> {
     const [member] = await this.db
       .select({ id: schema.userEnterprises.id })
       .from(schema.userEnterprises)
@@ -34,7 +35,9 @@ export class EmployeeProfileService {
       )
       .limit(1);
     if (!member) {
-      throw new BadRequestException('所选用户不在本企业中，请先邀请其加入当前企业后再建档');
+      throw new BadRequestException(
+        '所选用户不在本企业中，请先邀请其加入当前企业后再建档',
+      );
     }
   }
 
@@ -68,10 +71,16 @@ export class EmployeeProfileService {
   }
 
   async findAll(enterpriseId: number, query: EmployeeProfileQueryDto) {
-    let conditions = eq(schema.employeeProfiles.enterpriseId, enterpriseId) as any;
+    let conditions = eq(
+      schema.employeeProfiles.enterpriseId,
+      enterpriseId,
+    ) as any;
 
     if (query.department) {
-      conditions = and(conditions, eq(schema.employeeProfiles.department, query.department));
+      conditions = and(
+        conditions,
+        eq(schema.employeeProfiles.department, query.department),
+      );
     }
 
     const profiles = await this.db
@@ -85,7 +94,10 @@ export class EmployeeProfileService {
         },
       })
       .from(schema.employeeProfiles)
-      .innerJoin(schema.users, eq(schema.employeeProfiles.userId, schema.users.id))
+      .innerJoin(
+        schema.users,
+        eq(schema.employeeProfiles.userId, schema.users.id),
+      )
       .where(conditions);
 
     // 关键词搜索
@@ -96,7 +108,7 @@ export class EmployeeProfileService {
           (p.user.nickname?.toLowerCase().includes(keyword) ?? false) ||
           (p.user.phone?.includes(keyword) ?? false) ||
           (p.profile.department?.toLowerCase().includes(keyword) ?? false) ||
-          (p.profile.position?.toLowerCase().includes(keyword) ?? false)
+          (p.profile.position?.toLowerCase().includes(keyword) ?? false),
       );
     }
 
@@ -114,7 +126,10 @@ export class EmployeeProfileService {
         profileId: schema.employeeProfiles.id,
       })
       .from(schema.userEnterprises)
-      .innerJoin(schema.users, eq(schema.users.id, schema.userEnterprises.userId))
+      .innerJoin(
+        schema.users,
+        eq(schema.users.id, schema.userEnterprises.userId),
+      )
       .leftJoin(
         schema.employeeProfiles,
         and(
@@ -146,8 +161,16 @@ export class EmployeeProfileService {
         },
       })
       .from(schema.employeeProfiles)
-      .innerJoin(schema.users, eq(schema.employeeProfiles.userId, schema.users.id))
-      .where(and(eq(schema.employeeProfiles.id, id), eq(schema.employeeProfiles.enterpriseId, enterpriseId)));
+      .innerJoin(
+        schema.users,
+        eq(schema.employeeProfiles.userId, schema.users.id),
+      )
+      .where(
+        and(
+          eq(schema.employeeProfiles.id, id),
+          eq(schema.employeeProfiles.enterpriseId, enterpriseId),
+        ),
+      );
 
     if (!result) throw new NotFoundException('员工档案不存在');
     return result;
@@ -165,18 +188,25 @@ export class EmployeeProfileService {
         },
       })
       .from(schema.employeeProfiles)
-      .innerJoin(schema.users, eq(schema.employeeProfiles.userId, schema.users.id))
+      .innerJoin(
+        schema.users,
+        eq(schema.employeeProfiles.userId, schema.users.id),
+      )
       .where(
         and(
           eq(schema.employeeProfiles.userId, userId),
-          eq(schema.employeeProfiles.enterpriseId, enterpriseId)
-        )
+          eq(schema.employeeProfiles.enterpriseId, enterpriseId),
+        ),
       );
 
     return result;
   }
 
-  async update(id: number, enterpriseId: number, dto: UpdateEmployeeProfileDto) {
+  async update(
+    id: number,
+    enterpriseId: number,
+    dto: UpdateEmployeeProfileDto,
+  ) {
     await this.findById(id, enterpriseId);
 
     const [updated] = await this.db
@@ -190,7 +220,12 @@ export class EmployeeProfileService {
         ...(dto.joinDate !== undefined && { joinDate: dto.joinDate }),
         updatedAt: new Date(),
       })
-      .where(and(eq(schema.employeeProfiles.id, id), eq(schema.employeeProfiles.enterpriseId, enterpriseId)))
+      .where(
+        and(
+          eq(schema.employeeProfiles.id, id),
+          eq(schema.employeeProfiles.enterpriseId, enterpriseId),
+        ),
+      )
       .returning();
 
     return updated;
@@ -201,7 +236,12 @@ export class EmployeeProfileService {
 
     await this.db
       .delete(schema.employeeProfiles)
-      .where(and(eq(schema.employeeProfiles.id, id), eq(schema.employeeProfiles.enterpriseId, enterpriseId)));
+      .where(
+        and(
+          eq(schema.employeeProfiles.id, id),
+          eq(schema.employeeProfiles.enterpriseId, enterpriseId),
+        ),
+      );
 
     return { success: true };
   }
@@ -213,7 +253,9 @@ export class EmployeeProfileService {
       .from(schema.employeeProfiles)
       .where(eq(schema.employeeProfiles.enterpriseId, enterpriseId));
 
-    return results.map((r) => r.department).filter((d): d is string => d !== null && d !== undefined);
+    return results
+      .map((r) => r.department)
+      .filter((d): d is string => d !== null && d !== undefined);
   }
 
   // Import employee profiles from spreadsheet
@@ -280,7 +322,10 @@ export class EmployeeProfileService {
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;

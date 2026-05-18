@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, and, sql } from 'drizzle-orm';
 import { DRIZZLE_DB } from '../../database/database.constants';
 import type { AppDrizzleDb } from '../../database/database.module';
@@ -34,14 +40,16 @@ function requireEnterpriseId(enterpriseId: number | undefined): number {
 
 @Injectable()
 export class WarehouseService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 创建仓库
    */
-  async create(enterpriseId: number | undefined, dto: CreateWarehouseDto, userId: number) {
+  async create(
+    enterpriseId: number | undefined,
+    dto: CreateWarehouseDto,
+    userId: number,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
     // 检查是否已存在同名仓库
     const [existing] = await this.db
@@ -100,10 +108,7 @@ export class WarehouseService {
         manager: schema.users,
       })
       .from(schema.warehouses)
-      .leftJoin(
-        schema.users,
-        eq(schema.warehouses.managerId, schema.users.id),
-      )
+      .leftJoin(schema.users, eq(schema.warehouses.managerId, schema.users.id))
       .where(and(...conditions))
       .orderBy(schema.warehouses.createdAt);
 
@@ -145,10 +150,7 @@ export class WarehouseService {
         manager: schema.users,
       })
       .from(schema.warehouses)
-      .leftJoin(
-        schema.users,
-        eq(schema.warehouses.managerId, schema.users.id),
-      )
+      .leftJoin(schema.users, eq(schema.warehouses.managerId, schema.users.id))
       .where(
         and(
           eq(schema.warehouses.id, id),
@@ -208,7 +210,11 @@ export class WarehouseService {
   /**
    * 更新仓库
    */
-  async update(id: number, enterpriseId: number | undefined, dto: UpdateWarehouseDto) {
+  async update(
+    id: number,
+    enterpriseId: number | undefined,
+    dto: UpdateWarehouseDto,
+  ) {
     const eid = requireEnterpriseId(enterpriseId);
     const [existing] = await this.db
       .select()
@@ -339,7 +345,7 @@ export class WarehouseService {
       );
 
     // 标记库存状态
-    return summary.map(item => {
+    return summary.map((item) => {
       const qty = parseFloat(item.quantity);
       const minStock = parseFloat(item.minStock || '0');
       const maxStock = parseFloat(item.maxStock || '0');

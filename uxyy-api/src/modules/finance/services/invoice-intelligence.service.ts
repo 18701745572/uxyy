@@ -50,7 +50,20 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '办公费',
       accountCode: '660201',
-      keywords: ['办公', '文具', '打印纸', '墨盒', '硒鼓', '笔', '笔记本', '文件夹', '档案袋', '订书机', '计算器', '白板'],
+      keywords: [
+        '办公',
+        '文具',
+        '打印纸',
+        '墨盒',
+        '硒鼓',
+        '笔',
+        '笔记本',
+        '文件夹',
+        '档案袋',
+        '订书机',
+        '计算器',
+        '白板',
+      ],
       maxAmount: 5000,
       priority: 100,
     },
@@ -58,7 +71,20 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '邮电费',
       accountCode: '660202',
-      keywords: ['快递', '顺丰', '中通', '圆通', '韵达', 'EMS', '邮政', '信封', '邮票', '话费', '宽带', '网络费'],
+      keywords: [
+        '快递',
+        '顺丰',
+        '中通',
+        '圆通',
+        '韵达',
+        'EMS',
+        '邮政',
+        '信封',
+        '邮票',
+        '话费',
+        '宽带',
+        '网络费',
+      ],
       priority: 100,
     },
 
@@ -67,14 +93,37 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '差旅费-交通',
       accountCode: '66020301',
-      keywords: ['机票', '火车票', '高铁', '动车', '汽车票', '出租车', '滴滴', '地铁', '公交', '加油', '高速费', '停车费'],
+      keywords: [
+        '机票',
+        '火车票',
+        '高铁',
+        '动车',
+        '汽车票',
+        '出租车',
+        '滴滴',
+        '地铁',
+        '公交',
+        '加油',
+        '高速费',
+        '停车费',
+      ],
       priority: 90,
     },
     {
       category: '管理费用',
       subCategory: '差旅费-住宿',
       accountCode: '66020302',
-      keywords: ['酒店', '宾馆', '旅馆', '住宿', '客房', '如家', '汉庭', '全季', '亚朵'],
+      keywords: [
+        '酒店',
+        '宾馆',
+        '旅馆',
+        '住宿',
+        '客房',
+        '如家',
+        '汉庭',
+        '全季',
+        '亚朵',
+      ],
       priority: 90,
     },
     {
@@ -90,7 +139,21 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '业务招待费',
       accountCode: '660204',
-      keywords: ['餐饮', '餐厅', '饭店', '酒楼', '茶馆', '咖啡厅', 'KTV', '娱乐', '礼品', '烟酒', '海参', '燕窝', '茶叶'],
+      keywords: [
+        '餐饮',
+        '餐厅',
+        '饭店',
+        '酒楼',
+        '茶馆',
+        '咖啡厅',
+        'KTV',
+        '娱乐',
+        '礼品',
+        '烟酒',
+        '海参',
+        '燕窝',
+        '茶叶',
+      ],
       negativeKeywords: ['员工', '食堂', '加班', '工作餐'],
       priority: 95,
     },
@@ -100,7 +163,15 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '车辆费-油费',
       accountCode: '66020501',
-      keywords: ['汽油', '柴油', '加油', '油卡', '中国石化', '中国石油', '壳牌'],
+      keywords: [
+        '汽油',
+        '柴油',
+        '加油',
+        '油卡',
+        '中国石化',
+        '中国石油',
+        '壳牌',
+      ],
       priority: 90,
     },
     {
@@ -123,14 +194,35 @@ export class InvoiceIntelligenceService {
       category: '销售费用',
       subCategory: '广告费',
       accountCode: '660101',
-      keywords: ['广告', '推广', '宣传', ' billboard', '百度推广', '腾讯广告', '字节跳动', '抖音', '微信广告'],
+      keywords: [
+        '广告',
+        '推广',
+        '宣传',
+        ' billboard',
+        '百度推广',
+        '腾讯广告',
+        '字节跳动',
+        '抖音',
+        '微信广告',
+      ],
       priority: 90,
     },
     {
       category: '销售费用',
       subCategory: '业务宣传费',
       accountCode: '660102',
-      keywords: ['印刷', '画册', '宣传册', '易拉宝', '展架', '名片', '传单', '海报', '展会', '展台'],
+      keywords: [
+        '印刷',
+        '画册',
+        '宣传册',
+        '易拉宝',
+        '展架',
+        '名片',
+        '传单',
+        '海报',
+        '展会',
+        '展台',
+      ],
       priority: 85,
     },
 
@@ -139,7 +231,19 @@ export class InvoiceIntelligenceService {
       category: '管理费用',
       subCategory: '咨询费',
       accountCode: '660206',
-      keywords: ['咨询', '审计', '法律', '律师', '会计', '税务', '评估', '认证', 'ISO', '培训', '顾问'],
+      keywords: [
+        '咨询',
+        '审计',
+        '法律',
+        '律师',
+        '会计',
+        '税务',
+        '评估',
+        '认证',
+        'ISO',
+        '培训',
+        '顾问',
+      ],
       minAmount: 1000,
       priority: 80,
     },
@@ -184,7 +288,19 @@ export class InvoiceIntelligenceService {
       category: '固定资产',
       subCategory: '电子设备',
       accountCode: '1601',
-      keywords: ['电脑', '笔记本', '台式机', '服务器', '打印机', '复印机', '投影仪', '空调', '电视', '手机', '平板'],
+      keywords: [
+        '电脑',
+        '笔记本',
+        '台式机',
+        '服务器',
+        '打印机',
+        '复印机',
+        '投影仪',
+        '空调',
+        '电视',
+        '手机',
+        '平板',
+      ],
       minAmount: 5000,
       priority: 110,
     },
@@ -192,7 +308,15 @@ export class InvoiceIntelligenceService {
       category: '固定资产',
       subCategory: '办公家具',
       accountCode: '1602',
-      keywords: ['办公桌', '办公椅', '文件柜', '沙发', '茶几', '会议桌', '书柜'],
+      keywords: [
+        '办公桌',
+        '办公椅',
+        '文件柜',
+        '沙发',
+        '茶几',
+        '会议桌',
+        '书柜',
+      ],
       minAmount: 5000,
       priority: 110,
     },
@@ -210,7 +334,17 @@ export class InvoiceIntelligenceService {
       category: '应付职工薪酬',
       subCategory: '职工福利',
       accountCode: '221101',
-      keywords: ['员工', '职工', '食堂', '餐费', '体检', '团建', '旅游', '节日', '福利'],
+      keywords: [
+        '员工',
+        '职工',
+        '食堂',
+        '餐费',
+        '体检',
+        '团建',
+        '旅游',
+        '节日',
+        '福利',
+      ],
       priority: 85,
     },
 
@@ -219,7 +353,15 @@ export class InvoiceIntelligenceService {
       category: '应付职工薪酬',
       subCategory: '社会保险',
       accountCode: '221102',
-      keywords: ['社保', '养老保险', '医疗保险', '失业保险', '工伤保险', '生育保险', '五险一金'],
+      keywords: [
+        '社保',
+        '养老保险',
+        '医疗保险',
+        '失业保险',
+        '工伤保险',
+        '生育保险',
+        '五险一金',
+      ],
       priority: 100,
     },
     {
@@ -242,14 +384,31 @@ export class InvoiceIntelligenceService {
 
   // 招待费敏感词（用于风险提示）
   private readonly entertainmentKeywords = [
-    '酒楼', '会所', 'KTV', '酒吧', '夜总会', '桑拿', '按摩', '高尔夫', '游艇', '高档',
-    '豪华', '顶级', '名贵', '奢侈品', '香奈儿', '爱马仕', 'LV', '茅台', '五粮液',
-    '中华烟', '和天下', '天叶',
+    '酒楼',
+    '会所',
+    'KTV',
+    '酒吧',
+    '夜总会',
+    '桑拿',
+    '按摩',
+    '高尔夫',
+    '游艇',
+    '高档',
+    '豪华',
+    '顶级',
+    '名贵',
+    '奢侈品',
+    '香奈儿',
+    '爱马仕',
+    'LV',
+    '茅台',
+    '五粮液',
+    '中华烟',
+    '和天下',
+    '天叶',
   ];
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 智能分类发票
@@ -278,7 +437,7 @@ export class InvoiceIntelligenceService {
     const ocrData = invoice.ocrData as any;
     const items = ocrData?.items || [];
     const itemNames = items.map((item: any) => item.name || '').join(' ');
-    
+
     // 分类输入数据
     const inputData = {
       sellerName: invoice.sellerName || '',
@@ -302,7 +461,9 @@ export class InvoiceIntelligenceService {
       expenseType,
       isEntertainment: this.isEntertainmentExpense(expenseType, inputData),
       isFixedAsset: expenseType.category === '固定资产',
-      isOfficeExpense: expenseType.category === '管理费用' && expenseType.subCategory === '办公费',
+      isOfficeExpense:
+        expenseType.category === '管理费用' &&
+        expenseType.subCategory === '办公费',
       warnings,
       suggestions,
     };
@@ -333,7 +494,7 @@ export class InvoiceIntelligenceService {
 
       // 检查排除关键词
       if (rule.negativeKeywords) {
-        const hasNegative = rule.negativeKeywords.some(kw =>
+        const hasNegative = rule.negativeKeywords.some((kw) =>
           textToAnalyze.includes(kw.toLowerCase()),
         );
         if (hasNegative) continue;
@@ -359,7 +520,10 @@ export class InvoiceIntelligenceService {
 
     if (matches.length > 0) {
       const bestMatch = matches[0];
-      const confidence = Math.min(0.95, 0.5 + bestMatch.matchedKeywords.length * 0.15);
+      const confidence = Math.min(
+        0.95,
+        0.5 + bestMatch.matchedKeywords.length * 0.15,
+      );
 
       return {
         category: bestMatch.rule.category,
@@ -388,7 +552,12 @@ export class InvoiceIntelligenceService {
    * 分析风险
    */
   private analyzeRisks(
-    data: { sellerName: string; itemNames: string; amount: number; totalAmount: number },
+    data: {
+      sellerName: string;
+      itemNames: string;
+      amount: number;
+      totalAmount: number;
+    },
     classification: ExpenseClassification,
   ): string[] {
     const warnings: string[] = [];
@@ -396,14 +565,18 @@ export class InvoiceIntelligenceService {
 
     // 招待费风险
     if (classification.subCategory === '业务招待费') {
-      warnings.push('业务招待费税前扣除有限制（60%且不超过营收0.5%），请注意限额');
+      warnings.push(
+        '业务招待费税前扣除有限制（60%且不超过营收0.5%），请注意限额',
+      );
 
       // 检查敏感词
-      const sensitiveWords = this.entertainmentKeywords.filter(kw =>
+      const sensitiveWords = this.entertainmentKeywords.filter((kw) =>
         textToAnalyze.includes(kw.toLowerCase()),
       );
       if (sensitiveWords.length > 0) {
-        warnings.push(`发票包含敏感词: ${sensitiveWords.join(', ')}，税务稽查风险较高`);
+        warnings.push(
+          `发票包含敏感词: ${sensitiveWords.join(', ')}，税务稽查风险较高`,
+        );
       }
     }
 
@@ -419,7 +592,9 @@ export class InvoiceIntelligenceService {
 
     // 固定资产判定
     if (data.amount >= 5000 && classification.category !== '固定资产') {
-      warnings.push(`金额${data.amount}元达到固定资产标准，建议核实是否应计入固定资产`);
+      warnings.push(
+        `金额${data.amount}元达到固定资产标准，建议核实是否应计入固定资产`,
+      );
     }
 
     return warnings;
@@ -435,16 +610,27 @@ export class InvoiceIntelligenceService {
     const suggestions: string[] = [];
 
     if (classification.category === '固定资产') {
-      suggestions.push('固定资产需按月计提折旧，预计使用年限请根据资产类型确定');
-      suggestions.push('建议建立固定资产台账，记录资产编号、存放位置、使用人等信息');
+      suggestions.push(
+        '固定资产需按月计提折旧，预计使用年限请根据资产类型确定',
+      );
+      suggestions.push(
+        '建议建立固定资产台账，记录资产编号、存放位置、使用人等信息',
+      );
     }
 
     if (classification.subCategory === '业务招待费') {
-      suggestions.push('业务招待费请保留招待事由、招待对象、参与人员等信息备查');
-      suggestions.push('建议严格控制业务招待费支出，优先考虑会议费、宣传费等替代方案');
+      suggestions.push(
+        '业务招待费请保留招待事由、招待对象、参与人员等信息备查',
+      );
+      suggestions.push(
+        '建议严格控制业务招待费支出，优先考虑会议费、宣传费等替代方案',
+      );
     }
 
-    if (classification.category === '管理费用' && classification.subCategory.includes('差旅')) {
+    if (
+      classification.category === '管理费用' &&
+      classification.subCategory.includes('差旅')
+    ) {
       suggestions.push('差旅费报销需附出差申请、行程单等相关证明材料');
     }
 
@@ -453,7 +639,9 @@ export class InvoiceIntelligenceService {
     }
 
     // 科目建议
-    suggestions.push(`建议计入科目：${classification.accountName}(${classification.accountCode})`);
+    suggestions.push(
+      `建议计入科目：${classification.accountName}(${classification.accountCode})`,
+    );
 
     return suggestions;
   }
@@ -470,7 +658,9 @@ export class InvoiceIntelligenceService {
     }
 
     const text = `${data.sellerName} ${data.itemNames}`.toLowerCase();
-    return this.entertainmentKeywords.some(kw => text.includes(kw.toLowerCase()));
+    return this.entertainmentKeywords.some((kw) =>
+      text.includes(kw.toLowerCase()),
+    );
   }
 
   /**
@@ -535,12 +725,14 @@ export class InvoiceIntelligenceService {
     enterpriseId: number,
     startDate: Date,
     endDate: Date,
-  ): Promise<{
-    category: string;
-    subCategory: string;
-    count: number;
-    totalAmount: number;
-  }[]> {
+  ): Promise<
+    {
+      category: string;
+      subCategory: string;
+      count: number;
+      totalAmount: number;
+    }[]
+  > {
     // 这里应该查询已分类的发票数据
     // 简化实现，返回空数组
     return [];

@@ -73,7 +73,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
     enabled: !!formData.customerId,
   });
 
-  const filteredOrders = ordersData?.list.filter(
+  const filteredOrders = ordersData?.list?.filter(
     (o) => !formData.customerId || o.customerId === formData.customerId,
   );
 
@@ -124,7 +124,7 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
           }
         >
           <option value="">请选择客户</option>
-          {customersData?.items.map((c) => (
+          {customersData?.items?.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>

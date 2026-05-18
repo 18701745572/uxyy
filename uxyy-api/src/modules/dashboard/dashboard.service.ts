@@ -6,17 +6,23 @@ import type { AppDrizzleDb } from '../database/database.module';
 
 @Injectable()
 export class DashboardService {
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 获取经营概览数据
    */
   async getOverview(enterpriseId: number) {
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1,
+    );
 
     // 今日销售额（已完成的销售订单）
     const todaySalesResult = await this.db
@@ -80,11 +86,7 @@ export class DashboardService {
         count: sql<number>`COUNT(*)`,
       })
       .from(schema.approvalRecords)
-      .where(
-        and(
-          eq(schema.approvalRecords.status, 'pending'),
-        ),
-      );
+      .where(and(eq(schema.approvalRecords.status, 'pending')));
 
     // 待跟进客户数量（最近7天需要跟进的记录）
     const sevenDaysLater = new Date();

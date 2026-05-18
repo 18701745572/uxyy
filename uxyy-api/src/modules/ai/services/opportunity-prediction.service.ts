@@ -28,14 +28,15 @@ export interface PredictionFactor {
 export class OpportunityPredictionService {
   private readonly logger = new Logger(OpportunityPredictionService.name);
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 预测单个商机成单概率
    */
-  async predictOpportunity(opportunityId: number, enterpriseId: number): Promise<OpportunityPrediction> {
+  async predictOpportunity(
+    opportunityId: number,
+    enterpriseId: number,
+  ): Promise<OpportunityPrediction> {
     // 获取商机信息
     const [opportunity] = await this.db
       .select({
@@ -63,20 +64,20 @@ export class OpportunityPredictionService {
 
     // 1. 阶段因子 (使用 status 字段作为 stage)
     const stageWeights: Record<string, number> = {
-      'potential': 10,
-      'intention': 25,
-      'quotation': 45,
-      'deal': 70,
-      'after_sales': 100,
-      'lost': 0,
+      potential: 10,
+      intention: 25,
+      quotation: 45,
+      deal: 70,
+      after_sales: 100,
+      lost: 0,
     };
     const stageNames: Record<string, string> = {
-      'potential': '初步接触',
-      'intention': '需求确认',
-      'quotation': '方案报价',
-      'deal': '谈判阶段',
-      'after_sales': '赢单',
-      'lost': '输单',
+      potential: '初步接触',
+      intention: '需求确认',
+      quotation: '方案报价',
+      deal: '谈判阶段',
+      after_sales: '赢单',
+      lost: '输单',
     };
     const stage = opportunity.opportunity.status || 'potential';
     const stageWeight = stageWeights[stage] || 20;
@@ -93,7 +94,10 @@ export class OpportunityPredictionService {
       .from(schema.followUpRecords)
       .where(
         and(
-          eq(schema.followUpRecords.customerId, opportunity.opportunity.customerId),
+          eq(
+            schema.followUpRecords.customerId,
+            opportunity.opportunity.customerId,
+          ),
           eq(schema.followUpRecords.enterpriseId, enterpriseId),
         ),
       )
@@ -101,7 +105,10 @@ export class OpportunityPredictionService {
       .limit(10);
 
     const daysSinceLastFollowUp = recentFollowUps[0]
-      ? Math.floor((Date.now() - new Date(recentFollowUps[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (Date.now() - new Date(recentFollowUps[0].createdAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
       : null;
 
     if (daysSinceLastFollowUp !== null) {
@@ -142,7 +149,10 @@ export class OpportunityPredictionService {
 
     // 3. 历史成交因子
     const customerOrders = await this.db
-      .select({ count: sql<number>`COUNT(*)`, total: sql<string>`COALESCE(SUM(${schema.salesOrders.totalAmount}), '0')` })
+      .select({
+        count: sql<number>`COUNT(*)`,
+        total: sql<string>`COALESCE(SUM(${schema.salesOrders.totalAmount}), '0')`,
+      })
       .from(schema.salesOrders)
       .where(
         and(
@@ -172,7 +182,9 @@ export class OpportunityPredictionService {
     // 4. 预计成交时间因子 (使用 expectedCloseAt 字段)
     if (opportunity.opportunity.expectedCloseAt) {
       const daysToClose = Math.floor(
-        (new Date(opportunity.opportunity.expectedCloseAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        (new Date(opportunity.opportunity.expectedCloseAt).getTime() -
+          Date.now()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysToClose < 0) {
@@ -210,7 +222,11 @@ export class OpportunityPredictionService {
     }
 
     // 5. 报价因子 (根据状态判断)
-    if (opportunity.opportunity.status === 'quotation' || opportunity.opportunity.status === 'deal' || opportunity.opportunity.status === 'after_sales') {
+    if (
+      opportunity.opportunity.status === 'quotation' ||
+      opportunity.opportunity.status === 'deal' ||
+      opportunity.opportunity.status === 'after_sales'
+    ) {
       factors.push({
         name: '报价状态',
         impact: 'positive',
@@ -229,7 +245,11 @@ export class OpportunityPredictionService {
     else if (winProbability > 70) riskLevel = 'low';
 
     // 生成建议
-    const recommendedActions = this.generateRecommendations(factors, winProbability, daysSinceLastFollowUp);
+    const recommendedActions = this.generateRecommendations(
+      factors,
+      winProbability,
+      daysSinceLastFollowUp,
+    );
 
     return {
       opportunityId,
@@ -238,7 +258,9 @@ export class OpportunityPredictionService {
       currentStage: opportunity.opportunity.status || 'potential',
       estimatedAmount: opportunity.opportunity.estimatedAmount || '0',
       winProbability,
-      expectedCloseDate: opportunity.opportunity.expectedCloseAt?.toISOString().split('T')[0] || '',
+      expectedCloseDate:
+        opportunity.opportunity.expectedCloseAt?.toISOString().split('T')[0] ||
+        '',
       predictionFactors: factors,
       recommendedActions,
       riskLevel,
@@ -285,11 +307,19 @@ export class OpportunityPredictionService {
     const funnel = [];
 
     for (const stage of stages) {
-      const opportunities = await this.batchPredictOpportunities(enterpriseId, stage);
-      const totalAmount = opportunities.reduce((sum, o) => sum + parseFloat(o.estimatedAmount || '0'), 0);
-      const avgProbability = opportunities.length > 0
-        ? opportunities.reduce((sum, o) => sum + o.winProbability, 0) / opportunities.length
-        : 0;
+      const opportunities = await this.batchPredictOpportunities(
+        enterpriseId,
+        stage,
+      );
+      const totalAmount = opportunities.reduce(
+        (sum, o) => sum + parseFloat(o.estimatedAmount || '0'),
+        0,
+      );
+      const avgProbability =
+        opportunities.length > 0
+          ? opportunities.reduce((sum, o) => sum + o.winProbability, 0) /
+            opportunities.length
+          : 0;
       const weightedAmount = totalAmount * (avgProbability / 100);
 
       funnel.push({
@@ -328,19 +358,27 @@ export class OpportunityPredictionService {
     }
 
     // 基于因子的建议
-    const hasFollowUpIssue = factors.find(f => f.name === '跟进频率' && f.impact === 'negative');
+    const hasFollowUpIssue = factors.find(
+      (f) => f.name === '跟进频率' && f.impact === 'negative',
+    );
     if (hasFollowUpIssue) {
-      recommendations.push(`📞 ${hasFollowUpIssue.description}，建议24小时内联系客户`);
+      recommendations.push(
+        `📞 ${hasFollowUpIssue.description}，建议24小时内联系客户`,
+      );
     }
 
-    const isNewCustomer = factors.find(f => f.name === '客户类型');
+    const isNewCustomer = factors.find((f) => f.name === '客户类型');
     if (isNewCustomer) {
       recommendations.push('🤝 新客户需重点建立信任，可提供案例参考或试用机会');
     }
 
-    const hasTimeIssue = factors.find(f => f.name === '成交时效' && f.impact === 'negative');
+    const hasTimeIssue = factors.find(
+      (f) => f.name === '成交时效' && f.impact === 'negative',
+    );
     if (hasTimeIssue) {
-      recommendations.push('⏰ 已超过预计成交时间，建议了解客户延迟原因，调整方案或时间预期');
+      recommendations.push(
+        '⏰ 已超过预计成交时间，建议了解客户延迟原因，调整方案或时间预期',
+      );
     }
 
     return recommendations;

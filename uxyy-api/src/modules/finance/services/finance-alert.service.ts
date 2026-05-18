@@ -103,9 +103,7 @@ export class FinanceAlertService {
     },
   ];
 
-  constructor(
-    @Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb,
-  ) {}
+  constructor(@Inject(DRIZZLE_DB) private readonly db: AppDrizzleDb) {}
 
   /**
    * 初始化企业预警配置
@@ -173,7 +171,10 @@ export class FinanceAlertService {
         account: schema.accounts,
       })
       .from(schema.voucherItems)
-      .leftJoin(schema.accounts, eq(schema.voucherItems.accountId, schema.accounts.id))
+      .leftJoin(
+        schema.accounts,
+        eq(schema.voucherItems.accountId, schema.accounts.id),
+      )
       .where(eq(schema.voucherItems.voucherId, voucherId));
 
     const totalDebit = items.reduce(
@@ -198,7 +199,10 @@ export class FinanceAlertService {
 
     // 2. 检测大额交易
     const maxAmount = Math.max(totalDebit, totalCredit);
-    const largeAmountConfig = await this.getAlertConfig(enterpriseId, 'large_amount');
+    const largeAmountConfig = await this.getAlertConfig(
+      enterpriseId,
+      'large_amount',
+    );
     if (largeAmountConfig?.isEnabled && largeAmountConfig.thresholdValue) {
       const threshold = parseFloat(largeAmountConfig.thresholdValue);
       if (maxAmount >= threshold) {
@@ -213,7 +217,11 @@ export class FinanceAlertService {
     }
 
     // 3. 检测重复凭证
-    const duplicateAlert = await this.checkDuplicateVoucher(voucher, items, enterpriseId);
+    const duplicateAlert = await this.checkDuplicateVoucher(
+      voucher,
+      items,
+      enterpriseId,
+    );
     if (duplicateAlert) {
       alerts.push(duplicateAlert);
     }
@@ -249,7 +257,10 @@ export class FinanceAlertService {
    */
   private async checkDuplicateVoucher(
     voucher: typeof schema.vouchers.$inferSelect,
-    items: Array<{ item: typeof schema.voucherItems.$inferSelect; account: any }>,
+    items: Array<{
+      item: typeof schema.voucherItems.$inferSelect;
+      account: any;
+    }>,
     enterpriseId: number,
   ): Promise<DetectionResult['alerts'][0] | null> {
     // 简化：检查同一天相同金额的凭证
@@ -282,7 +293,9 @@ export class FinanceAlertService {
         ),
       )
       .groupBy(schema.vouchers.id)
-      .having(sql`ABS(SUM(CAST(${schema.voucherItems.debitAmount} AS DECIMAL)) - ${totalAmount}) < 0.01`);
+      .having(
+        sql`ABS(SUM(CAST(${schema.voucherItems.debitAmount} AS DECIMAL)) - ${totalAmount}) < 0.01`,
+      );
 
     if (similarVouchers.length > 0) {
       return {
@@ -290,7 +303,9 @@ export class FinanceAlertService {
         severity: 'medium',
         title: '疑似重复凭证',
         description: `发现 ${similarVouchers.length} 张同一天相同金额的凭证，请确认是否为重复录入`,
-        suggestion: '请检查凭证号：' + similarVouchers.map(v => v.voucher.voucherNo).join(', '),
+        suggestion:
+          '请检查凭证号：' +
+          similarVouchers.map((v) => v.voucher.voucherNo).join(', '),
       };
     }
 
@@ -301,7 +316,10 @@ export class FinanceAlertService {
    * 检测现金限额
    */
   private async checkCashLimit(
-    items: Array<{ item: typeof schema.voucherItems.$inferSelect; account: any }>,
+    items: Array<{
+      item: typeof schema.voucherItems.$inferSelect;
+      account: any;
+    }>,
     enterpriseId: number,
   ): Promise<DetectionResult['alerts'][0] | null> {
     const cashConfig = await this.getAlertConfig(enterpriseId, 'cash_limit');
@@ -314,7 +332,9 @@ export class FinanceAlertService {
     for (const { item, account } of items) {
       // 检查库存现金科目
       if (account?.code === '1001') {
-        const amount = parseFloat(item.debitAmount || '0') + parseFloat(item.creditAmount || '0');
+        const amount =
+          parseFloat(item.debitAmount || '0') +
+          parseFloat(item.creditAmount || '0');
         if (amount > threshold) {
           return {
             type: 'cash_limit',
@@ -334,7 +354,10 @@ export class FinanceAlertService {
    * 检测税务风险
    */
   private async checkTaxRisks(
-    items: Array<{ item: typeof schema.voucherItems.$inferSelect; account: any }>,
+    items: Array<{
+      item: typeof schema.voucherItems.$inferSelect;
+      account: any;
+    }>,
     enterpriseId: number,
   ): Promise<DetectionResult['alerts']> {
     const alerts: DetectionResult['alerts'] = [];
@@ -399,8 +422,14 @@ export class FinanceAlertService {
     const amount = parseFloat(invoice.amount || '0');
 
     // 大额发票无附件风险
-    const missingAttachmentConfig = await this.getAlertConfig(enterpriseId, 'missing_attachment');
-    if (missingAttachmentConfig?.isEnabled && missingAttachmentConfig.thresholdValue) {
+    const missingAttachmentConfig = await this.getAlertConfig(
+      enterpriseId,
+      'missing_attachment',
+    );
+    if (
+      missingAttachmentConfig?.isEnabled &&
+      missingAttachmentConfig.thresholdValue
+    ) {
       const threshold = parseFloat(missingAttachmentConfig.thresholdValue);
       if (amount >= threshold && !invoice.ocrData) {
         alerts.push({
@@ -417,7 +446,9 @@ export class FinanceAlertService {
     const issueDate = invoice.issueDate;
     if (issueDate) {
       const now = new Date();
-      const daysDiff = Math.floor((now.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor(
+        (now.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
       if (daysDiff > 365) {
         alerts.push({
           type: 'cross_period',
@@ -550,7 +581,7 @@ export class FinanceAlertService {
       .offset((page - 1) * pageSize);
 
     return {
-      list: alerts.map(a => ({
+      list: alerts.map((a) => ({
         id: a.id,
         alertType: a.alertType as AlertType,
         severity: a.severity as AlertSeverity,
@@ -700,7 +731,8 @@ export class FinanceAlertService {
       .update(schema.financeAlertConfigs)
       .set({
         isEnabled: data.isEnabled ?? existing.isEnabled,
-        thresholdValue: data.thresholdValue?.toString() ?? existing.thresholdValue,
+        thresholdValue:
+          data.thresholdValue?.toString() ?? existing.thresholdValue,
         notifyChannels: data.notifyChannels ?? existing.notifyChannels,
         notifyTargets: data.notifyTargets ?? existing.notifyTargets,
         updatedAt: new Date(),
@@ -731,7 +763,10 @@ export class FinanceAlertService {
     let totalAlerts = 0;
 
     for (const voucher of vouchers) {
-      const result = await this.detectVoucherAnomalies(voucher.id, enterpriseId);
+      const result = await this.detectVoucherAnomalies(
+        voucher.id,
+        enterpriseId,
+      );
       totalAlerts += result.alerts.length;
     }
 

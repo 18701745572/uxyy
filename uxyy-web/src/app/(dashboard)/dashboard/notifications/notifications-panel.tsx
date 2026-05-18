@@ -280,7 +280,7 @@ export function NotificationsPanel() {
             onRetry={() => refetch()}
             retrying={isFetching}
           />
-        ) : data?.data.length === 0 ? (
+        ) : !data?.data?.length ? (
           <div className="py-12 text-center">
             <div className="text-4xl mb-3">🔔</div>
             <p className="text-text-tertiary mb-4">暂无通知</p>

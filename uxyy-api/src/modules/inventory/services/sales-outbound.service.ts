@@ -154,7 +154,12 @@ export class SalesOutboundService {
     const row = await this.db
       .select()
       .from(schema.salesOutboundOrders)
-      .where(and(eq(schema.salesOutboundOrders.id, id), eq(schema.salesOutboundOrders.enterpriseId, eid)))
+      .where(
+        and(
+          eq(schema.salesOutboundOrders.id, id),
+          eq(schema.salesOutboundOrders.enterpriseId, eid),
+        ),
+      )
       .limit(1);
 
     if (!row[0]) {
@@ -242,7 +247,10 @@ export class SalesOutboundService {
         const requiredQty = parseFloat(item.quantity);
 
         if (currentStock < requiredQty) {
-          return { productName: item.productName, short: requiredQty - currentStock };
+          return {
+            productName: item.productName,
+            short: requiredQty - currentStock,
+          };
         }
         return null;
       }),
@@ -259,7 +267,12 @@ export class SalesOutboundService {
     await this.db.transaction(async (tx) => {
       for (const item of items) {
         const qty = Number(item.quantity);
-        const { beforeQty, afterQty } = await deductStock(tx, eid, item.productId, qty);
+        const { beforeQty, afterQty } = await deductStock(
+          tx,
+          eid,
+          item.productId,
+          qty,
+        );
 
         await writeInventoryLog(tx, {
           enterpriseId: eid,
@@ -298,16 +311,18 @@ export class SalesOutboundService {
         const salesOrderItems = JSON.parse(salesOrder[0].items as string);
         const outboundItemMap = new Map(items.map((i) => [i.productId, i]));
 
-        const updatedItems = salesOrderItems.map((soi: any) => {
-          const outboundItem = outboundItemMap.get(soi.product_id);
-          if (outboundItem) {
-            const newDeliveredQty =
-              parseFloat(soi.delivered_qty ?? '0') +
-              parseFloat(outboundItem.quantity);
-            return { id: soi.id, deliveredQty: newDeliveredQty.toString() };
-          }
-          return null;
-        }).filter((i: any) => i !== null);
+        const updatedItems = salesOrderItems
+          .map((soi: any) => {
+            const outboundItem = outboundItemMap.get(soi.product_id);
+            if (outboundItem) {
+              const newDeliveredQty =
+                parseFloat(soi.delivered_qty ?? '0') +
+                parseFloat(outboundItem.quantity);
+              return { id: soi.id, deliveredQty: newDeliveredQty.toString() };
+            }
+            return null;
+          })
+          .filter((i: any) => i !== null);
 
         for (const item of updatedItems) {
           await tx
@@ -318,7 +333,10 @@ export class SalesOutboundService {
 
         const isFullyDelivered = salesOrderItems.every((soi: any) => {
           const outboundItem = outboundItemMap.get(soi.product_id);
-          if (!outboundItem) return parseFloat(soi.delivered_qty ?? '0') >= parseFloat(soi.quantity);
+          if (!outboundItem)
+            return (
+              parseFloat(soi.delivered_qty ?? '0') >= parseFloat(soi.quantity)
+            );
           const totalDelivered =
             parseFloat(soi.delivered_qty ?? '0') +
             parseFloat(outboundItem.quantity);

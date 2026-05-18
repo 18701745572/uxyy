@@ -39,7 +39,7 @@ export class RolesGuard implements CanActivate {
 
     const requiredCanonical = roles
       .map((r) => normalizeEnterpriseRole(r) ?? r)
-      .filter(Boolean) as string[];
+      .filter(Boolean);
 
     if (!requiredCanonical.includes(userCanonical)) {
       throw new ForbiddenException(

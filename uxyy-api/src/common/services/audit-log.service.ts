@@ -94,12 +94,12 @@ export class AuditLogService {
     const [totalRow] = await this.db
       .select({ c: count() })
       .from(schema.operationAuditLogs)
-      .where(where!);
+      .where(where);
 
     const rows = await this.db
       .select()
       .from(schema.operationAuditLogs)
-      .where(where!)
+      .where(where)
       .orderBy(desc(schema.operationAuditLogs.createdAt))
       .limit(params.pageSize)
       .offset(offset);
@@ -145,7 +145,7 @@ export class AuditLogService {
     return this.db
       .select()
       .from(schema.operationAuditLogs)
-      .where(where!)
+      .where(where)
       .orderBy(desc(schema.operationAuditLogs.createdAt))
       .limit(params.maxRows);
   }

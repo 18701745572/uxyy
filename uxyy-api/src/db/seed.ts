@@ -28,7 +28,9 @@ async function truncatePublicApplicationTables(pool: Pool): Promise<void> {
       `SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`,
       ['public'],
     );
-    const names = res.rows.map((r) => r.tablename).filter((t) => !t.startsWith('__'));
+    const names = res.rows
+      .map((r) => r.tablename)
+      .filter((t) => !t.startsWith('__'));
     if (names.length === 0) {
       await client.query('COMMIT');
       return;
@@ -137,7 +139,9 @@ async function purgeAndSeedFiveRoleMatrix(
 
   const bossCfg = rows.find((r) => r.isBoss);
   if (!bossCfg) throw new Error('[seed] missing boss row');
-  const bossUser = createdUsers.find((u) => u.phone.trim() === bossCfg.phone.trim());
+  const bossUser = createdUsers.find(
+    (u) => u.phone.trim() === bossCfg.phone.trim(),
+  );
   if (!bossUser) throw new Error('[seed] boss user missing');
 
   const [enterprise] = await db

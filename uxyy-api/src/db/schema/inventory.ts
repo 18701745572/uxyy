@@ -48,7 +48,9 @@ export const productMemberPrices = pgTable(
       .references(() => memberLevels.id)
       .notNull(),
     price: decimal('price', { precision: 12, scale: 2 }).notNull(),
-    discountRate: decimal('discount_rate', { precision: 5, scale: 2 }).default('100'), // 折扣率
+    discountRate: decimal('discount_rate', { precision: 5, scale: 2 }).default(
+      '100',
+    ), // 折扣率
     isEnabled: boolean('is_enabled').default(true).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -57,7 +59,10 @@ export const productMemberPrices = pgTable(
     index('product_member_prices_enterprise_idx').on(t.enterpriseId),
     index('product_member_prices_product_idx').on(t.productId),
     index('product_member_prices_level_idx').on(t.levelId),
-    uniqueIndex('product_member_prices_product_level_uk').on(t.productId, t.levelId),
+    uniqueIndex('product_member_prices_product_level_uk').on(
+      t.productId,
+      t.levelId,
+    ),
   ],
 );
 
@@ -397,16 +402,14 @@ export const paymentRecords = pgTable(
     customerId: integer('customer_id')
       .references(() => customers.id)
       .notNull(),
-    orderId: integer('order_id')
-      .references(() => salesOrders.id),
+    orderId: integer('order_id').references(() => salesOrders.id),
     orderNo: varchar('order_no', { length: 50 }),
     amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
     paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // cash, bank, alipay, wechat
     paymentDate: timestamp('payment_date').defaultNow().notNull(),
     referenceNo: varchar('reference_no', { length: 50 }), // 银行流水号/支付单号
     remark: text('remark'),
-    createdBy: integer('created_by')
-      .references(() => users.id),
+    createdBy: integer('created_by').references(() => users.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (t) => [
@@ -428,16 +431,14 @@ export const supplierPayments = pgTable(
     supplierId: integer('supplier_id')
       .references(() => suppliers.id)
       .notNull(),
-    orderId: integer('order_id')
-      .references(() => purchaseOrders.id),
+    orderId: integer('order_id').references(() => purchaseOrders.id),
     orderNo: varchar('order_no', { length: 50 }),
     amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
     paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // cash, bank, alipay, wechat
     paymentDate: timestamp('payment_date').defaultNow().notNull(),
     referenceNo: varchar('reference_no', { length: 50 }), // 银行流水号/支付单号
     remark: text('remark'),
-    createdBy: integer('created_by')
-      .references(() => users.id),
+    createdBy: integer('created_by').references(() => users.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (t) => [
@@ -463,7 +464,10 @@ export const productBatches = pgTable(
     productionDate: timestamp('production_date'), // 生产日期
     expiryDate: timestamp('expiry_date'), // 有效期至
     quantity: decimal('quantity', { precision: 12, scale: 2 }).notNull(), // 当前库存数量
-    initialQuantity: decimal('initial_quantity', { precision: 12, scale: 2 }).notNull(), // 初始入库数量
+    initialQuantity: decimal('initial_quantity', {
+      precision: 12,
+      scale: 2,
+    }).notNull(), // 初始入库数量
     costPrice: decimal('cost_price', { precision: 12, scale: 2 }), // 成本价
     supplierId: integer('supplier_id').references(() => suppliers.id), // 供应商
     warehouseId: integer('warehouse_id').default(1), // 仓库

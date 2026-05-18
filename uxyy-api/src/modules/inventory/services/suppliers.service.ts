@@ -213,7 +213,9 @@ export class SuppliersService {
         if (!key || key === '_ignore') continue;
 
         const str =
-          val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         switch (key) {

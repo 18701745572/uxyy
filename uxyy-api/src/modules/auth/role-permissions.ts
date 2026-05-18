@@ -35,9 +35,9 @@ export const Permission = {
   FIN_WRITE: 'finance:write',
   FIN_VOUCHER: 'finance:voucher',
   FIN_REPORT: 'finance:report',
-  FIN_AUDIT: 'finance:audit',      // 凭证审核权限
-  FIN_POST: 'finance:post',         // 凭证过账权限
-  FIN_CONFIG: 'finance:config',    // 财务配置权限（科目映射等）
+  FIN_AUDIT: 'finance:audit', // 凭证审核权限
+  FIN_POST: 'finance:post', // 凭证过账权限
+  FIN_CONFIG: 'finance:config', // 财务配置权限（科目映射等）
 
   OA_READ: 'oa:read',
   OA_APPROVE: 'oa:approve',
@@ -52,58 +52,54 @@ export type PermissionCode = (typeof Permission)[keyof typeof Permission];
 
 const P = Permission;
 
-const ALL_PERMISSIONS: readonly PermissionCode[] = Object.values(
-  Permission,
-) as PermissionCode[];
+const ALL_PERMISSIONS: readonly PermissionCode[] = Object.values(Permission);
 
-export const ROLE_PERMISSIONS: Record<
-  UxyyRoleCode,
-  readonly PermissionCode[]
-> = {
-  [UxyyRole.BOSS]: ALL_PERMISSIONS,
+export const ROLE_PERMISSIONS: Record<UxyyRoleCode, readonly PermissionCode[]> =
+  {
+    [UxyyRole.BOSS]: ALL_PERMISSIONS,
 
-  [UxyyRole.FINANCE]: [
-    P.FIN_READ,
-    P.FIN_WRITE,
-    P.FIN_VOUCHER,
-    P.FIN_REPORT,
-    P.FIN_AUDIT,
-    P.FIN_POST,
-    P.FIN_CONFIG,
-    P.CRM_READ,
-    P.INV_READ,
-    P.OA_READ,
-  ],
+    [UxyyRole.FINANCE]: [
+      P.FIN_READ,
+      P.FIN_WRITE,
+      P.FIN_VOUCHER,
+      P.FIN_REPORT,
+      P.FIN_AUDIT,
+      P.FIN_POST,
+      P.FIN_CONFIG,
+      P.CRM_READ,
+      P.INV_READ,
+      P.OA_READ,
+    ],
 
-  [UxyyRole.SALES]: [
-    P.CRM_READ,
-    P.CRM_WRITE,
-    P.CRM_DELETE,
-    P.INV_READ,
-    P.INV_SALES_ORDER,
-    P.OA_READ,
-  ],
+    [UxyyRole.SALES]: [
+      P.CRM_READ,
+      P.CRM_WRITE,
+      P.CRM_DELETE,
+      P.INV_READ,
+      P.INV_SALES_ORDER,
+      P.OA_READ,
+    ],
 
-  [UxyyRole.WAREHOUSE]: [
-    P.INV_READ,
-    P.INV_WRITE,
-    P.INV_STOCK,
-    P.INV_PURCHASE,
-    P.CRM_READ,
-    P.OA_READ,
-  ],
+    [UxyyRole.WAREHOUSE]: [
+      P.INV_READ,
+      P.INV_WRITE,
+      P.INV_STOCK,
+      P.INV_PURCHASE,
+      P.CRM_READ,
+      P.OA_READ,
+    ],
 
-  [UxyyRole.OA]: [
-    P.OA_READ,
-    P.OA_APPROVE,
-    P.OA_MANAGE,
-    P.SYS_BACKUP,
-    P.SYS_MEMBER,
-    P.SYS_AUDIT_LOG,
-    P.CRM_READ,
-    P.INV_READ,
-  ],
-};
+    [UxyyRole.OA]: [
+      P.OA_READ,
+      P.OA_APPROVE,
+      P.OA_MANAGE,
+      P.SYS_BACKUP,
+      P.SYS_MEMBER,
+      P.SYS_AUDIT_LOG,
+      P.CRM_READ,
+      P.INV_READ,
+    ],
+  };
 
 /** 前端/文档用：预设角色说明 */
 export const PRESET_ENTERPRISE_ROLES: ReadonlyArray<{
@@ -145,12 +141,7 @@ export const KNOWN_ENTERPRISE_ROLE_CODES: readonly UxyyRoleCode[] =
 export const ASSIGNABLE_ENTERPRISE_MEMBER_ROLES: readonly Exclude<
   UxyyRoleCode,
   typeof UxyyRole.BOSS
->[] = [
-  UxyyRole.FINANCE,
-  UxyyRole.SALES,
-  UxyyRole.WAREHOUSE,
-  UxyyRole.OA,
-];
+>[] = [UxyyRole.FINANCE, UxyyRole.SALES, UxyyRole.WAREHOUSE, UxyyRole.OA];
 
 export const KNOWN_ROLE_SET = new Set<string>(KNOWN_ENTERPRISE_ROLE_CODES);
 

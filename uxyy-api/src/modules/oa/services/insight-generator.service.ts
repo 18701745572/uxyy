@@ -85,7 +85,9 @@ export class InsightGeneratorService {
       );
 
     // 查询上周销售额
-    const lastWeekStart = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastWeekStart = new Date(
+      startDate.getTime() - 7 * 24 * 60 * 60 * 1000,
+    );
     const lastWeekSales = await this.db
       .select({
         total: sql<string>`COALESCE(SUM(${schema.salesOrders.totalAmount}), '0')`,
@@ -163,12 +165,12 @@ export class InsightGeneratorService {
         productId: schema.salesOrderItems.productId,
         productName: schema.products.name,
         totalQuantity: sql<string>`SUM(${schema.salesOrderItems.quantity})`,
-        totalAmount: sql<string>`SUM(${schema.salesOrderItems.subtotal})`,
+        totalAmount: sql<string>`SUM(${schema.salesOrderItems.amount})`,
       })
       .from(schema.salesOrderItems)
       .innerJoin(
         schema.salesOrders,
-        eq(schema.salesOrderItems.salesOrderId, schema.salesOrders.id),
+        eq(schema.salesOrderItems.orderId, schema.salesOrders.id),
       )
       .innerJoin(
         schema.products,
@@ -188,7 +190,10 @@ export class InsightGeneratorService {
 
     if (topProducts.length > 0) {
       const productList = topProducts
-        .map((p, i) => `${i + 1}. ${p.productName} (¥${parseFloat(p.totalAmount).toFixed(0)})`)
+        .map(
+          (p, i) =>
+            `${i + 1}. ${p.productName} (¥${parseFloat(p.totalAmount).toFixed(0)})`,
+        )
         .join('\n');
 
       await this.sendInsightToAdmins(enterpriseId, {
@@ -231,8 +236,8 @@ export class InsightGeneratorService {
         and(
           eq(schema.purchaseOrders.enterpriseId, enterpriseId),
           eq(schema.purchaseOrders.status, 'completed'),
-          gte(schema.purchaseOrders.orderDate, startDate),
-          lt(schema.purchaseOrders.orderDate, endDate),
+          gte(schema.purchaseOrders.createdAt, startDate),
+          lt(schema.purchaseOrders.createdAt, endDate),
         ),
       );
 
@@ -260,12 +265,12 @@ export class InsightGeneratorService {
   ) {
     // 获取企业的管理员用户
     const admins = await this.db
-      .select({ userId: schema.users.id })
-      .from(schema.users)
+      .select({ userId: schema.userEnterprises.userId })
+      .from(schema.userEnterprises)
       .where(
         and(
-          eq(schema.users.enterpriseId, enterpriseId),
-          eq(schema.users.role, 'admin'),
+          eq(schema.userEnterprises.enterpriseId, enterpriseId),
+          eq(schema.userEnterprises.role, 'admin'),
         ),
       );
 

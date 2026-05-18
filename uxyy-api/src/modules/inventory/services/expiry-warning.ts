@@ -10,24 +10,25 @@ export const EXPIRY_CRITICAL_DAYS = 7;
 
 export type ExpirySeverity = 'expired' | 'critical' | 'warning';
 
-export function classifyExpirySeverity(daysUntilExpiry: number): ExpirySeverity {
+export function classifyExpirySeverity(
+  daysUntilExpiry: number,
+): ExpirySeverity {
   if (daysUntilExpiry < 0) return 'expired';
   if (daysUntilExpiry <= EXPIRY_CRITICAL_DAYS) return 'critical';
   return 'warning';
 }
 
-export function ceilDaysUntil(expiresAt: Date, from: Date = new Date()): number {
+export function ceilDaysUntil(
+  expiresAt: Date,
+  from: Date = new Date(),
+): number {
   const msPerDay = 1000 * 60 * 60 * 24;
-  return Math.ceil(
-    (expiresAt.getTime() - from.getTime()) / msPerDay,
-  );
+  return Math.ceil((expiresAt.getTime() - from.getTime()) / msPerDay);
 }
 
 function expiryWindowEnd(warningDays: number): Date {
   const warnEnd = new Date();
-  warnEnd.setDate(
-    warnEnd.getDate() + Math.max(1, Math.min(warningDays, 730)),
-  );
+  warnEnd.setDate(warnEnd.getDate() + Math.max(1, Math.min(warningDays, 730)));
   return warnEnd;
 }
 

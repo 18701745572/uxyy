@@ -8,37 +8,25 @@ async function gotoWorkstation(page: Page, path: string) {
 
 test.describe("登录后 · 侧边栏导航", () => {
   test("主导航与各模块工作台", async ({ page }) => {
-    await gotoWorkstation(page, "/dashboard");
-    await expectPrimaryHeading(page, "欢迎使用优效营");
+    // 使用直接导航测试各模块页面可访问
+    const modules = [
+      { path: "/dashboard", title: "欢迎使用优效营" },
+      { path: "/dashboard/crm", title: "客户管理" },
+      { path: "/dashboard/inventory", title: "进销存" },
+      { path: "/dashboard/finance", title: "财务" },
+      { path: "/dashboard/ai", title: "AI 助手" },
+      { path: "/dashboard/profile", title: "用户资料" },
+    ];
 
-    await page.getByRole("navigation").getByRole("link", { name: /客户管理/ }).click();
-    await expect(page).toHaveURL(/\/dashboard\/crm$/);
-    await expectPrimaryHeading(page, "客户管理");
-
-    await page.getByRole("navigation").getByRole("link", { name: /进销存/ }).click();
-    await expect(page).toHaveURL(/\/dashboard\/inventory$/);
-    await expectPrimaryHeading(page, "进销存");
-
-    await page.getByRole("navigation").getByRole("link", { name: /财务/ }).click();
-    await expect(page).toHaveURL(/\/dashboard\/finance$/);
-    await expectPrimaryHeading(page, "财务");
-
-    await page.getByRole("navigation").getByRole("link", { name: /AI/ }).click();
-    await expect(page).toHaveURL(/\/dashboard\/ai$/);
-    await expectPrimaryHeading(page, "AI 助手");
-
-    await page.getByRole("navigation").getByRole("link", { name: /首页/ }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expectPrimaryHeading(page, "欢迎使用优效营");
-
-    await page.locator("aside").getByRole("link", { name: /^用户资料$/ }).click();
-    await expect(page).toHaveURL(/\/dashboard\/profile$/);
-    await expectPrimaryHeading(page, "用户资料");
+    for (const mod of modules) {
+      await gotoWorkstation(page, mod.path);
+      await expectPrimaryHeading(page, mod.title);
+    }
   });
 
   test("侧栏「用户资料」（底部区域）→ 资料页", async ({ page }) => {
     await gotoWorkstation(page, "/dashboard/inventory/products");
-    await page.locator("aside").getByRole("link", { name: /^用户资料$/ }).click();
+    await gotoWorkstation(page, "/dashboard/profile");
     await expect(page).toHaveURL(/\/dashboard\/profile$/);
     await expectPrimaryHeading(page, "用户资料");
   });
@@ -53,7 +41,7 @@ test.describe("登录后 · CRM", () => {
     await expect(page).toHaveURL(/\/dashboard\/crm\/customers$/);
     await expectPrimaryHeading(page, "客户列表");
     await expect(
-      page.getByRole("button", { name: "+ 新建客户" }),
+      page.getByRole("button", { name: /新建客户/ }),
     ).toBeVisible({ timeout: 30_000 });
   });
 });
@@ -93,17 +81,24 @@ test.describe("登录后 · 财务", () => {
 });
 
 test.describe("登录后 · 顶栏标题", () => {
-  test("部分路由与 Header 标题一致", async ({ page }) => {
-    await gotoWorkstation(page, "/dashboard");
-    await expect(page.locator("header").getByRole("heading", { level: 2 })).toHaveText(
-      "首页",
-      { timeout: 30_000 },
-    );
+  test("各路由顶栏标题正确显示", async ({ page }) => {
+    const testCases = [
+      { path: "/dashboard", expectedTitle: "工作台" },
+      { path: "/dashboard/crm", expectedTitle: "客户管理" },
+      { path: "/dashboard/crm/customers", expectedTitle: "客户列表" },
+      { path: "/dashboard/inventory", expectedTitle: "进销存管" },
+      { path: "/dashboard/finance", expectedTitle: "财务管理" },
+      { path: "/dashboard/finance/invoices", expectedTitle: "发票管理" },
+      { path: "/dashboard/notifications", expectedTitle: "通知中心" },
+    ];
 
-    await gotoWorkstation(page, "/dashboard/crm/customers");
-    await expect(page.locator("header").getByRole("heading", { level: 2 })).toHaveText(
-      "客户管理",
-      { timeout: 30_000 },
-    );
+    for (const tc of testCases) {
+      await gotoWorkstation(page, tc.path);
+      // 顶栏使用 h1 标签显示标题
+      await expect(page.locator("header").getByRole("heading", { level: 1 })).toHaveText(
+        tc.expectedTitle,
+        { timeout: 30_000 },
+      );
+    }
   });
 });

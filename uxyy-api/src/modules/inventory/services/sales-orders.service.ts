@@ -429,7 +429,11 @@ export class SalesOrdersService {
       if (allFullyDelivered) {
         try {
           const order = await this.findOne(id, enterpriseId);
-          await this.autoAccountingService.autoAccountSalesOrder(order, eid, userId);
+          await this.autoAccountingService.autoAccountSalesOrder(
+            order,
+            eid,
+            userId,
+          );
         } catch (err) {
           // 记账失败不影响业务流程，记录日志即可
           console.error('销售单自动记账失败:', err);
@@ -588,13 +592,20 @@ export class SalesOrdersService {
         const key = HEADER_MAP[String(header).trim()];
         if (!key || key === '_ignore') continue;
 
-        if (key === 'totalAmount' || key === 'discountAmount' || key === 'payableAmount') {
+        if (
+          key === 'totalAmount' ||
+          key === 'discountAmount' ||
+          key === 'payableAmount'
+        ) {
           const n = Number(val);
           if (Number.isFinite(n) && n >= 0) rowData[key] = n;
           continue;
         }
 
-        const str = val instanceof Date ? val.toISOString().slice(0, 10) : String(val).trim();
+        const str =
+          val instanceof Date
+            ? val.toISOString().slice(0, 10)
+            : String(val).trim();
         if (!str) continue;
 
         rowData[key] = str;
@@ -604,7 +615,10 @@ export class SalesOrdersService {
       const customerName = String(rowData['customerName'] || '');
 
       if (!orderNo && !customerName) {
-        failures.push({ row: rowIndex, reason: '订单编号或客户名称至少填一项' });
+        failures.push({
+          row: rowIndex,
+          reason: '订单编号或客户名称至少填一项',
+        });
         continue;
       }
 
@@ -645,7 +659,10 @@ export class SalesOrdersService {
       }
 
       if (!customerId) {
-        failures.push({ row: rowIndex, reason: `客户 "${customerName}" 不存在` });
+        failures.push({
+          row: rowIndex,
+          reason: `客户 "${customerName}" 不存在`,
+        });
         continue;
       }
 
@@ -654,7 +671,10 @@ export class SalesOrdersService {
       const payableAmount = Number(rowData['payableAmount'] || totalAmount);
       const rawStatus = String(rowData['status'] || 'draft');
       const status = statusMap[rawStatus] || rawStatus || 'draft';
-      const deliveryType = String(rowData['deliveryType'] || 'self') === 'delivery' ? 'delivery' : 'self';
+      const deliveryType =
+        String(rowData['deliveryType'] || 'self') === 'delivery'
+          ? 'delivery'
+          : 'self';
       const remark = String(rowData['remark'] || '');
 
       try {
