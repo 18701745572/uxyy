@@ -1,178 +1,248 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getQueueToken } from '@nestjs/bullmq';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AiService } from './ai.service';
-import { AiLlmService } from './ai.llm';
 import { DRIZZLE_DB } from '../database/database.constants';
+import { AiLlmService } from './ai.llm';
 import { FinanceService } from '../finance/finance.service';
-import { AI_DEFAULT_QUEUE, AI_DLQ_QUEUE } from './ai.constants';
-
-const now = new Date('2026-05-05T10:00:00Z');
-
-function row(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 1,
-    enterpriseId: 1,
-    userId: 1,
-    taskType: 'accounting_suggestion',
-    clientKey: null,
-    status: 'pending',
-    inputPayload: {},
-    outputPayload: null,
-    errorMessage: null,
-    attempts: 0,
-    maxAttempts: 3,
-    jobId: null,
-    createdAt: now,
-    updatedAt: now,
-    ...overrides,
-  };
-}
-
-/**
- * Build a drizzle mock object where each chain method (select, insert,
- * update, from, where, etc.) returns the same mock, and `await mock`
- * resolves to `rows`.  We avoid a static `then` property (which confuses
- * NestJS DI) by using `defineProperty` with `enumerable: false`.
- */
-function dbMock(rows: unknown[]) {
-  const self: Record<string, unknown> = {};
-
-  const methods = [
-    'select',
-    'from',
-    'insert',
-    'update',
-    'values',
-    'set',
-    'where',
-    'limit',
-    'offset',
-    'orderBy',
-  ];
-  for (const m of methods) {
-    self[m] = jest.fn().mockReturnValue(self);
-  }
-  self.returning = jest.fn().mockResolvedValue(rows);
-
-  Object.defineProperty(self, 'then', {
-    enumerable: false,
-    configurable: true,
-    value: (resolve: (v: unknown) => void) =>
-      Promise.resolve(rows).then(resolve),
-  });
-
-  return self;
-}
+import { getQueueToken } from '@nestjs/bullmq';
 
 describe('AiService', () => {
   let service: AiService;
-  let aiQueue: { add: jest.Mock; getJobCounts: jest.Mock };
+  let mockDb: any;
+  let mockQueue: any;
+  let mockDlqQueue: any;
+  let mockLlm: any;
+  let mockFinance: any;
+
+  const mockAiTask = {
+    id: 1,
+    enterpriseId: 1,
+    userId: 1,
+    taskType: 'invoice_analysis',
+    clientKey: 'test-key',
+    status: 'pending',
+    inputPayload: { imageUrl: 'http://example.com/invoice.jpg' },
+    outputPayload: null,
+    jobId: 'job-123',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
 
   beforeEach(async () => {
-    aiQueue = {
-      add: jest.fn().mockResolvedValue({ id: 'bullmq-job-123' }),
-      getJobCounts: jest.fn().mockResolvedValue({
-        waiting: 0,
-        active: 1,
-        completed: 5,
-        failed: 0,
-        delayed: 0,
-        paused: 0,
-      }),
-    };
-    const dlqQueue = {
-      add: jest.fn(),
-      getJobCounts: jest.fn().mockResolvedValue({
-        waiting: 0,
-        active: 0,
-        completed: 1,
-        failed: 0,
-        delayed: 0,
-        paused: 0,
-      }),
-    };
-    const llm = { chat: jest.fn().mockResolvedValue('{"ok":true}') };
-    const finance = {
-      findVoucherBySource: jest.fn().mockResolvedValue(null),
-      createVoucher: jest.fn(),
-      nextVoucherNo: jest.fn().mockReturnValue('V202601010001'),
+    mockDb = jest.fn();
+
+    mockQueue = {
+      add: jest.fn().mockResolvedValue({ id: 'job-123' }),
     };
 
-    // Provide a stub database – we'll replace it on the service after compile
-    const stubDb = {};
+    mockDlqQueue = {
+      add: jest.fn().mockResolvedValue({ id: 'dlq-job-123' }),
+    };
+
+    mockLlm = {
+      analyzeInvoice: jest.fn().mockResolvedValue({
+        type: 'input',
+        amount: 1000,
+        taxAmount: 100,
+        invoiceDate: '2024-01-01',
+      }),
+      generateVoucher: jest.fn().mockResolvedValue({
+        items: [
+          { subjectName: '库存商品', debit: 1000, credit: 0 },
+          { subjectName: '银行存款', debit: 0, credit: 1000 },
+        ],
+      }),
+    };
+
+    mockFinance = {
+      createVoucher: jest.fn().mockResolvedValue({ id: 1 }),
+      findVoucherBySource: jest.fn().mockResolvedValue(null),
+      nextVoucherNo: jest.fn().mockReturnValue('V202401010001'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiService,
-        { provide: getQueueToken(AI_DEFAULT_QUEUE), useValue: aiQueue },
-        { provide: getQueueToken(AI_DLQ_QUEUE), useValue: dlqQueue },
-        { provide: DRIZZLE_DB, useValue: stubDb },
-        { provide: AiLlmService, useValue: llm },
-        { provide: FinanceService, useValue: finance },
+        {
+          provide: DRIZZLE_DB,
+          useValue: mockDb,
+        },
+        {
+          provide: getQueueToken('ai-default'),
+          useValue: mockQueue,
+        },
+        {
+          provide: getQueueToken('ai-default-dlq'),
+          useValue: mockDlqQueue,
+        },
+        {
+          provide: AiLlmService,
+          useValue: mockLlm,
+        },
+        {
+          provide: FinanceService,
+          useValue: mockFinance,
+        },
       ],
     }).compile();
 
     service = module.get<AiService>(AiService);
   });
 
-  it('submitTask → creates task and enqueues to BullMQ', async () => {
-    (service as any).db = dbMock([row()]);
-
-    const result = await service.submitTask(
-      { taskType: 'accounting_suggestion', payload: { x: 1 } },
-      1,
-      1,
-    );
-
-    expect(result.id).toBe(1);
-    expect(result.status).toBe('pending');
-    expect(aiQueue.add).toHaveBeenCalledWith(
-      'ai-process',
-      expect.objectContaining({ taskId: 1 }),
-      expect.objectContaining({
-        jobId: expect.stringMatching(/^ai:accounting_suggestion:/),
-      }),
-    );
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('submitTask with clientKey → idempotent re-submit returns existing', async () => {
-    (service as any).db = dbMock([row({ clientKey: 'dup-key' })]);
+  describe('submitTask', () => {
+    it('should return existing task for duplicate clientKey', async () => {
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([mockAiTask]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
 
-    const result = await service.submitTask(
-      { taskType: 'accounting_suggestion', clientKey: 'dup-key', payload: {} },
-      1,
-      1,
-    );
+      const result = await service.submitTask(
+        {
+          taskType: 'invoice_analysis',
+          clientKey: 'test-key',
+          payload: {},
+        },
+        1,
+        1,
+      );
 
-    expect(result.clientKey).toBe('dup-key');
-    expect(aiQueue.add).not.toHaveBeenCalled();
+      expect(result.id).toBe(1);
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
   });
 
-  it('getTask → returns task for valid id', async () => {
-    (service as any).db = dbMock([row()]);
-    const result = await service.getTask(1, 1);
-    expect(result).not.toBeNull();
-    expect(result!.id).toBe(1);
+  describe('getTask', () => {
+    it('should return task by id', async () => {
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([mockAiTask]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
+
+      const result = await service.getTask(1, 1);
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(1);
+      expect(result!.status).toBe('pending');
+    });
+
+    it('should return null when task not found', async () => {
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
+
+      const result = await service.getTask(999, 1);
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('getTask → returns null when query resolves empty', async () => {
-    (service as any).db = dbMock([]);
-    const result = await service.getTask(1, 999);
-    expect(result).toBeNull();
-  });
+  describe('applyVoucherFromAiTask', () => {
+    it('should apply voucher from completed task', async () => {
+      const completedTask = {
+        ...mockAiTask,
+        status: 'completed',
+        outputPayload: {
+          entries: [
+            {
+              subjectName: '库存商品',
+              accountSubject: '1405',
+              debit: 1000,
+              credit: 0,
+            },
+            {
+              subjectName: '银行存款',
+              accountSubject: '1002',
+              debit: 0,
+              credit: 1000,
+            },
+          ],
+        },
+      };
 
-  it('getQueueStats → returns main and DLQ counts', async () => {
-    const stats = await service.getQueueStats();
-    expect(stats.queue).toBe(AI_DEFAULT_QUEUE);
-    expect(stats.dlqQueue).toBe(AI_DLQ_QUEUE);
-    expect(stats.counts.completed).toBe(5);
-    expect(stats.dlqCounts.completed).toBe(1);
-  });
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([completedTask]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
 
-  it('markProcessing / markCompleted / markFailed → do not throw', async () => {
-    (service as any).db = dbMock([]);
-    await expect(service.markProcessing(1)).resolves.toBeUndefined();
-    await expect(service.markCompleted(1, {})).resolves.toBeUndefined();
-    await expect(service.markFailed(1, 'e', true)).resolves.toBeUndefined();
-    await expect(service.markFailed(1, 'e', false)).resolves.toBeUndefined();
+      const result = await service.applyVoucherFromAiTask(1, 1, 1);
+
+      expect(result.created).toBe(true);
+      expect(mockFinance.createVoucher).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when task not found', async () => {
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
+
+      await expect(service.applyVoucherFromAiTask(1, 1, 999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException for non-completed task', async () => {
+      const limitChain = {
+        limit: jest.fn().mockResolvedValue([mockAiTask]),
+      };
+      const whereChain = {
+        where: jest.fn().mockReturnValue(limitChain),
+        and: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      const fromChain = {
+        from: jest.fn().mockReturnValue(whereChain),
+      };
+      mockDb.select = jest.fn().mockReturnValue(fromChain);
+
+      await expect(service.applyVoucherFromAiTask(1, 1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 });

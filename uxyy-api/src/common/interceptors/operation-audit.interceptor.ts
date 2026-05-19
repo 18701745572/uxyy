@@ -9,6 +9,13 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuditLogService } from '../services/audit-log.service';
 
+interface UserPayload {
+  userId: number;
+  enterpriseId?: number;
+  role?: string;
+  devBypass?: boolean;
+}
+
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 @Injectable()
@@ -30,7 +37,7 @@ export class OperationAuditInterceptor implements NestInterceptor {
     }
 
     const start = Date.now();
-    const user = req.user as { userId?: number; enterpriseId?: number } | undefined;
+    const user = req.user as UserPayload | undefined;
 
     return next.handle().pipe(
       tap({

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
+import { SupplierPaymentService } from './supplier-payment.service';
+import { PriceAnomalyService } from './price-anomaly.service';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { DRIZZLE_DB } from '../../database/database.constants';
 
@@ -103,6 +105,14 @@ describe('PurchaseOrdersService', () => {
         {
           provide: AutoAccountingService,
           useValue: { autoAccountPurchaseOrder: jest.fn() },
+        },
+        {
+          provide: SupplierPaymentService,
+          useValue: { createPaymentFromOrder: jest.fn() },
+        },
+        {
+          provide: PriceAnomalyService,
+          useValue: { checkPriceAnomaly: jest.fn() },
         },
       ],
     }).compile();

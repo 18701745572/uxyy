@@ -3,6 +3,13 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AsyncLocalStorage } from 'async_hooks';
 
+interface UserPayload {
+  userId: number;
+  enterpriseId?: number;
+  role?: string;
+  devBypass?: boolean;
+}
+
 /**
  * 请求上下文存储
  * 用于在异步调用链中传递请求信息
@@ -50,7 +57,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     };
 
     // 如果已认证，添加用户信息
-    const user = req.user as { userId?: number; enterpriseId?: number } | undefined;
+    const user = req.user as UserPayload | undefined;
     if (user) {
       context.userId = user.userId?.toString();
       context.enterpriseId = user.enterpriseId?.toString();

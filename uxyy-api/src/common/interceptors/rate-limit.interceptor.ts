@@ -11,6 +11,13 @@ import { catchError, tap } from 'rxjs/operators';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
+interface UserPayload {
+  userId: number;
+  enterpriseId?: number;
+  role?: string;
+  devBypass?: boolean;
+}
+
 /**
  * 限流记录结构
  */
@@ -286,7 +293,7 @@ export class RateLimitInterceptor implements NestInterceptor {
    * 获取用户 ID（从 JWT）
    */
   private getUserId(req: Request): string | undefined {
-    const user = req.user as { userId?: number } | undefined;
+    const user = req.user as UserPayload | undefined;
     return user?.userId ? String(user.userId) : undefined;
   }
 

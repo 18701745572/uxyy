@@ -37,6 +37,8 @@ describe('FinanceController', () => {
       getIncomeStatement: jest.fn(),
       getCashFlow: jest.fn(),
       getArAp: jest.fn(),
+      importInvoicesFromSpreadsheet: jest.fn(),
+      importVouchersFromSpreadsheet: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

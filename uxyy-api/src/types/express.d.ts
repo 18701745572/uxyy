@@ -1,3 +1,5 @@
+import 'express';
+
 declare global {
   namespace Express {
     interface UserPayload {
@@ -14,4 +16,5 @@ declare global {
     }
   }
 }
+
 export {};

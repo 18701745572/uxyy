@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SalesOrdersService } from './sales-orders.service';
 import { DRIZZLE_DB } from '../../database/database.constants';
+import { AutoAccountingService } from '../../finance/services/auto-accounting.service';
+import { PriceAnomalyService } from './price-anomaly.service';
 
 type MockDb = Record<string, jest.Mock>;
 
@@ -98,7 +100,18 @@ describe('SalesOrdersService', () => {
     tx = mocks.tx;
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SalesOrdersService, { provide: DRIZZLE_DB, useValue: db }],
+      providers: [
+        SalesOrdersService,
+        { provide: DRIZZLE_DB, useValue: db },
+        {
+          provide: AutoAccountingService,
+          useValue: { autoAccountSalesOrder: jest.fn() },
+        },
+        {
+          provide: PriceAnomalyService,
+          useValue: { checkPriceAnomaly: jest.fn() },
+        },
+      ],
     }).compile();
 
     service = module.get<SalesOrdersService>(SalesOrdersService);

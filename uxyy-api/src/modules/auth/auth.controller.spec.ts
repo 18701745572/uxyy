@@ -3,6 +3,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EnterpriseInvitationsService } from './enterprise-invitations.service';
 import { UxyyRole } from './role-permissions';
 
 function mockAuth(): Partial<AuthService> {
@@ -30,6 +31,14 @@ function mockAuth(): Partial<AuthService> {
   };
 }
 
+function mockEnterpriseInvitations(): Partial<EnterpriseInvitationsService> {
+  return {
+    createInvitation: jest.fn().mockResolvedValue({ token: 'invite-token' }),
+    preview: jest.fn().mockResolvedValue({ valid: true }),
+    acceptInvitation: jest.fn().mockResolvedValue({ success: true }),
+  };
+}
+
 function mockReq(overrides: Record<string, unknown> = {}) {
   return {
     user: { userId: 1, enterpriseId: 10, role: 'boss' },
@@ -40,13 +49,19 @@ function mockReq(overrides: Record<string, unknown> = {}) {
 describe('AuthController', () => {
   let controller: AuthController;
   let auth: Partial<AuthService>;
+  let invitations: Partial<EnterpriseInvitationsService>;
 
   beforeEach(async () => {
     auth = mockAuth();
+    invitations = mockEnterpriseInvitations();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: auth }, Reflector],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: EnterpriseInvitationsService, useValue: invitations },
+        Reflector,
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
